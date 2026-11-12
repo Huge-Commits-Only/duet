@@ -1,0 +1,7 @@
+addReviewers: true
+addAssignees: author
+
+reviewers:
+  - Kogut01
+
+numberOfReviewers: 1

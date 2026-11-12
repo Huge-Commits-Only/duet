@@ -1,0 +1,49 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+
+categories:
+  - title: "🚀 Features"
+    when:
+      labels:
+        - "feature"
+        - "enhancement"
+
+  - title: "🐛 Fixes"
+    when:
+      labels:
+        - "fix"
+        - "bugfix"
+        - "bug"
+
+  - title: "🧰 Maintenance"
+    when:
+      labels:
+        - "chore"
+        - "documentation"
+        - "dependencies"
+
+  - type: "version-resolver"
+    semver-increment: "major"
+    when:
+      label: "release-major"
+
+  - type: "version-resolver"
+    semver-increment: "minor"
+    when:
+      label: "release-minor"
+
+  - type: "version-resolver"
+    semver-increment: "patch"
+    when:
+      label: "release-patch"
+
+  - type: "version-resolver"
+    semver-increment: "minor"
+
+change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
+change-title-escapes: '\<*_&'
+
+template: |
+  ## What’s Changed
+
+  $CHANGES

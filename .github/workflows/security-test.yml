@@ -1,0 +1,68 @@
+name: Security Verification
+run-name: >-
+  ${{
+      github.event_name == 'pull_request'
+      && format('Security Verification for CI: PR #{0} -> {1}', github.event.number, github.event.pull_request.title)
+      ||
+      github.event_name == 'push'
+      && format('Security Verification for CI: Merge -> {0}', github.event.head_commit.message)
+  }}
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GOVULNCHECK_VERSION: v1.9.0
+
+jobs:
+  security-ci-test:
+    name: govulncheck & Trivy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Git -- Checkout repository
+        uses: actions/checkout@v7
+
+      - name: 📘 Go -- Set up
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: 📦 Go -- Install dependencies
+        run: |
+          go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
+
+      - name: 🧪 Go -- Test Vulnerability -> Modules
+        run: |
+          echo "⚙️ Running govulncheck on Go modules:"
+          if govulncheck ./...; then
+              echo ""
+              echo "✅ No vulnerabilities found in Go modules."
+          else
+              echo ""
+              echo "❌ Vulnerabilities found in Go modules."
+              exit 1
+          fi
+
+      - name: 🧪 Trivy -- Test Vuln, Secret, Misconfig -> File System
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          ignore-unfixed: true
+          scanners: vuln,secret,misconfig
+          format: table
+          severity: CRITICAL,HIGH,MEDIUM
+          exit-code: "1"

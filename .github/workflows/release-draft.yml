@@ -1,0 +1,35 @@
+name: Release Draft
+run-name: >-
+  ${{
+    github.event_name == 'push'
+    && format('Update Release Draft: Merge -> {0}', github.event.head_commit.message)
+  }}
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-draft:
+    name: Update Draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: 📝 Release -- Update Draft Notes
+        uses: release-drafter/release-drafter@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          config-name: config.release-draft.yml

@@ -1,0 +1,68 @@
+name: Container Verification
+run-name: >-
+  ${{
+      github.event_name == 'pull_request'
+      && format('Container Verification for CI: PR #{0} -> {1}', github.event.number, github.event.pull_request.title)
+  }}
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  container-ci-test:
+    name: Trivy Image Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Git -- Checkout repository
+        uses: actions/checkout@v7
+
+      - name: 🐳 Docker -- Set up
+        uses: docker/setup-buildx-action@v4
+
+      - name: 🐳 Docker -- Build Image for Scanning
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ github.repository }}:pr-${{ github.event.pull_request.number }}-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🧪 Docker -- Test Container Start
+        env:
+          IMAGE: ${{ github.repository }}:pr-${{ github.event.pull_request.number }}-test
+        run: |
+          echo "⚙️ Starting the container and requesting the projector page:"
+          docker run -d --name duet -p 8080:8080 "$IMAGE"
+          if curl -fsS --retry 10 --retry-connrefused --retry-delay 1 -o /dev/null http://localhost:8080/screen; then
+              echo ""
+              echo "✅ Container started and serves /screen."
+          else
+              docker logs duet
+              echo ""
+              echo "❌ Container did not start correctly. See the logs above."
+              exit 1
+          fi
+
+      - name: 🧪 Trivy -- Test Vuln, Secret, Misconfig -> Container Image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ github.repository }}:pr-${{ github.event.pull_request.number }}-test
+          ignore-unfixed: true
+          scanners: vuln,secret,misconfig
+          vuln-type: os,library
+          format: table
+          severity: CRITICAL,HIGH,MEDIUM
+          exit-code: "1"
