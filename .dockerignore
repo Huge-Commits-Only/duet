@@ -1,0 +1,6 @@
+.git
+.github
+data
+e2e
+bin
+**/node_modules

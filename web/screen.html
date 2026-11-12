@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Duet</title>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/icon-180.png">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="screen">
+  <h1>Duet</h1>
+  <button id="snd" type="button"></button>
+  <img id="qr" src="/qr.png" alt="Kod QR do dołączenia">
+  <p id="url" class="dim"></p>
+  <div id="app" class="stack"></div>
+</main>
+<script src="/static/common.js"></script>
+<script>
+function slot(p, i, sub) {
+  return h('div', { className: 'slot ' + (p ? (p.online ? 'on' : '') : 'empty'), style: p ? '--c:' + p.color : '' },
+    p ? p.name : 'Gracz ' + (i + 1),
+    h('small', {}, !p ? 'czeka na telefon' : !p.online ? 'rozłączony' : sub ?? 'w grze'));
+}
+
+// One answer card; in the reveal it lists who picked it.
+function choice(s, i) {
+  const blef = s.mode === 'blef', lie = blef && s.answers && s.answers[s.subject] === i;
+  // in "blef" the bluffer's pick is the lie itself, so it is labelled instead of named
+  const who = s.answers ? s.players.filter((p, seat) => s.answers[seat] === i && !(blef && seat === s.subject)) : [];
+  return h('div', { className: 'choice' + (lie ? ' lie' : who.length === 2 ? ' both' : '') },
+    s.q.options[i],
+    h('div', { className: 'who' }, lie && h('span', { style: '--c:var(--pink)' }, 'KŁAMSTWO'),
+      who.map(p => h('span', { style: '--c:' + p.color }, p.name))));
+}
+
+// The whole drawing so far, repainted from the strokes in each state.
+function drawing(s) {
+  const canvas = h('canvas', { className: 'pad', width: 1000, height: 1000 });
+  paint(pen(canvas), s.strokes || []);
+  return canvas;
+}
+
+// Polish plural: 1 wieczór, 2-4 wieczory (but 12-14 wieczorów), 5+ wieczorów.
+const plural = (n, one, few, many) => n === 1 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many;
+
+// Statistics across the evenings: three headline numbers, compatibility over time and three short lists.
+function statsPanel(st) {
+  const tile = (value, label) => h('div', { className: 'tile' }, h('b', {}, value), h('small', {}, label));
+  const lines = (title, items, fmt) => items.length > 0 && h('div', { className: 'statlist' }, h('small', {}, title),
+    items.slice(0, 4).map(l => h('p', {}, h('span', {}, l.name), h('b', {}, fmt(l)))));
+  // sparkline: the compatibility of the latest games on a 0-100 scale
+  const pts = st.series.map((v, i) => `${st.series.length > 1 ? i * 100 / (st.series.length - 1) : 50},${40 - v * .4}`).join(' ');
+  const chart = h('div', { className: 'chart' });
+  if (st.series.length > 1) chart.innerHTML = `<svg viewBox="-2 -2 104 44" preserveAspectRatio="none" role="img" aria-label="Zgodność w kolejnych grach"><polyline points="${pts}"/></svg>`;
+  return [
+    h('h2', {}, 'Wasze statystyki'),
+    h('div', { className: 'tiles' },
+      tile(st.evenings, plural(st.evenings, 'wieczór', 'wieczory', 'wieczorów')),
+      tile(st.games, plural(st.games, 'rozegrana gra', 'rozegrane gry', 'rozegranych gier')),
+      tile(st.compat + '%', 'średnia zgodność')),
+    st.series.length > 1 && [chart, h('p', { className: 'dim' }, `Zgodność w ostatnich ${st.series.length} grach`)],
+    h('div', { className: 'statlists' },
+      lines('Zgodność w trybach', st.modes, l => `${l.value}% · ${l.note}`),
+      lines('Zwycięstwa', st.wins, l => l.value),
+      lines('Ostatnie gry', st.recent, l => `${l.value}%` + (l.note ? ` · ${l.note}` : ''))),
+    h('p', { className: 'dim' }, 'Ukryj — na telefonie'),
+  ];
+}
+
+// The question itself: who it is about, the text, and the answer cards or the 0-100 scale.
+function question(s) {
+  const about = subj(s), k = s.q.kind;
+  const answers = k === 'scale'
+    ? h('div', { className: 'scale' },
+        h('div', { className: 'track' }, s.answers && s.players.map((p, i) =>
+          h('span', { className: 'mark ' + (i ? 'down' : 'up'), style: `--c:${p.color};left:${s.answers[i]}%` }, `${p.name} ${s.answers[i]}`))),
+        h('div', { className: 'ends' }, h('span', {}, '0 · ' + s.q.options[0]), h('span', {}, s.q.options[1] + ' · 100')))
+    : k === 'choice'
+    ? h('div', { className: 'choices' }, (s.q.options || []).map((_, i) =>
+        [i > 0 && s.mode === 'wolisz' && h('span', { className: 'or' }, 'czy'), choice(s, i)]))
+    : k === 'draw' ? drawing(s)
+    : s.texts && h('div', { className: 'who words' }, s.players.map((p, i) => h('span', { style: '--c:' + p.color }, `${p.name}: ${s.texts[i]}`)));
+  return [
+    s.cfg.mode === 'mix' && h('p', { className: 'tag' }, modeName(s)),
+    about && !s.multi && h('p', {}, k === 'pick' ? 'Wybiera: ' : k === 'dare' ? s.q.options[0] + ' dla: ' : s.mode === 'blef' ? 'Blefuje: ' : k === 'draw' ? 'Rysuje: ' : 'Pytanie o: ',
+      h('b', { style: 'color:' + about.color }, about.name)),
+    k === 'write' && h('p', { className: 'dim' }, `${about.name} pisze dwie prawdy i jedno kłamstwo na temat:`),
+    k === 'text' && !s.texts && h('p', { className: 'dim' }, 'Wpiszcie pierwsze skojarzenie ze słowem'),
+    k === 'yesno' && h('p', { className: 'dim' }, 'Chcielibyście? Ekran pokaże tylko wspólne TAK'),
+    k === 'talk' && h('p', { className: 'dim' }, s.q.options[0]),
+    k === 'draw'
+      ? s.q.text && h('h2', {}, 'Hasło: ' + s.q.text)
+      : h('h2', { className: k === 'text' ? 'word' : s.q.text.length > 40 ? 'long' : '' }, s.q.text),
+    answers,
+  ];
+}
+
+// Sound effects are synthesised (no audio files). Browsers only allow sound after
+// a click or key press on the page, so the corner button doubles as the unlock.
+const SFX = { // [frequency Hz, start s, length s, waveform]
+  join: [[523, 0, .15], [784, .12, .25]],
+  tick: [[880, 0, .06]],
+  next: [[440, 0, .08], [660, .07, .1]],
+  hit: [[523, 0, .12], [659, .1, .12], [784, .2, .35]],
+  miss: [[196, 0, .4, 'sawtooth']],
+  clock: [[1200, 0, .04]],
+  end: [[523, 0, .15], [659, .15, .15], [784, .3, .15], [1047, .45, .6]],
+};
+let audio, muted = false;
+try { muted = localStorage.getItem('duet-mute') === '1'; } catch {}
+try { audio = new AudioContext(); } catch {}
+const audible = () => audio && audio.state === 'running' && !muted;
+function play(name, delay = 0) {
+  if (!audible()) return;
+  for (const [freq, at, len, type = 'sine'] of SFX[name]) {
+    const osc = audio.createOscillator(), gain = audio.createGain(), t = audio.currentTime + delay + at;
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(type === 'sine' ? .2 : .08, t);
+    gain.gain.exponentialRampToValueAtTime(.001, t + len);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(t);
+    osc.stop(t + len);
+  }
+}
+function soundButton() {
+  $('snd').textContent = !audio ? '' : audible() ? '🔊' : muted ? '🔇' : '🔇 Kliknij, aby włączyć dźwięk';
+  $('snd').ariaLabel = audible() ? 'Wycisz dźwięk' : 'Włącz dźwięk';
+}
+$('snd').onclick = async () => {
+  if (!audio) return;
+  if (audio.state !== 'running') { await audio.resume(); muted = false; } else muted = !muted;
+  try { localStorage.setItem('duet-mute', muted ? '1' : '0'); } catch {}
+  soundButton();
+  play('join');
+};
+if (audio) audio.onstatechange = soundButton;
+soundButton();
+
+// What changed since the previous state decides which sound to play.
+let prev = null;
+function sounds(s) {
+  if (!prev) return;
+  const online = x => x.players.filter(p => p.online).length, done = x => (x.answered || []).filter(Boolean).length;
+  const newRound = s.round !== prev.round || s.phase !== prev.phase;
+  if (s.phase === 'end' && prev.phase !== 'end') play('end');
+  else if (s.phase === 'reveal' && prev.phase !== 'reveal') play((s.multi ? s.pairs.some(p => p.hit) : verdict(s).hit) ? 'hit' : 'miss', .5); // after the answers pop in
+  else if (s.phase === 'question' && newRound) {
+    // modes without a reveal: the result of the previous card is known only now
+    const scored = (s.found || []).length > (prev.found || []).length || s.points[0] + s.points[1] > prev.points[0] + prev.points[1];
+    play(prev.phase === 'question' && scored ? 'hit' : 'next');
+  } else if (s.phase === 'question' && done(s) > done(prev)) play('tick');
+  else if (s.phase === 'question' && (s.guesses || []).join() !== (prev.guesses || []).join()) play('miss');
+  else if (online(s) > online(prev)) play('join');
+}
+setInterval(() => { // last seconds of a timed round
+  const left = endAt - Date.now();
+  if (prev && prev.phase === 'question' && prev.mode === 'rysowanie' && left > 0 && left < 5500) play('clock');
+}, 1000);
+
+function render(s) {
+  sounds(s);
+  // entrance animations only when a new screen appears, not on every small update
+  $('app').classList.toggle('fresh', !prev || s.phase !== prev.phase || s.round !== prev.round || !!s.list !== !!prev.list || !!s.stats !== !!prev.stats);
+  prev = s;
+  // ready: at least one couple, and nobody still waiting for a partner or offline
+  const both = s.pairs.length > 0 && s.pairs.every(p => p.players.length === 2 && p.players.every(x => x.online));
+  // the code stays up in the menu, so another couple can still join; it only shrinks once someone is ready
+  $('qr').hidden = $('url').hidden = s.phase !== 'lobby' || !!s.list || !!s.stats;
+  $('qr').classList.toggle('small', both);
+  $('url').textContent = `${location.host}/play?k=${s.key}`; // for a phone that cannot scan the code
+  const m = s.mode;
+  const round = () => h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}` +
+    (m === 'rozmowy' || s.multi ? '' : m === 'tak' ? ` · wspólne TAK: ${(s.found || []).length}`
+      : ' · ' + (s.scored ? score(s) : `zgodność ${s.matches}/${s.round - (s.phase === 'question')}`)));
+  let kids;
+  if (s.phase === 'lobby') {
+    kids = [
+      s.stats || s.list ? null // these need the whole screen
+        : s.multi
+        ? h('div', { className: 'pairs' }, s.pairs.map(p => h('div', { className: 'pairbox' }, h('small', {}, 'Para ' + p.n),
+            [0, 1].map(i => slot(p.players[i], i)))))
+        : h('div', { className: 'slots' }, [0, 1].map(i => slot(s.players[i], i, both && s.scored ? (s.stakeSet[i] ? '✓ stawka wpisana' : 'bez stawki') : undefined))),
+      s.stats
+        ? statsPanel(s.stats)
+        : s.list
+        ? [h('h2', {}, 'Wasze wspólne TAK'),
+           h('div', { className: 'list' }, s.list.map(it => h('span', { className: it.done ? 'done' : '' }, (it.done ? '✓ ' : '') + it.text))),
+           h('p', { className: 'dim' }, 'Odhaczanie, usuwanie i ukrycie listy — na telefonie')]
+        : both
+        ? [h('h2', {}, optName(s, 'mode')),
+           h('p', { className: 'rule' }, s.rule),
+           h('p', {}, optName(s, 'tone') + ' · ' + optName(s, 'length')),
+           h('p', { className: 'dim' }, 'Ustawcie grę na telefonie i naciśnijcie Start')]
+        : h('p', { className: 'dim' }, 'Zeskanujcie kod telefonami'),
+    ];
+  } else if (s.phase === 'question') {
+    kids = [
+      round(),
+      s.rule && h('p', { className: 'rule' }, s.rule),
+      question(s),
+      m === 'rozmowy'
+        ? h('p', { className: 'dim' }, 'Porozmawiajcie · Dalej — na telefonie')
+        : m === 'rysowanie'
+        ? [clock(s), h('p', { className: 'dim' }, s.guesses ? `${guesser(s).name}: ${s.guesses.join(' · ')}` : `${guesser(s).name} zgaduje na telefonie`)]
+        : m === 'wyzwania'
+        ? h('p', { className: 'dim' }, s.q.kind === 'pick' ? `${subj(s).name} wybiera na telefonie`
+            : `${guesser(s).name} ocenia na telefonie: zaliczone czy odpuszczone`)
+        : s.multi
+        ? h('div', { className: 'list' }, s.pairs.map(p => h('span', { className: p.done ? '' : 'done' }, (p.done ? '✓ ' : '… ') + pairName(p))))
+        : h('div', { className: 'slots' }, s.players.map((p, i) => slot(p, i, s.answered[i] ? '✓ gotowe' : 'wybiera…'))),
+    ];
+  } else if (s.phase === 'reveal' && s.multi) {
+    kids = [
+      round(),
+      h('h2', { className: 'long' }, s.q.text),
+      ranking(s, true),
+      h('p', { className: 'dim' }, 'Dalej — na telefonie'),
+    ];
+  } else if (s.phase === 'reveal') {
+    const v = verdict(s);
+    kids = [
+      round(),
+      h('h2', { className: v.hit ? 'hit' : 'miss' }, v.text),
+      question(s),
+      h('p', { className: 'dim' }, 'Dalej — na telefonie'),
+    ];
+  } else {
+    kids = summary(s);
+  }
+  $('app').replaceChildren(...kids.flat(3).filter(Boolean));
+}
+
+live('/events', render);
+</script>
+</body>
+</html>

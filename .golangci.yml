@@ -1,0 +1,9 @@
+version: "2"
+
+linters:
+  exclusions:
+    rules:
+      # Tests call game actions for their side effects and assert on the resulting state.
+      - path: _test\.go
+        linters:
+          - errcheck

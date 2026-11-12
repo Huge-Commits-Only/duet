@@ -1,0 +1,63 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "19:00"
+      timezone: "Europe/Warsaw"
+
+    commit-message:
+      prefix: "deps: "
+    open-pull-requests-limit: 5
+
+    groups:
+      actions-group:
+        patterns: ["*"]
+
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          ["version-update:semver-patch", "version-update:semver-minor"]
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "19:00"
+      timezone: "Europe/Warsaw"
+
+    commit-message:
+      prefix: "deps: "
+    open-pull-requests-limit: 3
+
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          ["version-update:semver-patch", "version-update:semver-minor"]
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "19:00"
+      timezone: "Europe/Warsaw"
+
+    commit-message:
+      prefix: "deps: "
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: "npm"
+    directory: "/e2e"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "19:00"
+      timezone: "Europe/Warsaw"
+
+    commit-message:
+      prefix: "deps: "
+    open-pull-requests-limit: 3

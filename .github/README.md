@@ -1,0 +1,181 @@
+# 💞 Duet
+Gry i quizy dla par. Projektor (albo telewizor) pokazuje grę, a telefony służą za piloty — dołączacie, skanując kod QR. Gracie we dwoje albo z gośćmi: do czterech par przy jednym ekranie. Całość działa lokalnie w homelabie, bez kont i bez chmury.
+
+
+<br>
+
+
+## 🌟 Jak to działa
+1. Na projektorze otwierasz `https://twoja-domena/screen` — pojawia się kod QR.
+2. Oboje skanujecie kod telefonami, wpisujecie imię i wybieracie, jak się do Was zwracać („byłeś" czy „byłaś") — telefon to zapamięta. Dołączyć może tylko ktoś, kto ma adres z kodu QR.
+3. Na telefonie wybieracie grę, ton (lekko / romantycznie / pikantnie 18+) i długość, a potem **Start**.
+4. Odpowiadacie w tajemnicy na telefonach; projektor odsłania odpowiedzi i liczy zgodność.
+
+Dźwięk gra z urządzenia podłączonego do projektora. Przeglądarka puści go dopiero po kliknięciu — kliknij ikonę głośnika w prawym górnym rogu ekranu (ten sam przycisk wycisza).
+
+### Tryby
+| Tryb | O co chodzi |
+|---|---|
+| Co wolisz | Oboje wybieracie jedną z dwóch opcji — liczy się zgodność |
+| Kto prędzej… | Oboje wskazujecie, kogo z Was dotyczy pytanie |
+| Jak dobrze mnie znasz | Jedno odpowiada o sobie, drugie zgaduje |
+| Skala | Jedno ustawia suwak 0–100, drugie zgaduje jak najbliżej |
+| Telepatia | Oboje wpisujecie skojarzenie — punkt za to samo słowo |
+| Wspólne TAK | Tak/nie na pomysły; ekran pokazuje tylko to, na co oboje się zgodziliście, i zapisuje listę |
+| Głębokie rozmowy | Karty do rozmowy na trzech poziomach głębi, bez punktów |
+| Wyzwania | Prawda albo zadanie dla jednej osoby, druga ocenia wykonanie |
+| Blef | Dwie prawdy i jedno kłamstwo — druga osoba szuka kłamstwa |
+| Rysowanie | Jedno rysuje palcem na telefonie, drugie zgaduje hasło w 60 sekund |
+| Wieczór mix | Gra sama przeplata tryby i liczy wspólny wynik |
+
+### Kilka par
+Przy dołączaniu każdy wybiera numer pary (partnerzy ten sam). Gdy siedzą co najmniej dwie pary, wszyscy dostają to samo pytanie naraz, każda para odpowiada między sobą, a ekran pokazuje ranking — wygrywa najbardziej zgrana para. Dostępne są wtedy tryby, w których odpowiada się jednocześnie: Co wolisz, Kto prędzej…, Jak dobrze mnie znasz, Skala, Telepatia, Wspólne TAK i Wieczór mix. Pozostałe są dla jednej pary.
+
+### Statystyki
+Każda dokończona gra trafia do historii. Przycisk „Pokaż statystyki na ekranie" w menu telefonu wyświetla na projektorze liczbę wieczorów i gier, średnią zgodność, wykres zgodności w ostatnich grach, zgodność w poszczególnych trybach, bilans zwycięstw i ostatnie wyniki.
+
+### Stawka
+Gdy gra jedna para, w grach z punktami każde z Was może przed startem wpisać tajną stawkę — co przegrany robi dla wygranego. Ekran odsłania stawkę zwycięzcy na końcu (przy remisie obie).
+
+
+<br>
+
+
+## 💻 Technologie
+| Technologia | Rola | Szczegóły |
+|---|---|---|
+| 🎯 **Go** | Serwer | Jeden plik binarny, frontend wbudowany, ok. 25 MB RAM |
+| 🌐 **HTML / CSS / JS** | Ekran i pilot | Bez frameworka i bez kroku budowania, zero zasobów z internetu |
+| 🐳 **Docker** | Kontener | Obraz `scratch`, multi-arch (amd64 / arm64 dla Raspberry Pi) |
+| 🔄 **GitHub Actions** | CI/CD | Testy, lint, skany bezpieczeństwa, publikacja obrazu |
+| 📦 **GHCR** | Rejestr | `ghcr.io/huge-commits-only/duet` |
+
+
+<br>
+
+
+## 📁 Struktura projektu
+```
+duet/
+├── cmd/duet/            # punkt startowy programu
+├── internal/
+│   ├── game/            # gra: stan, tryby, punktacja, zapis (bez HTTP)
+│   └── server/          # HTTP: strony, strumień zdarzeń, API dla telefonów
+├── questions/           # paczki pytań, jeden plik JSON na tryb
+├── web/                 # ekran projektora i pilot na telefon
+├── e2e/                 # test w przeglądarce (Playwright)
+├── .github/             # workflowy CI/CD i to README
+├── Dockerfile
+└── docker-compose.yml
+```
+
+
+<br>
+
+
+## 🚀 Uruchomienie w homelabie
+Wystarczy plik [`docker-compose.yml`](../docker-compose.yml) z tego repozytorium:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Gra słucha na porcie `8080`. Otwórz `http://<adres-ip>:8080/screen`.
+
+### Parametry
+| Zmienna | Domyślnie | Opis |
+|---|---|---|
+| `PORT` | `8080` | Port serwera w kontenerze |
+| `PUBLIC_URL` | *(brak)* | Adres wpisywany w kod QR. Ustaw tylko wtedy, gdy QR pokazuje zły adres — normalnie gra bierze go z adresu, pod którym otwarto ekran |
+
+Dane (lista zadanych pytań, Wasza lista wspólnych TAK, historia gier, własne paczki pytań, stan trwającej gry) leżą w wolumenie `duet-data` pod `/data`. Restart kontenera nie przerywa gry — telefony same do niej wracają.
+
+Na iPhonie stronę pilota można dodać do ekranu głównego (Udostępnij → Do ekranu początkowego); ma własną ikonę i otwiera się bez paska przeglądarki.
+
+### Nginx Proxy Manager
+1. **Hosts → Proxy Hosts → Add Proxy Host**.
+2. *Domain Names*: np. `duet.twoja-domena.duckdns.org`, *Scheme*: `http`, *Forward Hostname / IP*: adres Raspberry Pi, *Forward Port*: `8080`.
+3. Zakładka **SSL**: wybierz certyfikat i włącz *Force SSL*.
+
+Nic więcej nie trzeba ustawiać — gra sama wyłącza buforowanie dla połączenia na żywo. HTTPS jest potrzebny, żeby telefon nie wygaszał ekranu w trakcie gry.
+
+> [!WARNING]
+> Gra nie ma logowania. Trzymaj ją wyłącznie w sieci domowej i nie wystawiaj do internetu.
+
+
+<br>
+
+
+## ✏️ Własne pytania
+Wrzuć plik JSON do `/data/questions/` w wolumenie — gra wczyta go przy następnym starcie rundy, bez restartu:
+
+```json
+{
+  "mode": "wolisz",
+  "items": [
+    { "tone": "lekko", "a": "Kawa", "b": "Herbata" }
+  ]
+}
+```
+
+```bash
+docker cp moje-pytania.json duet:/data/questions/moje-pytania.json
+```
+
+`tone` to `lekko`, `romantycznie` albo `pikantnie`. Formy zależne od płci zapisuj tak jak w gotowych paczkach („zrobiłeś/aś", „chciał(a)byś", „pewny/a") — gra sama wybierze właściwą. Pola zależą od trybu (`mode`):
+
+| Tryb | `mode` | Pola pytania |
+|---|---|---|
+| Co wolisz | `wolisz` | `a`, `b` — dwie możliwości |
+| Kto prędzej… | `kto` | `q` — pytanie; odpowiedziami są Wasze imiona |
+| Jak dobrze mnie znasz | `znasz` | `q` + `options` (2–4 odpowiedzi) |
+| Skala | `skala` | `q`; opcjonalnie `a` i `b` jako opisy końców skali |
+| Telepatia | `telepatia` | `q` — słowo, do którego wpisujecie skojarzenie |
+| Wspólne TAK | `tak` | `q` — pomysł, na który każde mówi tak albo nie |
+| Głębokie rozmowy | `rozmowy` | `q` + `level` (1–3, głębia pytania) |
+| Wyzwania | `wyzwania` | `q` + `kind`: `prawda` (pytanie) albo `wyzwanie` (zadanie) |
+| Blef | `blef` | `q` — temat, na który piszecie dwie prawdy i kłamstwo |
+| Rysowanie | `rysowanie` | `q` — hasło do narysowania (jedno słowo, bo partner wpisuje je z klawiatury); opcjonalnie `alt` — lista słów też uznawanych za trafienie |
+
+„Wieczór mix" nie ma własnych pytań — losuje rundy z pozostałych trybów.
+
+
+<br>
+
+
+## 🔄 CI/CD
+| Workflow | Plik | Kiedy | Co robi |
+|---|---|---|---|
+| Go Verification | `go-test.yml` | PR, `main` | `go mod verify`, `go mod tidy -diff`, `gofmt`, kompilacja |
+| Unit Test Verification | `unit-test.yml` | PR, `main` | `go test -race` + podsumowanie pokrycia |
+| Lint Verification | `lint-test.yml` | PR, `main` | `golangci-lint` |
+| Security Verification | `security-test.yml` | PR, `main` | `govulncheck` + Trivy (podatności, sekrety, konfiguracja) |
+| Container Verification | `container-test.yml` | PR | Buduje obraz, sprawdza czy kontener startuje, skanuje go Trivy |
+| E2E Verification | `e2e-test.yml` | PR, `main` | Playwright: projektor i dwa telefony rozgrywają każdy tryb w prawdziwej przeglądarce |
+| Workflow Verification | `workflow-test.yml` | PR, `main` | `actionlint` dla workflowów |
+| PR Automation | `pr-automation.yml` | nowy PR | Przypisuje autora i reviewera, nadaje etykiety z nazwy brancha, ustawia milestone |
+| Release Draft | `release-draft.yml` | `main` | Aktualizuje szkic notatek wydania |
+| Docker Image Publish | `docker-build.yml` | `main` | Buduje obraz amd64 + arm64 i publikuje do GHCR (`latest` + wersja) |
+
+### Po pierwszym merge'u (jednorazowo)
+- **Paczka publiczna** — patrz sekcja wyżej.
+- **Pierwszy release** — Release Drafter zbiera PR-y od ostatniego *opublikowanego* wydania. Opublikuj pierwsze ręcznie (**Releases → Draft a new release → Generate release notes**) i go nie usuwaj; inaczej szkic będzie pusty.
+- **Ruleset na `main`** — wymagane checki to nazwy jobów (`Build & Modules`, `Go Tests`, `golangci-lint`, `govulncheck & Trivy`, `Trivy Image Scan`, `Playwright Game Run`, `Actionlint`). Pojawiają się do wyboru dopiero po pierwszym uruchomieniu.
+
+### Etykiety z nazwy brancha
+`feat/*`, `feature/*` → `enhancement` · `fix/*`, `bug/*` → `bug` · `docs/*` → `documentation` · `chore/*` → `chore` · `deps/*` → `dependencies`
+
+
+<br>
+
+
+## 🛠️ Praca lokalna
+```bash
+go vet ./... && go test ./...
+DATA_DIR=./data PORT=18080 go run ./cmd/duet   # http://localhost:18080/screen
+
+# test w przeglądarce: wszystkie tryby, projektor + dwa telefony
+(cd e2e && npm ci && npx playwright install chromium)
+go build -o bin/duet ./cmd/duet && ./e2e/run.sh
+```

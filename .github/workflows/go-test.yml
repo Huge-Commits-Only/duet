@@ -1,0 +1,82 @@
+name: Go Verification
+run-name: >-
+  ${{
+      github.event_name == 'pull_request'
+      && format('Go Verification for CI: PR #{0} -> {1}', github.event.number, github.event.pull_request.title)
+      ||
+      github.event_name == 'push'
+      && format('Go Verification for CI: Merge -> {0}', github.event.head_commit.message)
+  }}
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  go-ci-test:
+    name: Build & Modules
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: 📥 Git -- Checkout repository
+        uses: actions/checkout@v7
+
+      - name: 📘 Go -- Set up
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: 🧪 Go -- Test Module Integrity
+        run: |
+          echo "⚙️ Verifying Go module integrity..."
+          go mod verify
+
+          echo "|"
+          echo "|"
+
+          echo "⚙️ Checking if go.mod and go.sum are tidy:"
+          if go mod tidy -diff; then
+              echo ""
+              echo "✅ go.mod and go.sum are up to date."
+          else
+              echo ""
+              echo "❌ go.mod or go.sum are not tidy. Please run 'go mod tidy' and commit the changes."
+              exit 1
+          fi
+
+      - name: 🧪 Go -- Test Formatting
+        run: |
+          echo "⚙️ Checking gofmt formatting:"
+          UNFORMATTED=$(gofmt -l .)
+          if [ -z "$UNFORMATTED" ]; then
+              echo ""
+              echo "✅ All Go files are formatted."
+          else
+              echo "$UNFORMATTED"
+              echo ""
+              echo "❌ The files above are not formatted. Please run 'gofmt -w .' and commit the changes."
+              exit 1
+          fi
+
+      - name: 🧪 Go -- Test Compilation
+        run: |
+          echo "⚙️ Verifying project compilation..."
+          if go build -v -o /dev/null ./...; then
+              echo ""
+              echo "✅ Compilation successful."
+          else
+              echo ""
+              echo "❌ Compilation failed. Please fix the errors above."
+              exit 1
+          fi
