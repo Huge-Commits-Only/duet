@@ -104,10 +104,18 @@ func (g *Game) do(id, act, key, value string) error {
 			return ErrBad
 		}
 	case act == "draw" && g.phase == "question" && g.mode == "rysowanie" && me == g.subj:
-		// value: "x,y,x,y…" on a 0-1000 square; key "new" starts a stroke, otherwise the last one continues
+		// value: "x,y,x,y…" on a 0-1000 square; key "new" or "new:<color>" starts a stroke, otherwise the last one continues
 		fields := strings.Split(value, ",")
 		if len(fields)%2 != 0 || g.ink+len(fields) > maxInk {
 			return ErrBad
+		}
+		color := 0
+		if c, ok := strings.CutPrefix(key, "new:"); ok {
+			n, err := strconv.Atoi(c)
+			if err != nil || n < 0 || n >= drawColors {
+				return ErrBad
+			}
+			color, key = n, "new"
 		}
 		pts := make([]int, len(fields))
 		for i, f := range fields {
@@ -118,17 +126,17 @@ func (g *Game) do(id, act, key, value string) error {
 			pts[i] = n
 		}
 		if key == "new" || len(g.strokes) == 0 {
-			g.strokes = append(g.strokes, nil)
+			g.strokes, g.colors = append(g.strokes, nil), append(g.colors, color)
 		}
 		last := len(g.strokes) - 1
 		g.strokes[last] = append(g.strokes[last], pts...)
 		g.ink += len(pts)
 	case act == "clear" && g.phase == "question" && g.mode == "rysowanie" && me == g.subj:
-		g.strokes, g.ink = nil, 0
+		g.strokes, g.colors, g.ink = nil, nil, 0
 	case act == "undo" && g.phase == "question" && g.mode == "rysowanie" && me == g.subj:
 		if n := len(g.strokes); n > 0 {
 			g.ink -= len(g.strokes[n-1])
-			g.strokes = g.strokes[:n-1]
+			g.strokes, g.colors = g.strokes[:n-1], g.colors[:n-1]
 		}
 	case act == "giveup" && g.phase == "question" && g.mode == "rysowanie" && me != g.subj:
 		g.endDrawing(false) // shows the word, unlike "skip"

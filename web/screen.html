@@ -15,6 +15,7 @@
   <!-- the stage takes whatever height is left; fit() shrinks #app when it would not fit -->
   <div class="stage">
     <aside id="joinbox">
+      <p id="lost" hidden>Ktoś się rozłączył — zeskanuj kod, żeby wrócić do gry</p>
       <img id="qr" src="/qr.png" alt="Kod QR do dołączenia">
       <p id="url" class="dim"></p>
     </aside>
@@ -43,7 +44,7 @@ function choice(s, i) {
 // The whole drawing so far, repainted from the strokes in each state.
 function drawing(s) {
   const canvas = h('canvas', { className: 'pad', width: 1000, height: 1000 });
-  paint(pen(canvas), s.strokes || []);
+  paint(pen(canvas), s.strokes || [], s.colors);
   return canvas;
 }
 
@@ -80,8 +81,8 @@ function question(s) {
   const answers = k === 'scale'
     ? h('div', { className: 'scale' },
         h('div', { className: 'track' }, s.answers && s.players.map((p, i) =>
-          h('span', { className: 'mark ' + (i ? 'down' : 'up'), style: `--c:${p.color};left:${s.answers[i]}%` }, `${p.name} ${s.answers[i]}`))),
-        h('div', { className: 'ends' }, h('span', {}, '0 · ' + s.q.options[0]), h('span', {}, s.q.options[1] + ' · 100')))
+          h('span', { className: 'mark ' + (i ? 'down' : 'up'), style: `--c:${p.color};left:${100 * s.answers[i] / (s.q.max || 100)}%` }, `${p.name} ${s.answers[i]}`))),
+        h('div', { className: 'ends' }, ends(s.q).map(t => h('span', {}, t))))
     : k === 'choice'
     ? h('div', { className: 'choices' }, (s.q.options || []).map((_, i) =>
         [i > 0 && s.mode === 'wolisz' && h('span', { className: 'or' }, 'czy'), choice(s, i)]))
@@ -90,7 +91,8 @@ function question(s) {
   return [
     s.cfg.mode === 'mix' && h('p', { className: 'tag' }, modeName(s)),
     about && !ranked(s) && h('p', {}, k === 'pick' ? 'Wybiera: ' : k === 'dare' ? s.q.options[0] + ' dla: ' : s.mode === 'blef' ? 'Blefuje: ' : k === 'draw' ? 'Rysuje: ' : 'Pytanie o: ',
-      h('b', { style: 'color:' + about.color }, about.name)),
+      h('b', { style: 'color:' + about.color }, about.name),
+      (k === 'choice' || k === 'scale') && s.mode !== 'blef' && [' · zgaduje: ', h('b', { style: 'color:' + guesser(s).color }, guesser(s).name)]),
     k === 'write' && h('p', { className: 'dim' }, `${about.name} pisze dwie prawdy i jedno kłamstwo na temat:`),
     k === 'text' && !s.texts && h('p', { className: 'dim' }, 'Wpiszcie pierwsze skojarzenie ze słowem'),
     k === 'yesno' && h('p', { className: 'dim' }, 'Chcielibyście? Ekran pokaże tylko wspólne TAK'),
@@ -175,7 +177,9 @@ function render(s) {
   // ready: at least one couple, and nobody still waiting for a partner or offline
   const both = s.pairs.length > 0 && s.pairs.every(p => p.players.length === 2 && p.players.every(x => x.online));
   // the code stays up in the menu, so another couple can still join; it only shrinks once someone is ready
-  $('joinbox').hidden = s.phase !== 'lobby' || !!s.list || !!s.stats;
+  // in a game the code comes back when someone drops out, so a phone that lost its seat can take it again
+  $('joinbox').hidden = s.phase !== 'lobby' && both || !!s.list || !!s.stats;
+  $('lost').hidden = s.phase === 'lobby' || both;
   $('qr').classList.toggle('small', both);
   document.querySelector('main').classList.toggle('ingame', s.phase !== 'lobby'); // small title: the game gets the room
   $('url').textContent = link || `${location.host}/play?k=${s.key}`; // for a phone that cannot scan the code
@@ -216,9 +220,9 @@ function render(s) {
         : m === 'wyzwania'
         ? h('p', { className: 'dim' }, s.q.kind === 'pick' ? `${subj(s).name} wybiera na telefonie`
             : `${guesser(s).name} ocenia na telefonie: zaliczone czy odpuszczone`)
-        : ranked(s)
-        ? h('div', { className: 'list' }, s.pairs.map(p => h('span', { className: p.done ? '' : 'done' }, (p.done ? '✓ ' : '… ') + pairName(p))))
-        : h('div', { className: 'slots' }, s.players.map((p, i) => slot(p, i, s.answered[i] ? '✓ gotowe' : 'wybiera…'))),
+        : [h('p', { className: 'phones' }, '📱 Odpowiadajcie na telefonach'), ranked(s)
+          ? h('div', { className: 'list' }, s.pairs.map(p => h('span', { className: p.done ? '' : 'done' }, (p.done ? '✓ ' : '… ') + pairName(p))))
+          : h('div', { className: 'slots' }, s.players.map((p, i) => slot(p, i, s.answered[i] ? '✓ gotowe' : 'wybiera…')))],
     ];
   } else if (s.phase === 'reveal' && ranked(s)) {
     kids = [
@@ -272,7 +276,23 @@ addEventListener('keydown', e => {
 // the same address as in the QR code (PUBLIC_URL, https), not whatever this page was opened with
 let link = '';
 fetch('/link').then(r => r.ok && r.text()).then(t => { if (t) $('url').textContent = link = t; }).catch(() => {});
-live('/events', render);
+// A short 3-2-1 before a result, so everyone knows to look up from the phones.
+// States arriving meanwhile are kept, and the newest one is shown when it ends.
+let counting = null;
+function show(s) {
+  if (counting) { counting = s; return; }
+  if (s.phase !== 'reveal' || !prev || prev.phase !== 'question' || prev.round !== s.round || s.mode === 'rysowanie') return render(s);
+  counting = s;
+  let n = 3;
+  const tick = () => {
+    if (!n) { const latest = counting; counting = null; return render(latest); }
+    $('app').replaceChildren(h('div', { className: 'count' }, String(n--)));
+    play('tick');
+    setTimeout(tick, 700);
+  };
+  tick();
+}
+live('/events', show);
 </script>
 </body>
 </html>

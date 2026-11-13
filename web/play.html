@@ -97,6 +97,9 @@ $('join').onsubmit = async e => {
   if (await join()) { editing = false; lastKey = ''; show(last); }
 };
 
+// The phone has nothing to do: one clear sign to look at the projector instead.
+const look = text => h('div', { className: 'look' }, h('div', { className: 'eye', ariaHidden: true }, '👀'), h('b', {}, 'Patrz na projektor'),
+  text && h('p', { className: 'dim', id: 'status' }, text));
 const btn = (label, onclick, cls = '') => h('button', { className: 'btn ' + cls, type: 'button', onclick }, label);
 
 // One row of options from the menu (mode / tone / length); either phone may change it.
@@ -110,12 +113,13 @@ function picker(s, key, title) {
 
 // The drawing pad of "rysowanie": one canvas per round, kept across re-renders.
 // Points are queued and sent in order, a batch at a time, so strokes arrive as drawn.
-let padEl, padRound = 0, queue = [], sending = false, ink = []; // ink: own strokes, to repaint after an undo
+let padEl, padRound = 0, queue = [], sending = false, ink = [], inkColors = [], penColor = 0; // ink: own strokes, to repaint after an undo
 function pad(s) {
   if (padEl && padRound === s.round) return padEl;
   padRound = s.round;
   queue = [];
   ink = [];
+  inkColors = [];
   const c = padEl = h('canvas', { className: 'pad', width: 1000, height: 1000 }), ctx = pen(c);
   const at = e => {
     const r = c.getBoundingClientRect(), fit = v => Math.max(0, Math.min(1000, Math.round(v * 1000)));
@@ -125,9 +129,11 @@ function pad(s) {
   c.onpointerdown = e => {
     c.setPointerCapture(e.pointerId);
     last = at(e);
+    ctx.strokeStyle = PALETTE[penColor][0];
     line(ctx, ...last, last[0] + .1, last[1]); // a tap leaves a dot
-    queue.push({ k: 'new', p: [...last] });
+    queue.push({ k: 'new:' + penColor, p: [...last] });
     ink.push([...last]);
+    inkColors.push(penColor);
   };
   c.onpointermove = e => {
     const p = at(e);
@@ -154,13 +160,15 @@ setInterval(flush, 120);
 function clearPad() {
   queue = [];
   ink = [];
+  inkColors = [];
   paint(padEl.getContext('2d'), ink);
   act('clear');
 }
 async function undoPad() {
   await flush(); // the server must have the stroke before it can drop it
   ink.pop();
-  paint(padEl.getContext('2d'), ink);
+  inkColors.pop();
+  paint(padEl.getContext('2d'), ink, inkColors);
   act('undo');
 }
 
@@ -200,7 +208,7 @@ function show(s) {
   const { answered, left, guesses, ...rest } = s;
   const key = JSON.stringify({ ...rest, players: s.players.map(o => o.name + o.color), menu });
   if (key === lastKey) {
-    if ($('status') && s.myAnswer != null) $('status').textContent = waiting || '✓ Wysłane — patrzcie na ekran';
+    if ($('status') && s.myAnswer != null) $('status').textContent = waiting || '✓ Wysłane';
     return;
   }
   lastKey = key;
@@ -266,17 +274,30 @@ function show(s) {
           } }))),
     ];
   } else if (s.phase === 'question') {
-    const mine = s.myAnswer, about = subj(s), k = s.q.kind;
-    if (draftRound !== s.round) { draft = 50; draftRound = s.round; }
+    const mine = s.myAnswer, about = subj(s), k = s.q.kind, mineQ = s.me === s.subject;
+    if (draftRound !== s.round) { draft = Math.round((s.q.max || 100) / 2); draftRound = s.round; }
+    // a question about one of you: the guesser reads it addressed to the partner, not to themselves
+    const quiz = about && (k === 'choice' || k === 'scale') && s.mode !== 'blef';
+    const text = quiz && !mineQ && s.q.text ? `${about.name}, ${s.q.text[0].toLowerCase()}${s.q.text.slice(1)}` : s.q.text;
+    const top = [h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`), s.rule && h('p', { className: 'rulebox' }, s.rule)];
+    // nothing to do on the phone: say so, and point at the projector
+    const idle = mine != null && k !== 'draw' ? waiting || '✓ Wysłane'
+      : !mineQ && k === 'pick' ? `${about.name} wybiera: prawda czy wyzwanie`
+      : !mineQ && k === 'write' ? `${about.name} pisze dwie prawdy i jedno kłamstwo — potem zgadujesz`
+      : null;
     // drawing needs the whole phone screen: just the word, the clock and the pad
     kids = k === 'draw' && s.me === s.subject ? [
       h('div', { className: 'row' }, h('h2', {}, s.q.text), clock(s)),
       pad(s),
+      h('div', { className: 'swatches' }, PALETTE.map(([color, name], i) => h('button', {
+        type: 'button', ariaLabel: 'Kolor: ' + name, ariaPressed: penColor === i, style: '--c:' + color,
+        onclick: e => { penColor = i; for (const b of e.currentTarget.parentNode.children) b.ariaPressed = b === e.currentTarget; },
+      }))),
       h('div', { className: 'row' }, btn('Cofnij kreskę', undoPad, 'ghost'), btn('Wyczyść', clearPad, 'ghost')),
-    ] : [
-      h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`),
-      h('p', { className: 'do' + (mine != null ? ' wait' : ''), id: 'status' }, mine != null ? waiting || '✓ Wysłane — patrzcie na ekran' :
-        k === 'draw' ? `Co rysuje ${about.name}? Patrz na ekran i zgaduj`
+    ] : idle ? [top, look(idle), minor(skip, quit)] : [
+      top,
+      h('p', { className: 'do', id: 'status', style: '--c:' + (quiz && !mineQ ? about.color : p.color) },
+        k === 'draw' ? `Co rysuje ${about.name}? Patrz na projektor i zgaduj`
         : k === 'pick' ? (s.me === s.subject ? 'Twój wybór' : `${about.name} wybiera…`)
         : k === 'talk' ? s.q.options[0] + ' · bez punktów, po prostu porozmawiajcie'
         : k === 'text' ? 'Wpisz pierwsze skojarzenie — jedno słowo'
@@ -284,8 +305,8 @@ function show(s) {
         : k === 'dare' ? (s.me === s.subject ? `${s.q.options[0]} dla Ciebie!` : `${s.q.options[0]} dla: ${about.name}. Oceń, gdy skończy`)
         : k === 'write' ? (s.me === s.subject ? 'Napisz o sobie dwie prawdy i jedno kłamstwo. Zaznacz kłamstwo.' : `${about.name} pisze dwie prawdy i jedno kłamstwo…`)
         : s.mode === 'blef' ? (s.me === s.subject ? 'Zaznaczone zdanie to Twoje kłamstwo' : `Które zdanie to kłamstwo?`)
-        : !about ? 'Wybierz w tajemnicy' : s.me === s.subject ? 'Odpowiedz o sobie' : `Zgadnij, co odpowie ${about.name}`),
-      s.q.text && h('h2', {}, s.q.text),
+        : !about ? 'Wybierz w tajemnicy' : mineQ ? '🙋 Pytanie o Ciebie — odpowiedz szczerze' : `🔮 Zgadujesz, co odpowie ${about.name}`),
+      text && h('h2', {}, text),
       k === 'talk'
         ? btn(s.round === s.rounds ? 'Zakończ rozmowę' : 'Dalej', () => act('next'))
         : k === 'pick'
@@ -296,10 +317,10 @@ function show(s) {
         ? s.me === s.subject && h('form', { className: 'stack', onsubmit: e => {
             e.preventDefault();
             const f = new FormData(e.target);
-            act('answer', f.get('lie'), f.getAll('st').join('\n'));
+            act('answer', f.get('lie'), f.getAll('st').map(t => t.replace(/\s+/g, ' ').trim()).join('\n')); // a typed Enter must not split a statement
           } },
             [0, 1, 2].map(i => h('div', { className: 'stmt' },
-              h('input', { name: 'st', maxLength: 80, required: true, autocomplete: 'off', placeholder: `Zdanie ${i + 1}`, ariaLabel: `Zdanie ${i + 1}` }),
+              h('textarea', { name: 'st', rows: 3, maxLength: 80, required: true, autocomplete: 'off', placeholder: `Zdanie ${i + 1}`, ariaLabel: `Zdanie ${i + 1}` }),
               h('label', {}, h('input', { type: 'radio', name: 'lie', value: i, required: true }), 'kłamstwo'))),
             h('button', { className: 'btn' }, 'Gotowe'))
         : k === 'text' || k === 'draw'
@@ -318,9 +339,9 @@ function show(s) {
         ? (mine != null
             ? h('div', { className: 'big' }, String(mine))
             : [h('div', { className: 'big', id: 'val' }, String(draft)),
-               h('input', { type: 'range', min: 0, max: 100, value: draft, ariaLabel: s.q.text,
+               h('input', { type: 'range', min: 0, max: s.q.max || 100, value: draft, ariaLabel: s.q.text,
                  oninput: e => { draft = +e.target.value; $('val').textContent = draft; } }),
-               h('div', { className: 'ends' }, h('span', {}, s.q.options[0]), h('span', {}, s.q.options[1])),
+               h('div', { className: 'ends' }, ends(s.q).map(t => h('span', {}, t))),
                btn('Zatwierdź', () => act('answer', '', String(draft)))])
         : s.q.options.map((text, i) => h('button', {
             className: 'btn pick' + (s.q.options.length > 2 ? ' small' : ''), type: 'button',
@@ -330,9 +351,8 @@ function show(s) {
       minor(k !== 'draw' && skip, quit),
     ];
   } else if (s.phase === 'reveal') {
-    kids = [
-      h('h2', {}, verdict(s).text),
-      h('p', { className: 'dim' }, 'Spójrzcie na ekran'),
+    kids = [ // the result belongs to the projector: the phone does not spoil it
+      look('Wynik jest na projektorze'),
       btn(s.round === s.rounds ? 'Zobacz wynik' : 'Dalej', () => act('next')),
       minor(quit),
     ];
