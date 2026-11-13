@@ -133,7 +133,7 @@ async function play(label, expectAtEnd) {
   const pick = a.locator('.picker button', { hasText: label });
   await pick.click();
   await a.locator('.picker button[aria-pressed="true"]', { hasText: label }).waitFor();
-  check((await screen.locator('.rule').count()) === 1, `${label}: the menu must explain the rules`);
+  await screen.locator('.rule').waitFor(); // the menu explains the rules
   await a.getByRole('button', { name: 'Start' }).click();
   await a.getByRole('button', { name: 'Start' }).waitFor({ state: 'detached' });
   check((await screen.locator('.rule').count()) === 1, `${label}: the first round must explain the rules`);
@@ -217,7 +217,7 @@ for (const [page, name] of [[c, 'Kasia'], [d, 'Tomek']]) {
 await d.getByRole('button', { name: 'Start' }).waitFor();
 await screen.getByText('Para 2').waitFor();
 await shot('lobby-two-couples', screen);
-check(await a.locator('.picker button', { hasText: 'Głębokie rozmowy' }).isDisabled(), 'a talk must be unavailable with two couples');
+await a.locator('.picker button:disabled', { hasText: 'Głębokie rozmowy' }).waitFor(); // a talk is for one couple only
 check((await a.locator('#stakeBox:visible').count()) === 0, 'rewards are for a single couple');
 await c.locator('.picker button', { hasText: 'Co wolisz' }).click();
 await c.getByRole('button', { name: 'Start' }).click();
@@ -279,9 +279,9 @@ await a.getByRole('button', { name: 'Menu' }).click();
 await a.getByText('Gracze i kopia zapasowa').click();
 await a.getByRole('button', { name: 'Usuń gracza Tomek' }).click();
 await d.locator('#join:visible').waitFor(); // Tomek is back at the name form and does not bounce in again
-await d.waitForTimeout(300);
-check(!(await text(screen)).includes('Tomek'), 'a removed player must be gone from the table');
-await a.getByText('Gracze i kopia zapasowa').click();
+await screen.locator('.slot', { hasText: 'Tomek' }).waitFor({ state: 'detached' });
+await a.waitForFunction(() => !document.getElementById('app').innerText.includes('Tomek ·')); // gone from the list too
+// the section stays open across the update, so the download link is right there
 const [download] = await Promise.all([a.waitForEvent('download'), a.getByText('Pobierz kopię zapasową').click()]);
 const backup = JSON.parse(readFileSync(await download.path(), 'utf8'));
 check(backup.history.length >= 11 && backup.asked.length > 50 && Array.isArray(backup.yes), 'the backup must hold history, asked questions and the list');

@@ -164,6 +164,8 @@ async function undoPad() {
   act('undo');
 }
 
+let infoOpen = false; // the folded-away "players and backup" section
+
 const saveStake = () => act('stake', '', $('stake').value);
 $('stake').onchange = saveStake;
 
@@ -240,7 +242,8 @@ function show(s) {
         btn(s.pairs.some(x => x.players.every(o => o.bot)) ? 'Usuń parę botów' : 'Dodaj parę botów', () => act('botpair'), 'ghost')),
       btn('Zmień imię lub kolor', () => { editing = true; lastKey = ''; show(last); }, 'ghost after'),
       // rarely needed, so folded away: who sits where, and the data kept between evenings
-      h('details', { className: 'after' }, h('summary', {}, 'Gracze i kopia zapasowa'),
+      // stays open across re-renders, or any update would fold it away under your finger
+      h('details', { className: 'after', open: infoOpen, ontoggle: e => { infoOpen = e.target.open; } }, h('summary', {}, 'Gracze i kopia zapasowa'),
         s.pairs.flatMap(x => x.players.map((o, seat) => h('div', { className: 'row' },
           h('span', {}, `${o.name} · para ${x.n}` + (o.online ? '' : ' · rozłączony')),
           !(x.n === s.pair && seat === s.me) && h('button', { type: 'button', ariaLabel: `Usuń gracza ${o.name}`,
