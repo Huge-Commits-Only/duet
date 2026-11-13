@@ -36,19 +36,8 @@ type question struct {
 
 // valid reports whether the question has what its mode needs, so a broken hand-written pack cannot crash a game.
 func (q question) valid(mode string) bool {
-	switch mode {
-	case "wolisz":
-		return q.A != "" && q.B != ""
-	case "znasz":
-		return q.Q != "" && len(q.Options) >= 2 && len(q.Options) <= 4
-	case "wyzwania":
-		return q.Q != "" && (q.Kind == "prawda" || q.Kind == "wyzwanie")
-	case "kto", "skala", "telepatia", "tak", "blef", "rysowanie":
-		return q.Q != ""
-	case "rozmowy":
-		return q.Q != "" && q.Level >= 1 && q.Level <= 3
-	}
-	return false
+	m, ok := modeByID[mode]
+	return ok && m.valid(q)
 }
 
 // id is derived from the text, so hand-written packs need no ids.

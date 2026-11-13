@@ -12,8 +12,25 @@ import (
 func (g *Game) Act(id, act, key, value string) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	if err := g.do(id, act, key, value); err != nil {
+		return err
+	}
+	g.botsThink()
+	if act != "draw" && act != "clear" && act != "undo" { // strokes are not saved, and there are many of them
+		g.save()
+	}
+	g.broadcast()
+	return nil
+}
+
+// do applies one action; people and bots go through the same rules. Caller holds mu.
+func (g *Game) do(id, act, key, value string) error {
 	p, me := g.find(id)
 	if p == nil || g.phase != "lobby" && !slices.Contains(g.playing, p) { // seated, and not just watching a game in progress
+		return ErrBad
+	}
+	// When couples take turns, only the one playing answers, draws or gives up; anyone may skip, go on or quit.
+	if g.phase == "question" && turnModes[g.mode] && p != g.pair && act != "skip" && act != "quit" {
 		return ErrBad
 	}
 	switch {
@@ -36,6 +53,26 @@ func (g *Game) Act(id, act, key, value string) error {
 			return ErrBad
 		}
 		p.stakes[me] = value
+	case act == "bot" && g.phase == "lobby":
+		if err := g.toggleBot(p); err != nil {
+			return err
+		}
+		g.lead()
+	case act == "botpair" && g.phase == "lobby":
+		if err := g.toggleBotPair(); err != nil {
+			return err
+		}
+	case act == "kick" && g.phase == "lobby":
+		// someone took a seat by mistake, or left their phone behind: key is the couple's number, value the seat
+		n, err := strconv.Atoi(key)
+		seat, err2 := strconv.Atoi(value)
+		if err != nil || err2 != nil || n < 1 || n > maxPairs || seat < 0 || seat >= len(g.pairs[n-1].players) {
+			return ErrBad
+		}
+		kp := g.pairs[n-1]
+		kp.players = slices.Delete(kp.players, seat, seat+1)
+		kp.stakes = [2]string{}
+		g.lead()
 	case act == "list" && g.phase == "lobby":
 		g.showList, g.showStats = !g.showList, false
 	case act == "stats" && g.phase == "lobby":
@@ -109,6 +146,7 @@ func (g *Game) Act(id, act, key, value string) error {
 		if value == "0" {
 			g.points[g.subj]++
 			g.matches++
+			g.pair.score++
 		}
 		g.store.mark(g.cur.id(g.mode))
 		g.next()
@@ -155,10 +193,6 @@ func (g *Game) Act(id, act, key, value string) error {
 	default:
 		return ErrBad
 	}
-	if act != "draw" && act != "clear" && act != "undo" { // strokes are not saved, and there are many of them
-		g.save()
-	}
-	g.broadcast()
 	return nil
 }
 
@@ -168,6 +202,7 @@ func (g *Game) endDrawing(guessed bool) {
 	if guessed {
 		g.gain = 2
 		g.matches++
+		g.pair.score++
 	}
 	g.store.mark(g.cur.id(g.mode))
 	g.phase = "reveal"
@@ -175,12 +210,16 @@ func (g *Game) endDrawing(guessed bool) {
 
 // settle ends the round once every couple has both answers in.
 func (g *Game) settle() {
-	for _, p := range g.playing {
+	pairs := g.playing
+	if turnModes[g.mode] {
+		pairs = []*pair{g.pair} // the others only watch this round
+	}
+	for _, p := range pairs {
 		if p.answers[0] < 0 || p.answers[1] < 0 {
 			return
 		}
 	}
-	for _, p := range g.playing {
+	for _, p := range pairs {
 		g.score(p)
 	}
 	g.store.mark(g.cur.id(g.mode))

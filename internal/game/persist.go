@@ -12,6 +12,7 @@ type saved struct {
 	Key      string // join code in the QR link
 	Pairs    []savedPair
 	Playing  []int // indices into Pairs
+	Active   int   // index of the couple whose turn it is
 	Cfg      map[string]string
 	Phase    string
 	Deck     []savedCard
@@ -42,7 +43,10 @@ type savedPair struct {
 	Found   []string
 }
 
-type savedPlayer struct{ ID, Name, Color, Form string }
+type savedPlayer struct {
+	ID, Name, Color, Form string
+	Bot                   bool
+}
 
 type savedCard struct {
 	Mode string
@@ -62,13 +66,14 @@ func (g *Game) save() {
 		sp := savedPair{Answers: p.answers, Texts: p.texts, Points: p.points, Stakes: p.stakes,
 			Matches: p.matches, Score: p.score, Gain: p.gain, Hit: p.hit, Found: p.found}
 		for _, pl := range p.players {
-			sp.Players = append(sp.Players, savedPlayer{pl.ID, pl.Name, pl.Color, pl.Form})
+			sp.Players = append(sp.Players, savedPlayer{pl.ID, pl.Name, pl.Color, pl.Form, pl.Bot})
 		}
 		s.Pairs = append(s.Pairs, sp)
 	}
 	for _, p := range g.playing {
 		s.Playing = append(s.Playing, slices.Index(g.pairs[:], p))
 	}
+	s.Active = slices.Index(g.pairs[:], g.pair)
 	for _, c := range g.deck {
 		s.Deck = append(s.Deck, savedCard{c.mode, c.q, c.dare})
 	}
@@ -90,7 +95,7 @@ func (g *Game) load() {
 		}
 		p := g.pairs[i]
 		for _, pl := range sp.Players[:min(2, len(sp.Players))] {
-			p.players = append(p.players, &player{ID: pl.ID, Name: pl.Name, Color: pl.Color, Form: pl.Form})
+			p.players = append(p.players, &player{ID: pl.ID, Name: pl.Name, Color: pl.Color, Form: pl.Form, Bot: pl.Bot})
 		}
 		p.stakes = sp.Stakes
 	}
@@ -132,8 +137,12 @@ func (g *Game) load() {
 	if s.Pending && g.deck[g.round-1].dare != nil {
 		g.pending = &g.deck[g.round-1]
 	}
+	if s.Active >= 0 && s.Active < maxPairs && slices.Contains(playing, g.pairs[s.Active]) {
+		g.pair = g.pairs[s.Active]
+	}
 	g.lead()
 	if g.phase == "question" && g.mode == "rysowanie" {
 		g.endDrawing(false)
 	}
+	g.botsThink() // their timers did not survive the restart
 }

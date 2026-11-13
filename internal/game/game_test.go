@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -102,6 +103,7 @@ func TestWoliszFlow(t *testing.T) {
 	// a restarted server remembers what was asked; 12 in the pack, 8 used -> too few fresh ones, so the pool restarts
 	g2 := New(dir)
 	g2.players = g.players
+	g2.Subscribe("a") // a couple with nobody connected does not play
 	g2.cfg["tone"] = "romantycznie"
 	g2.cfg["length"] = "krotka"
 	if len(g2.store.asked) != 8 || g2.start() != nil {
@@ -118,6 +120,17 @@ func TestWoliszFlow(t *testing.T) {
 
 func TestBuiltinPacks(t *testing.T) {
 	packs := loadQuestions(t.TempDir())
+	// the same question twice in one mode and tone would come up twice in an evening
+	for mode, qs := range packs {
+		seen := map[string]bool{}
+		for _, q := range qs {
+			if key := q.Tone + "\x00" + q.id(mode); seen[key] {
+				t.Errorf("%s/%s: duplicate question %q", mode, q.Tone, q.Q+q.A)
+			} else {
+				seen[key] = true
+			}
+		}
+	}
 	for _, mode := range menu["mode"] {
 		if mode.ID == "mix" {
 			continue // draws from the other modes' packs
@@ -690,9 +703,9 @@ func TestSeveralCouples(t *testing.T) {
 		t.Fatal("a player without a partner must block the start")
 	}
 	seat("d", "Tomek", "#ffff00", 1)
-	g.Act("a", "config", "mode", "rysowanie")
+	g.Act("a", "config", "mode", "rozmowy")
 	if g.Act("a", "start", "", "") != errSolo {
-		t.Fatal("drawing is for one couple only")
+		t.Fatal("a talk is for one couple only")
 	}
 	g.Act("c", "config", "mode", "skala")
 	g.Act("c", "stake", "", "masaż")
@@ -758,6 +771,18 @@ func TestSeveralCouples(t *testing.T) {
 		t.Fatalf("history: %+v", h)
 	}
 
+	// guests who left keep their seats, but neither play nor block the couple that stayed
+	g.Act("a", "quit", "", "")
+	for ch, id := range g.subs {
+		if id == "c" || id == "d" {
+			g.Unsubscribe(ch)
+		}
+	}
+	g.Act("a", "config", "mode", "rysowanie")
+	if g.multi() || g.Act("a", "start", "", "") != nil || len(g.playing) != 1 || g.playing[0] != g.pairs[0] {
+		t.Fatalf("with the guests gone the first couple plays alone: multi=%v playing=%d", g.multi(), len(g.playing))
+	}
+
 	// in the lobby a player can move to another couple
 	g.Act("a", "quit", "", "")
 	if seat("b", "Jan", "#00ff00", 3) != nil || len(g.pairs[0].players) != 1 || g.pairs[3].players[0].Name != "Jan" {
@@ -802,5 +827,252 @@ func TestHistoryAndStats(t *testing.T) {
 	g.Act("a", "list", "", "")
 	if g.showStats {
 		t.Fatal("the list and the stats replace each other on the projector")
+	}
+}
+
+func TestPlayingAloneWithBots(t *testing.T) {
+	botDelay = time.Millisecond
+	defer func() { botDelay = 1500 * time.Millisecond }()
+	g := New(t.TempDir())
+	g.Subscribe("a")
+	g.join("a", "Ola", "#ff00aa")
+	// wait until the bots' timers brought the game to the wanted state
+	until := func(what string, ok func() bool) {
+		t.Helper()
+		for range 400 {
+			g.mu.Lock()
+			done := ok()
+			g.mu.Unlock()
+			if done {
+				return
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		t.Fatalf("bots never got to: %s (mode=%s phase=%s round=%d)", what, g.mode, g.phase, g.round)
+	}
+	if g.Act("a", "start", "", "") == nil || g.Act("a", "bot", "", "") != nil || !g.players[1].Bot {
+		t.Fatal("alone you cannot start; a bot partner fills the seat")
+	}
+	if !strings.Contains(string(g.view("")), `"online":true,"bot":true`) {
+		t.Fatal("a bot counts as present")
+	}
+
+	// every mode can be played through alone
+	for _, mode := range menu["mode"] {
+		if err := g.Act("a", "config", "mode", mode.ID); err != nil {
+			t.Fatal(err)
+		}
+		if err := g.Act("a", "start", "", ""); err != nil {
+			t.Fatal(mode.ID, err)
+		}
+		for round := 1; g.phase != "end"; {
+			until(mode.ID+": my turn or a result", func() bool {
+				switch {
+				case g.phase != "question" || g.round != round:
+					return true // revealed, or the round ended without a reveal
+				case g.mode == "rozmowy":
+					return true
+				case g.mode == "wyzwania":
+					return g.pending != nil && g.subj == 0 || g.pending == nil && g.subj == 1
+				case g.mode == "blef":
+					return g.subj == 0 || g.stmts != nil
+				case g.mode == "rysowanie":
+					return g.subj == 0 || len(g.strokes) > 0
+				}
+				return true
+			})
+			g.mu.Lock()
+			phase, m, subj, pending, now := g.phase, g.mode, g.subj, g.pending != nil, g.round
+			g.mu.Unlock()
+			switch {
+			case now != round:
+				round = now
+				continue
+			case phase == "reveal":
+				g.Act("a", "next", "", "")
+			case phase == "end":
+			case m == "rozmowy":
+				g.Act("a", "next", "", "")
+			case m == "wyzwania" && pending:
+				g.Act("a", "answer", "", "1")
+			case m == "wyzwania" && subj == 1:
+				g.Act("a", "answer", "", "0")
+			case m == "wyzwania": // my dare: the bot judges
+				until("bot judges", func() bool { return g.round != round || g.phase != "question" })
+			case m == "blef" && subj == 0 && g.stmts == nil:
+				g.Act("a", "answer", "0", "raz\ndwa\ntrzy")
+				until("bot guesses", func() bool { return g.phase != "question" })
+			case m == "rysowanie" && subj == 1:
+				g.Act("a", "giveup", "", "")
+			case m == "rysowanie": // I draw: the bot guesses after a while
+				until("bot guesses the drawing", func() bool { return g.phase != "question" })
+			case m == "telepatia":
+				g.Act("a", "answer", "", "morze")
+				until("bot answers", func() bool { return g.phase != "question" })
+			default:
+				g.Act("a", "answer", "", "0")
+				until("bot answers", func() bool { return g.phase != "question" || g.round != round })
+			}
+			g.mu.Lock()
+			round = g.round
+			g.mu.Unlock()
+		}
+		g.Act("a", "quit", "", "")
+	}
+	if len(g.store.history) != 0 {
+		t.Fatal("try-outs with a bot must not count in the statistics")
+	}
+
+	// a couple of bots to try the ranking alone; a real partner replaces the bot
+	if g.Act("a", "botpair", "", "") != nil || len(g.seated()) != 2 || !g.multi() {
+		t.Fatal("bot couple")
+	}
+	g.Act("a", "config", "mode", "wolisz")
+	g.Act("a", "start", "", "")
+	g.Act("a", "answer", "", "0")
+	until("everyone answered", func() bool { return g.phase == "reveal" })
+	g.Act("a", "quit", "", "")
+	if g.Act("a", "botpair", "", "") != nil || len(g.seated()) != 1 {
+		t.Fatal("removing the bot couple")
+	}
+	g.Subscribe("b")
+	if g.join("b", "Jan", "#00ffaa") != nil || g.players[1].Bot || g.players[1].Name != "Jan" {
+		t.Fatal("a real partner takes the bot's seat")
+	}
+}
+
+func TestCouplesTakingTurns(t *testing.T) {
+	g := New(t.TempDir())
+	for i, id := range []string{"a", "b", "c", "d"} {
+		g.Subscribe(id)
+		if err := g.JoinAs(id, strings.ToUpper(id), fmt.Sprintf("#00000%d", i), "", g.key, i/2); err != nil {
+			t.Fatal(err)
+		}
+	}
+	g.Act("a", "config", "mode", "rysowanie")
+	if err := g.Act("a", "start", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	// twice the rounds of a game for two: every player draws as often as there
+	if g.rounds != 8 {
+		t.Fatalf("rounds=%d", g.rounds)
+	}
+	ids := [2][2]string{{"a", "b"}, {"c", "d"}}
+	drew := map[string]int{}
+	for g.phase != "end" {
+		pi := slices.Index(g.pairs[:], g.pair)
+		drawer, guesser, other := ids[pi][g.subj], ids[pi][1-g.subj], ids[1-pi]
+		drew[drawer]++
+		word := g.cur.Q
+		// the couple that watches sees no word, cannot draw or guess, and is told whose turn it is
+		for _, w := range other {
+			if strings.Contains(string(g.view(w)), word) || g.Act(w, "draw", "new", "1,1") == nil || g.Act(w, "answer", "", word) == nil ||
+				!strings.Contains(string(g.view(w)), fmt.Sprintf(`"active":%d`, pi+1)) {
+				t.Fatalf("round %d: the watching couple must only watch", g.round)
+			}
+		}
+		if g.Act(drawer, "draw", "new", "1,1,2,2") != nil || !strings.Contains(string(g.view("")), `"strokes"`) {
+			t.Fatal("the projector shows the drawing of the couple playing")
+		}
+		if g.Act(guesser, "answer", "", word) != nil || g.phase != "reveal" {
+			t.Fatal("the partner guesses")
+		}
+		g.Act(other[0], "next", "", "") // anyone may move the game on
+	}
+	if len(drew) != 4 || drew["a"] != 2 || drew["b"] != 2 || drew["c"] != 2 || drew["d"] != 2 {
+		t.Fatalf("everyone draws equally often: %v", drew)
+	}
+	if g.pairs[0].score != 4 || g.pairs[1].score != 4 {
+		t.Fatalf("a guessed drawing is a point for the couple: %d %d", g.pairs[0].score, g.pairs[1].score)
+	}
+
+	// dares and bluffs go round the table too; the mix may now use every mode but the talk
+	g.Act("a", "quit", "", "")
+	g.Act("a", "config", "mode", "wyzwania")
+	g.Act("a", "start", "", "")
+	if g.rounds != 12 || g.Act("c", "answer", "", "0") == nil {
+		t.Fatalf("dares: rounds=%d; the other couple cannot pick", g.rounds)
+	}
+	g.Act("a", "answer", "", "1") // a picks a dare
+	g.Act("b", "answer", "", "0") // b: done
+	if g.pairs[0].score != 1 || g.pair != g.pairs[1] || g.subj != 0 {
+		t.Fatalf("then the next couple: score=%d", g.pairs[0].score)
+	}
+	// a restart keeps whose turn it is
+	if r := New(g.store.dir); r.pair != r.pairs[1] || r.round != 2 {
+		t.Fatalf("restored turn: round=%d", r.round)
+	}
+}
+
+func TestPartnerka(t *testing.T) {
+	for in, want := range map[string]string{
+		"Pocałuj partnera tak, jak za pierwszym razem.":       "Pocałuj partnerkę tak, jak za pierwszym razem.",
+		"Całuj i liż szyję partnera przez minutę.":            "Całuj i liż szyję partnerki przez minutę.",
+		"Zrób partnerowi fryzurę.":                            "Zrób partnerce fryzurę.",
+		"Zatańcz z partnerem wolny taniec bez muzyki.":        "Zatańcz z partnerką wolny taniec bez muzyki.",
+		"Masturbacja przy partnerze?":                         "Masturbacja przy partnerce?",
+		"Patrzeć, jak partner robi sobie dobrze":              "Patrzeć, jak partnerka robi sobie dobrze",
+		"Kto bardziej lubi patrzeć na nagiego partnera?":      "Kto bardziej lubi patrzeć na nagą partnerkę?",
+		"Zaśpiewaj refren ulubionej piosenki partnera.":       "Zaśpiewaj refren ulubionej piosenki partnerki.",
+		"Naśladuj trzy zwierzęta — partner zgaduje jakie.":    "Naśladuj trzy zwierzęta — partnerka zgaduje jakie.",
+		"Zrób partnerowi malinkę w miejscu, które wybierzesz": "Zrób partnerce malinkę w miejscu, które wybierzesz",
+	} {
+		if got := gender(in, "m", "f"); got != want {
+			t.Errorf("\n got %q\nwant %q", got, want)
+		}
+		if got := gender(in, "f", "m"); got != in {
+			t.Errorf("a male partner keeps the text: %q", got)
+		}
+	}
+	// nothing in the packs may be left in the masculine when the partner is addressed as a woman
+	left := regexp.MustCompile(`partner(a|owi|em|ze)?($|[^\p{L}])`)
+	for mode, qs := range loadQuestions(t.TempDir()) {
+		for _, q := range qs {
+			g := q.gendered("m", "f")
+			for _, s := range append([]string{g.Q, g.A, g.B}, g.Options...) {
+				if left.MatchString(s) {
+					t.Errorf("%s: %q", mode, s)
+				}
+			}
+		}
+	}
+}
+
+func TestKickAndBackup(t *testing.T) {
+	g := started(t, "wolisz")
+	g.Act("a", "answer", "", "0")
+	g.Act("b", "answer", "", "0")
+	if g.Act("a", "kick", "1", "1") == nil {
+		t.Fatal("nobody is removed in the middle of a game")
+	}
+	data, err := g.Backup("a")
+	if _, err2 := g.Backup("stranger"); err != nil || err2 == nil {
+		t.Fatal("only a seated player gets the backup")
+	}
+	if g.Restore("a", data) == nil {
+		t.Fatal("no restore while a game is on")
+	}
+	g.Act("a", "quit", "", "")
+
+	// restore into a fresh server: what was asked comes back
+	fresh := New(t.TempDir())
+	fresh.Subscribe("z")
+	fresh.join("z", "Zoe", "#123456")
+	if fresh.Restore("z", []byte(`{"some":"other json"}`)) != errNotBackup || fresh.Restore("z", []byte(`nonsense`)) != errNotBackup {
+		t.Fatal("a file that is not a backup must be refused")
+	}
+	if err := fresh.Restore("z", data); err != nil || len(fresh.store.asked) != 1 {
+		t.Fatalf("restore: %v asked=%d", err, len(fresh.store.asked))
+	}
+	if again := openStore(fresh.store.dir); len(again.asked) != 1 {
+		t.Fatal("a restore is written to disk")
+	}
+
+	// removing a player from the menu frees the seat
+	if g.Act("a", "kick", "1", "5") == nil || g.Act("a", "kick", "9", "0") == nil || g.Act("a", "kick", "1", "1") != nil || len(g.players) != 1 {
+		t.Fatalf("kick: %d players left", len(g.players))
+	}
+	if g.Act("b", "start", "", "") == nil {
+		t.Fatal("a removed player is out")
 	}
 }

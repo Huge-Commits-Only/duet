@@ -21,6 +21,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  # The game logic is covered almost completely; this keeps it that way.
+  COVERAGE_MIN: "85"
+
 jobs:
   unit-ci-test:
     name: Go Tests
@@ -40,7 +44,7 @@ jobs:
       - name: 🧪 Go -- Unit Tests
         run: |
           echo "⚙️ Running unit tests..."
-          if go test -v -race -coverprofile=coverage.out ./...; then
+          if go test -v -race -coverprofile=coverage.out -coverpkg=./internal/... ./...; then
               echo ""
               echo "✅ Unit tests passed successfully."
           else
@@ -53,3 +57,16 @@ jobs:
         run: |
           echo "⚙️ Coverage summary:"
           go tool cover -func=coverage.out
+
+      - name: 🧪 Go -- Test Coverage Threshold
+        run: |
+          TOTAL=$(go tool cover -func=coverage.out | awk '/^total:/ { sub("%", "", $3); print $3 }')
+          echo "⚙️ Total coverage: ${TOTAL}% (minimum: ${COVERAGE_MIN}%)"
+          if awk -v total="$TOTAL" -v min="$COVERAGE_MIN" 'BEGIN { exit !(total >= min) }'; then
+              echo ""
+              echo "✅ Coverage is at or above the minimum."
+          else
+              echo ""
+              echo "❌ Coverage dropped below ${COVERAGE_MIN}%. Please add tests for the new code."
+              exit 1
+          fi

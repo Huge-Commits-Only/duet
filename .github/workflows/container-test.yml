@@ -16,6 +16,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  # A fixed lowercase name: the repository name has capitals, which image references must not
+  IMAGE: duet:pr-test
+
 jobs:
   container-ci-test:
     name: Trivy Image Scan
@@ -35,13 +39,11 @@ jobs:
           context: .
           push: false
           load: true
-          tags: ${{ github.repository }}:pr-${{ github.event.pull_request.number }}-test
+          tags: ${{ env.IMAGE }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: 🧪 Docker -- Test Container Start
-        env:
-          IMAGE: ${{ github.repository }}:pr-${{ github.event.pull_request.number }}-test
         run: |
           echo "⚙️ Starting the container and requesting the projector page:"
           docker run -d --name duet -p 8080:8080 "$IMAGE"
@@ -59,7 +61,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
-          image-ref: ${{ github.repository }}:pr-${{ github.event.pull_request.number }}-test
+          image-ref: ${{ env.IMAGE }}
           ignore-unfixed: true
           scanners: vuln,secret,misconfig
           vuln-type: os,library

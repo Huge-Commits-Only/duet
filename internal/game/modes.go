@@ -12,70 +12,127 @@ type opt struct {
 	Name string `json:"name"`
 }
 
-// menu is what the phones can pick before a game; keys match game.cfg.
-var menu = map[string][]opt{
-	"mode": {{"wolisz", "Co wolisz"}, {"kto", "Kto prędzej…"}, {"znasz", "Jak dobrze mnie znasz"}, {"skala", "Skala"},
-		{"telepatia", "Telepatia"}, {"tak", "Wspólne TAK"}, {"rozmowy", "Głębokie rozmowy"},
-		{"wyzwania", "Wyzwania"}, {"blef", "Blef"}, {"rysowanie", "Rysowanie"}, {"mix", "Wieczór mix"}},
-	"tone":   {{"lekko", "Lekko"}, {"romantycznie", "Romantycznie"}, {"pikantnie", "Pikantnie 18+"}},
-	"length": {{"krotka", "ok. 10 min"}, {"srednia", "ok. 25 min"}, {"dluga", "ok. 45 min"}},
+// modeDef is everything that describes a game mode in one place. A new mode is one entry
+// here plus how its question looks (viewQ), how a round is scored (score) and, when it
+// does not follow the usual "both answer, then reveal" round, its own actions in do.
+type modeDef struct {
+	id, name string
+	rule     string                // one line of rules, shown in the menu and when the mode first comes up in a game
+	rounds   [3]int                // for a short, medium and long evening; slower modes get fewer
+	subject  bool                  // one player is in the spotlight (alternating) and individual points are given
+	multi    string                // with several couples: "all" answer at once, couples take "turns", "" = one couple only
+	mix      bool                  // part of "Wieczór mix"
+	valid    func(q question) bool // does a question from a pack have what this mode needs
 }
 
-// Even numbers: in subject modes both players are asked about equally often.
-// rules is the one-line explanation of each game, shown on the projector in the menu
-// and again whenever a mode comes up for the first time in a game.
-var rules = map[string]string{
-	"wolisz":    "Oboje wybieracie w tajemnicy jedną z dwóch opcji. Liczy się, czy wybierzecie to samo.",
-	"kto":       "Oboje wskazujecie, kogo z Was dotyczy pytanie. Liczy się, czy się zgadzacie.",
-	"znasz":     "Jedno odpowiada o sobie, drugie zgaduje jego odpowiedź. Trafienie to punkt.",
-	"skala":     "Jedno ustawia suwak od 0 do 100, drugie zgaduje. Im bliżej, tym więcej punktów.",
-	"telepatia": "Wpiszcie pierwsze skojarzenie ze słowem z ekranu. Wygrywacie razem, gdy wpiszecie to samo.",
-	"tak":       "Odpowiadacie tak albo nie na pomysły. Ekran pokaże tylko to, na co zgodziliście się oboje.",
-	"rozmowy":   "Karty do rozmowy, od lekkich po najgłębsze. Bez punktów — po prostu rozmawiajcie.",
-	"wyzwania":  "Ekran losuje pytanie albo zadanie dla jednego z Was. Partner ocenia, czy zaliczone.",
-	"blef":      "Jedno pisze o sobie dwie prawdy i jedno kłamstwo. Drugie szuka kłamstwa.",
-	"rysowanie": "Jedno rysuje hasło palcem na telefonie, drugie zgaduje. Macie 60 sekund.",
-	"mix":       "Gra sama przeplata tryby po dwie rundy i liczy wspólny wynik.",
+var modes = []modeDef{
+	{
+		id: "wolisz", name: "Co wolisz",
+		rule:   "Oboje wybieracie w tajemnicy jedną z dwóch opcji. Liczy się, czy wybierzecie to samo.",
+		rounds: [3]int{8, 20, 36}, subject: false, multi: "all", mix: true,
+		valid: func(q question) bool { return q.A != "" && q.B != "" },
+	},
+	{
+		id: "kto", name: "Kto prędzej…",
+		rule:   "Oboje wskazujecie, kogo z Was dotyczy pytanie. Liczy się, czy się zgadzacie.",
+		rounds: [3]int{8, 20, 36}, subject: false, multi: "all", mix: true,
+		valid: func(q question) bool { return q.Q != "" },
+	},
+	{
+		id: "znasz", name: "Jak dobrze mnie znasz",
+		rule:   "Jedno odpowiada o sobie, drugie zgaduje jego odpowiedź. Trafienie to punkt.",
+		rounds: [3]int{8, 20, 36}, subject: true, multi: "all", mix: true,
+		valid: func(q question) bool { return q.Q != "" && len(q.Options) >= 2 && len(q.Options) <= 4 },
+	},
+	{
+		id: "skala", name: "Skala",
+		rule:   "Jedno ustawia suwak od 0 do 100, drugie zgaduje. Im bliżej, tym więcej punktów.",
+		rounds: [3]int{8, 20, 36}, subject: true, multi: "all", mix: true,
+		valid: func(q question) bool { return q.Q != "" },
+	},
+	{
+		id: "telepatia", name: "Telepatia",
+		rule:   "Wpiszcie pierwsze skojarzenie ze słowem z ekranu. Wygrywacie razem, gdy wpiszecie to samo.",
+		rounds: [3]int{8, 20, 36}, subject: false, multi: "all", mix: true,
+		valid: func(q question) bool { return q.Q != "" },
+	},
+	{
+		id: "tak", name: "Wspólne TAK",
+		rule:   "Odpowiadacie tak albo nie na pomysły. Ekran pokaże tylko to, na co zgodziliście się oboje.",
+		rounds: [3]int{8, 20, 36}, subject: false, multi: "all", mix: true,
+		valid: func(q question) bool { return q.Q != "" },
+	},
+	{
+		id: "rozmowy", name: "Głębokie rozmowy",
+		rule:   "Karty do rozmowy, od lekkich po najgłębsze. Bez punktów — po prostu rozmawiajcie.",
+		rounds: [3]int{3, 9, 15}, subject: false, multi: "", mix: false,
+		valid: func(q question) bool { return q.Q != "" && q.Level >= 1 && q.Level <= 3 },
+	},
+	{
+		id: "wyzwania", name: "Wyzwania",
+		rule:   "Ekran losuje pytanie albo zadanie dla jednego z Was. Partner ocenia, czy zaliczone.",
+		rounds: [3]int{6, 14, 24}, subject: true, multi: "turns", mix: true,
+		valid: func(q question) bool { return q.Q != "" && (q.Kind == "prawda" || q.Kind == "wyzwanie") },
+	},
+	{
+		id: "blef", name: "Blef",
+		rule:   "Jedno pisze o sobie dwie prawdy i jedno kłamstwo. Drugie szuka kłamstwa.",
+		rounds: [3]int{4, 8, 12}, subject: true, multi: "turns", mix: true,
+		valid: func(q question) bool { return q.Q != "" },
+	},
+	{
+		id: "rysowanie", name: "Rysowanie",
+		rule:   "Jedno rysuje hasło palcem na telefonie, drugie zgaduje. Macie 60 sekund.",
+		rounds: [3]int{4, 8, 12}, subject: true, multi: "turns", mix: true,
+		valid: func(q question) bool { return q.Q != "" },
+	},
+	{
+		id: "mix", name: "Wieczór mix",
+		rule:   "Gra sama przeplata tryby po dwie rundy i liczy wspólny wynik.",
+		rounds: [3]int{8, 20, 36}, subject: false, multi: "all", mix: false,
+		valid: func(q question) bool { return false },
+	},
 }
 
-var roundsFor = map[string]int{"krotka": 8, "srednia": 20, "dluga": 36}
-
-// talkRounds: "rozmowy" cards take minutes each; a multiple of 3, one third per depth level.
-var talkRounds = map[string]int{"krotka": 3, "srednia": 9, "dluga": 15}
-
-// Slower modes get fewer rounds for the same evening length.
+// The lookups the rest of the code uses, all derived from modes.
 var (
-	dareRounds = map[string]int{"krotka": 6, "srednia": 14, "dluga": 24}
-	blefRounds = map[string]int{"krotka": 4, "srednia": 8, "dluga": 12}
+	modeByID     = map[string]modeDef{}
+	rules        = map[string]string{}
+	subjectModes = map[string]bool{} // one player in the spotlight; individual points
+	multiModes   = map[string]bool{} // playable by several couples
+	turnModes    = map[string]bool{} // …one couple at a time, the others watch
+	mixModes     []string            // what "Wieczór mix" interleaves, two rounds at a time
+
+	// menu is what the phones can pick before a game; keys match Game.cfg.
+	menu = map[string][]opt{
+		"tone":   {{"lekko", "Lekko"}, {"romantycznie", "Romantycznie"}, {"pikantnie", "Pikantnie 18+"}},
+		"length": {{"krotka", "ok. 10 min"}, {"srednia", "ok. 25 min"}, {"dluga", "ok. 45 min"}},
+	}
 )
 
-func roundsOf(mode, length string) int {
-	switch mode {
-	case "rozmowy":
-		return talkRounds[length]
-	case "wyzwania":
-		return dareRounds[length]
-	case "blef", "rysowanie":
-		return blefRounds[length]
+func init() {
+	for _, m := range modes {
+		modeByID[m.id], rules[m.id] = m, m.rule
+		menu["mode"] = append(menu["mode"], opt{m.id, m.name})
+		subjectModes[m.id], multiModes[m.id], turnModes[m.id] = m.subject, m.multi != "", m.multi == "turns"
+		if m.mix {
+			mixModes = append(mixModes, m.id)
+		}
 	}
-	return roundsFor[length]
 }
 
-// subjectModes put one player in the spotlight (alternating) and give individual points.
-var subjectModes = map[string]bool{"znasz": true, "skala": true, "wyzwania": true, "blef": true, "rysowanie": true}
+// roundsFor is the length of an evening in rounds for the quick modes (and for the mix).
+var roundsFor = map[string]int{"krotka": 8, "srednia": 20, "dluga": 36}
+
+func roundsOf(mode, length string) int {
+	return modeByID[mode].rounds[map[string]int{"krotka": 0, "srednia": 1, "dluga": 2}[length]]
+}
 
 // drawTime is how long a "rysowanie" round lasts; the only timed mode. A var so tests can shorten it.
 var drawTime = 60 * time.Second
 
 // maxInk caps one drawing (numbers, i.e. two per point) so a stuck phone cannot grow it without bound.
 const maxInk = 12000
-
-// mixModes are what "Wieczór mix" interleaves, two rounds at a time. No "rozmowy": it has no score.
-// multiModes can be played by several couples at once: everyone answers at the same time.
-// The others need the projector for one couple (a drawing, a dare, a talk).
-var multiModes = map[string]bool{"wolisz": true, "kto": true, "znasz": true, "skala": true, "telepatia": true, "tak": true, "mix": true}
-
-var mixModes = []string{"wolisz", "kto", "znasz", "skala", "telepatia", "tak", "wyzwania", "blef", "rysowanie"}
 
 // viewQ is the current question in the shape the pages render: a list of options, or a 0-100 scale.
 type viewQ struct {
@@ -90,7 +147,7 @@ func (g *Game) viewQ(p *pair, me int) *viewQ {
 	q := g.cur.gendered(g.forms(p, me))
 	switch g.mode {
 	case "rysowanie":
-		if me != g.subj && g.phase != "reveal" {
+		if drawing := p == g.pair && me == g.subj; !drawing && g.phase != "reveal" {
 			return &viewQ{"draw", "", nil}
 		}
 		return &viewQ{"draw", q.Q, nil}
