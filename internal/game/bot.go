@@ -71,7 +71,7 @@ func (g *Game) toggleBotPair() error {
 
 // botMove is what the bot at seat me of couple p does next, and after how long; act "" = nothing to do.
 func (g *Game) botMove(p *pair, me int) (act, key, value string, wait time.Duration) {
-	if g.phase != "question" {
+	if g.phase != "question" || turnModes[g.mode] && p != g.pair { // not this couple's turn
 		return
 	}
 	pick := func(n int) string { return strconv.Itoa(rand.IntN(n)) }

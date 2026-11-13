@@ -55,9 +55,15 @@ func (g *Game) cards(mode string, all map[string][]question, want int) []card {
 			picked = append(picked, g.pick(mode, lv, want/3)...)
 		}
 	} else {
-		want = min(want, len(pool))
+		// One round per turn: with several couples taking turns the game is that many times longer,
+		// and everyone is in the spotlight equally often.
+		each := 1
+		if turnModes[mode] {
+			each = max(1, len(g.playing))
+		}
+		want = min(want*each, len(pool))
 		if subjectModes[mode] && want > 1 {
-			want -= want % 2 // both players are in the spotlight equally often
+			want -= want % (2 * each)
 		}
 		if mode == "wyzwania" { // every round offers one truth and one dare to choose from
 			truths, dares := byKind(pool, "prawda"), byKind(pool, "wyzwanie")
@@ -106,6 +112,7 @@ func (g *Game) start() error {
 	}
 	all, length := loadQuestions(g.store.dir), g.cfg["length"]
 	var deck []card
+	g.playing = playing // cards() sizes the deck by it
 	if g.cfg["mode"] == "mix" {
 		// Shuffled modes take turns, two rounds each, until the evening is full.
 		modes := slices.Clone(mixModes)
@@ -165,7 +172,13 @@ func (g *Game) next() {
 	}
 	g.strokes, g.ink, g.guesses = nil, 0, nil
 	g.intro, g.seen[g.mode] = !g.seen[g.mode], true
-	if subjectModes[g.mode] {
+	// Whose round it is. When couples take turns they go round the table, and the spotlight
+	// moves to the other partner once everyone had a go.
+	g.pair = g.playing[0]
+	if n := len(g.playing); turnModes[g.mode] {
+		g.pair, g.subj = g.playing[g.turn%n], g.turn/n%2
+		g.turn++
+	} else if subjectModes[g.mode] {
 		g.subj = g.turn % 2
 		g.turn++
 	}

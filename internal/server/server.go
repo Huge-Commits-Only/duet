@@ -84,6 +84,31 @@ func (g app) handleAct(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// handleBackup hands a seated player everything saved between evenings as one file.
+func (g app) handleBackup(w http.ResponseWriter, r *http.Request) {
+	data, err := g.Backup(r.URL.Query().Get("id"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", `attachment; filename="duet-kopia-`+time.Now().Format(time.DateOnly)+`.json"`)
+	_, _ = w.Write(data) // nothing to do if the client went away
+}
+
+// handleRestore replaces the saved data with an uploaded backup file.
+func (g app) handleRestore(w http.ResponseWriter, r *http.Request) {
+	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 5<<20))
+	if err == nil {
+		err = g.Restore(r.URL.Query().Get("id"), data)
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // baseURL is the address phones should open: PUBLIC_URL, or whatever the screen was opened with.
 func baseURL(r *http.Request) string {
 	if u := os.Getenv("PUBLIC_URL"); u != "" {
@@ -123,5 +148,7 @@ func Handler(gm *game.Game) http.Handler {
 	mux.HandleFunc("GET /events", g.handleEvents)
 	mux.HandleFunc("POST /api/join", g.handleJoin)
 	mux.HandleFunc("POST /api/act", g.handleAct)
+	mux.HandleFunc("GET /api/backup", g.handleBackup)
+	mux.HandleFunc("POST /api/restore", g.handleRestore)
 	return mux
 }

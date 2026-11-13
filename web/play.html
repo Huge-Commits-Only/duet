@@ -207,6 +207,15 @@ function show(s) {
       h('p', { className: 'dim' }, 'Gra już trwa. Dołączycie do następnej — patrzcie na ekran.'));
   }
 
+  // dares, bluffs and drawings go round the table: the couples whose turn it is not just watch
+  if (s.active && s.active !== s.pair) {
+    return $('app').replaceChildren(
+      h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`),
+      h('h2', {}, `Teraz gra: ${pairName(activePair(s))}`),
+      h('p', { className: 'dim' }, 'Patrzcie na ekran. Wasza kolej zaraz przyjdzie.'),
+      s.phase === 'reveal' && btn(s.round === s.rounds ? 'Zobacz wynik' : 'Dalej', () => act('next')));
+  }
+
   const quit = btn('Zakończ grę', () => confirm('Zakończyć grę i wrócić do menu?') && act('quit'), 'ghost');
   const skip = btn('Pomiń rundę', () => confirm('Pominąć tę rundę? Nikt nie dostanie punktów.') && act('skip'), 'ghost');
   let kids;
@@ -230,6 +239,21 @@ function show(s) {
         btn('Usuń bota', () => act('bot'), 'ghost'),
         btn(s.pairs.some(x => x.players.every(o => o.bot)) ? 'Usuń parę botów' : 'Dodaj parę botów', () => act('botpair'), 'ghost')),
       btn('Zmień imię lub kolor', () => { editing = true; lastKey = ''; show(last); }, 'ghost after'),
+      // rarely needed, so folded away: who sits where, and the data kept between evenings
+      h('details', { className: 'after' }, h('summary', {}, 'Gracze i kopia zapasowa'),
+        s.pairs.flatMap(x => x.players.map((o, seat) => h('div', { className: 'row' },
+          h('span', {}, `${o.name} · para ${x.n}` + (o.online ? '' : ' · rozłączony')),
+          !(x.n === s.pair && seat === s.me) && h('button', { type: 'button', ariaLabel: `Usuń gracza ${o.name}`,
+            onclick: () => confirm(`Usunąć gracza ${o.name}? Zwolni się jego miejsce.`) && act('kick', String(x.n), String(seat)) }, '✕')))),
+        h('a', { className: 'btn ghost', href: '/api/backup?id=' + me.id, download: '' }, 'Pobierz kopię zapasową'),
+        h('label', { className: 'btn ghost' }, 'Wczytaj kopię zapasową',
+          h('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: async e => {
+            const file = e.target.files[0];
+            if (!file || !confirm('Wczytanie kopii zastąpi zapisane pytania, listę i statystyki. Kontynuować?')) return;
+            $('err').textContent = '';
+            const r = await fetch('/api/restore?id=' + me.id, { method: 'POST', body: file }).catch(() => null);
+            $('err').textContent = !r ? 'Brak połączenia z grą' : r.ok ? 'Kopia wczytana.' : await r.text();
+          } }))),
     ];
   } else if (s.phase === 'question') {
     const mine = s.myAnswer, about = subj(s), k = s.q.kind;
@@ -309,11 +333,12 @@ function show(s) {
   $('app').replaceChildren(...kids.flat(3).filter(Boolean));
 }
 
-let rejoined = false;
+let first = true;
 live('/events?id=' + me.id, s => {
-  // Server restarted or we were replaced: get our seat back with the saved profile.
-  if (s.me < 0 && me.name && !rejoined) { rejoined = true; join(); }
-  if (s.me >= 0) rejoined = false;
+  // A phone that played before goes straight in when the page opens. Only then:
+  // someone removed from the table later must not bounce right back.
+  if (first && s.me < 0 && me.name) join();
+  first = false;
   show(s);
 });
 </script>

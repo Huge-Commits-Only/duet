@@ -35,6 +35,10 @@ function verdict(s) {
 const score = s => `${s.players[0].name} ${s.points[0]} : ${s.points[1]} ${s.players[1].name}`;
 const chips = items => h('div', { className: 'list' }, items.map(t => h('span', {}, t)));
 
+// With several couples, dares, bluffs and drawings go round the table: s.active is the couple playing now.
+const activePair = s => s.pairs.find(p => p.n === s.active);
+const ranked = s => s.multi && !s.active; // everyone answers at once: the projector shows the ranking
+
 // Several couples at one projector are ranked by score.
 const pairName = p => p.players.map(x => x.name).join(' i ');
 function ranking(s, round) {

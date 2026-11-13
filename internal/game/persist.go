@@ -12,6 +12,7 @@ type saved struct {
 	Key      string // join code in the QR link
 	Pairs    []savedPair
 	Playing  []int // indices into Pairs
+	Active   int   // index of the couple whose turn it is
 	Cfg      map[string]string
 	Phase    string
 	Deck     []savedCard
@@ -72,6 +73,7 @@ func (g *Game) save() {
 	for _, p := range g.playing {
 		s.Playing = append(s.Playing, slices.Index(g.pairs[:], p))
 	}
+	s.Active = slices.Index(g.pairs[:], g.pair)
 	for _, c := range g.deck {
 		s.Deck = append(s.Deck, savedCard{c.mode, c.q, c.dare})
 	}
@@ -134,6 +136,9 @@ func (g *Game) load() {
 	}
 	if s.Pending && g.deck[g.round-1].dare != nil {
 		g.pending = &g.deck[g.round-1]
+	}
+	if s.Active >= 0 && s.Active < maxPairs && slices.Contains(playing, g.pairs[s.Active]) {
+		g.pair = g.pairs[s.Active]
 	}
 	g.lead()
 	if g.phase == "question" && g.mode == "rysowanie" {

@@ -55,6 +55,7 @@ jobs:
             latest=true
           tags: |
             type=raw,value=${{ steps.version.outputs.version }}
+            type=sha,format=short
 
       - name: 🔑 Docker -- Log in to GHCR
         uses: docker/login-action@v4

@@ -11,6 +11,8 @@ Gry i quizy dla par. Projektor (albo telewizor) pokazuje grę, a telefony służ
 3. Na telefonie wybieracie grę, ton (lekko / romantycznie / pikantnie 18+) i długość, a potem **Start**.
 4. Odpowiadacie w tajemnicy na telefonach; projektor odsłania odpowiedzi i liczy zgodność.
 
+Rozmiar tekstu na projektorze zmienisz klawiszami `+` i `-` (`0` przywraca domyślny), a `m` wycisza dźwięk.
+
 Dźwięk gra z urządzenia podłączonego do projektora. Przeglądarka puści go dopiero po kliknięciu — kliknij ikonę głośnika w prawym górnym rogu ekranu (ten sam przycisk wycisza).
 
 ### Tryby
@@ -29,7 +31,13 @@ Dźwięk gra z urządzenia podłączonego do projektora. Przeglądarka puści go
 | Wieczór mix | Gra sama przeplata tryby i liczy wspólny wynik |
 
 ### Kilka par
-Przy dołączaniu każdy wybiera numer pary (partnerzy ten sam). Gdy siedzą co najmniej dwie pary, wszyscy dostają to samo pytanie naraz, każda para odpowiada między sobą, a ekran pokazuje ranking — wygrywa najbardziej zgrana para. Dostępne są wtedy tryby, w których odpowiada się jednocześnie: Co wolisz, Kto prędzej…, Jak dobrze mnie znasz, Skala, Telepatia, Wspólne TAK i Wieczór mix. Pozostałe są dla jednej pary.
+Przy dołączaniu każdy wybiera numer pary (partnerzy ten sam). Gdy siedzą co najmniej dwie pary, ekran pokazuje ranking — wygrywa najbardziej zgrana para.
+
+- **Wszyscy naraz:** Co wolisz, Kto prędzej…, Jak dobrze mnie znasz, Skala, Telepatia, Wspólne TAK. Każda para odpowiada między sobą na to samo pytanie.
+- **Po kolei:** Wyzwania, Blef, Rysowanie. Jedna para gra, reszta patrzy na ekran; kolejka idzie wokół stołu, a gra jest odpowiednio dłuższa, żeby każdy miał tyle samo rund.
+- **Wieczór mix** miesza jedne i drugie. **Głębokie rozmowy** są tylko dla jednej pary.
+
+W złożonym na dole menu telefonu („Gracze i kopia zapasowa") widać, kto siedzi w której parze, i można usunąć gracza, który zajął miejsce przez pomyłkę.
 
 ### Test w pojedynkę
 Bez drugiej osoby też da się wszystko sprawdzić. Gdy siedzisz w parze sam, telefon pokazuje przycisk „Zagraj z botem" — bot zajmuje miejsce partnera i odpowiada losowo po krótkiej chwili. Z menu można jeszcze dosadzić parę botów, żeby zobaczyć ranking kilku par. Gry z botem nie liczą się do statystyk, a prawdziwy partner, który dołączy do Twojej pary, po prostu zastępuje bota.
@@ -85,6 +93,19 @@ docker compose up -d
 ```
 
 Gra słucha na porcie `8080`. Otwórz `http://<adres-ip>:8080/screen`.
+
+### Wersje: aktualizacja i powrót
+Każdy merge do `main` publikuje obraz z trzema tagami: `latest`, numerem wersji (np. `1.4.2`) i skrótem commita.
+
+```bash
+docker compose pull && docker compose up -d          # najnowsza wersja
+DUET_VERSION=1.4.2 docker compose up -d              # konkretna wersja — także powrót do poprzedniej
+```
+
+Dostępne wersje: `https://github.com/orgs/Huge-Commits-Only/packages/container/package/duet`. Dane w wolumenie zostają przy zmianie wersji.
+
+### Kopia zapasowa
+W menu telefonu, w sekcji „Gracze i kopia zapasowa", są dwa przyciski: **Pobierz kopię zapasową** (jeden plik JSON z historią gier, listą wspólnych TAK i listą zadanych pytań) oraz **Wczytaj kopię zapasową** (zastępuje zapisane dane zawartością pliku). Przydaje się przed przenosinami na inny serwer.
 
 ### Parametry
 | Zmienna | Domyślnie | Opis |
@@ -151,7 +172,7 @@ docker cp moje-pytania.json duet:/data/questions/moje-pytania.json
 | Workflow | Plik | Kiedy | Co robi |
 |---|---|---|---|
 | Go Verification | `go-test.yml` | PR, `main` | `go mod verify`, `go mod tidy -diff`, `gofmt`, kompilacja |
-| Unit Test Verification | `unit-test.yml` | PR, `main` | `go test -race` + podsumowanie pokrycia |
+| Unit Test Verification | `unit-test.yml` | PR, `main` | `go test -race`, podsumowanie pokrycia i próg minimalny (85%) |
 | Lint Verification | `lint-test.yml` | PR, `main` | `golangci-lint` |
 | Security Verification | `security-test.yml` | PR, `main` | `govulncheck` + Trivy (podatności, sekrety, konfiguracja) |
 | Container Verification | `container-test.yml` | PR | Buduje obraz, sprawdza czy kontener startuje, skanuje go Trivy |

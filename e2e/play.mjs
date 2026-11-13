@@ -1,5 +1,6 @@
 // Browser test: a projector and two phones play every mode from the menu to the final score.
 // It answers whatever the phones ask for, so new modes built from the existing inputs need no changes here.
+import { readFileSync } from 'node:fs';
 import { chromium, devices } from 'playwright';
 
 const base = process.argv[2];
@@ -216,7 +217,7 @@ for (const [page, name] of [[c, 'Kasia'], [d, 'Tomek']]) {
 await d.getByRole('button', { name: 'Start' }).waitFor();
 await screen.getByText('Para 2').waitFor();
 await shot('lobby-two-couples', screen);
-check(await a.locator('.picker button', { hasText: 'Rysowanie' }).isDisabled(), 'one-couple modes must be unavailable with two couples');
+check(await a.locator('.picker button', { hasText: 'Głębokie rozmowy' }).isDisabled(), 'a talk must be unavailable with two couples');
 check((await a.locator('#stakeBox:visible').count()) === 0, 'rewards are for a single couple');
 await c.locator('.picker button', { hasText: 'Co wolisz' }).click();
 await c.getByRole('button', { name: 'Start' }).click();
@@ -241,9 +242,60 @@ await shot('final-ranking', screen);
 await shot('final-phone', c);
 console.log(`✔ dwie pary: ${final}`);
 
+// ---- couples take turns: a drawing goes round the table ----
+await d.getByRole('button', { name: 'Menu' }).click();
+await c.getByRole('button', { name: 'Start' }).waitFor();
+await c.locator('.picker button', { hasText: 'Rysowanie' }).click();
+await c.locator('.picker button[aria-pressed="true"]', { hasText: 'Rysowanie' }).waitFor();
+await c.getByRole('button', { name: 'Start' }).click();
+const partner = new Map([[a, b], [b, a], [c, d], [d, c]]);
+for (let i = 1; i <= 8; i++) {
+  await screen.getByText(`Runda ${i} z 8`).waitFor();
+  let drawer;
+  for (let tries = 0; !drawer && tries < 200; tries++) {
+    for (const page of [a, b, c, d]) if (await has(page, 'canvas.pad')) drawer = page;
+    if (!drawer) await a.waitForTimeout(50);
+  }
+  check(drawer, 'someone must be drawing');
+  const guesser = partner.get(drawer), watchers = [a, b, c, d].filter(p => p !== drawer && p !== guesser);
+  const word = (await drawer.locator('#app h2').textContent()).trim();
+  for (const w of watchers) {
+    await w.getByText('Teraz gra:').waitFor();
+    check(!(await text(w)).includes(word), 'the couple that watches must not see the word');
+  }
+  if (i === 1) await shot('turns-screen', screen);
+  await guesser.fill('#word', word);
+  await guesser.getByRole('button', { name: 'Wyślij' }).click();
+  await screen.getByText('Zgadnięte!').waitFor();
+  await watchers[0].getByRole('button', { name: i === 8 ? 'Zobacz wynik' : 'Dalej' }).click(); // anyone may move on
+}
+await screen.getByText('Najbardziej zgrana para').waitFor();
+const turns = (await text(screen)).replace(/\s+/g, ' ');
+check(/Remis na szczycie! 1\. .* 4 pkt 2\. .* 4 pkt/.test(turns), `unexpected ranking after turns: ${turns}`);
+console.log(`✔ pary po kolei: ${turns}`);
+
+// ---- the folded-away corner of the menu: removing a player, backup and restore ----
+await a.getByRole('button', { name: 'Menu' }).click();
+await a.getByText('Gracze i kopia zapasowa').click();
+await a.getByRole('button', { name: 'Usuń gracza Tomek' }).click();
+await d.locator('#join:visible').waitFor(); // Tomek is back at the name form and does not bounce in again
+await d.waitForTimeout(300);
+check(!(await text(screen)).includes('Tomek'), 'a removed player must be gone from the table');
+await a.getByText('Gracze i kopia zapasowa').click();
+const [download] = await Promise.all([a.waitForEvent('download'), a.getByText('Pobierz kopię zapasową').click()]);
+const backup = JSON.parse(readFileSync(await download.path(), 'utf8'));
+check(backup.history.length >= 11 && backup.asked.length > 50 && Array.isArray(backup.yes), 'the backup must hold history, asked questions and the list');
+await a.locator('details input[type=file]').setInputFiles(await download.path());
+await a.getByText('Kopia wczytana.').waitFor();
+console.log(`✔ kopia zapasowa: ${backup.history.length} gier, ${backup.asked.length} zadanych pytań`);
+
+// ---- text size on the projector ----
+await screen.keyboard.press('+');
+check((await screen.locator('main').evaluate(el => el.style.zoom)) === '1.1', 'the + key must enlarge the projector view');
+await screen.keyboard.press('0');
+
 // ---- alone with a bot: one phone is enough to try the game out ----
 for (const page of [b, c, d]) await page.context().close(); // everyone else leaves
-await a.getByRole('button', { name: 'Menu' }).click();
 await a.getByRole('button', { name: 'Zmień imię lub kolor' }).click();
 await a.locator('#pairs button', { hasText: '3' }).click(); // an empty couple, to sit alone
 await a.click('#join .btn');

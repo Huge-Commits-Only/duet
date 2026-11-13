@@ -1,6 +1,7 @@
 services:
   duet:
-    image: ghcr.io/huge-commits-only/duet:latest
+    # DUET_VERSION=1.4.2 docker compose up -d   pins a release (and goes back to one); default: the newest
+    image: ghcr.io/huge-commits-only/duet:${DUET_VERSION:-latest}
     build: .
     container_name: duet
     restart: unless-stopped

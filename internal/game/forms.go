@@ -19,7 +19,45 @@ var (
 
 const askerVerb, askerShould = "\x00", "\x01" // placeholders, so the rules for "you" leave the asker's words alone
 
+// "partner" in the packs is the other one of the couple. When she is addressed as "f",
+// it becomes "partnerka" in the right case. "partnera" is either accusative ("pocałuj partnera")
+// or genitive ("szyję partnera"); the word before it tells which.
+var (
+	rePartner = regexp.MustCompile(`(?:(\p{L}+) )?(nagiego )?partner(owi|em|ze|a)?($|[^\p{L}])`)
+	// words followed by the genitive: nouns the partner "owns", and a few prepositions
+	genitiveBefore = map[string]bool{
+		"dla": true, "do": true, "od": true, "u": true, "bez": true,
+		"dłoni": true, "majtki": true, "palec": true, "piosenki": true, "plecach": true, "sutki": true,
+		"szyję": true, "ud": true, "finał": true, "ucha": true, "kolanach": true, "ramiona": true,
+		"ciało": true, "ciele": true, "bieliznę": true, "włosy": true, "usta": true, "ręce": true,
+	}
+)
+
+func partnerka(s string) string {
+	return rePartner.ReplaceAllStringFunc(s, func(m string) string {
+		g := rePartner.FindStringSubmatch(m)
+		before, naked, ending, after := g[1], g[2], g[3], g[4]
+		word := map[string]string{"": "partnerka", "owi": "partnerce", "em": "partnerką", "ze": "partnerce"}[ending]
+		if ending == "a" {
+			word = "partnerkę"
+			if genitiveBefore[strings.ToLower(before)] {
+				word = "partnerki"
+			}
+		}
+		if naked != "" { // "nagiego partnera" is always the accusative here
+			naked = "nagą "
+		}
+		if before != "" {
+			before += " "
+		}
+		return before + naked + word + after
+	})
+}
+
 func gender(s, you, other string) string {
+	if other == "f" && strings.Contains(s, "partner") {
+		s = partnerka(s)
+	}
 	if !strings.ContainsAny(s, "/(") {
 		return s
 	}

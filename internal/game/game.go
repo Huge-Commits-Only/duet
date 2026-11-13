@@ -159,6 +159,8 @@ func (g *Game) multi() bool {
 // lead points the embedded couple at the one the single-couple code should talk about.
 func (g *Game) lead() {
 	switch {
+	case g.phase != "lobby" && slices.Contains(g.playing, g.pair):
+		// in a game next() decides: the couple whose turn it is, or the first one
 	case g.phase != "lobby" && len(g.playing) > 0:
 		g.pair = g.playing[0]
 	case len(g.live()) > 0:
@@ -206,9 +208,10 @@ func (g *Game) view(id string) []byte {
 		Phase    string            `json:"phase"`
 		Players  []player          `json:"players"`
 		Me       int               `json:"me"`
-		Pair     int               `json:"pair"`  // number of the viewer's couple, 1-based
-		Pairs    []viewPair        `json:"pairs"` // every couple seated (lobby) or playing
-		Multi    bool              `json:"multi"` // several couples
+		Pair     int               `json:"pair"`             // number of the viewer's couple, 1-based
+		Pairs    []viewPair        `json:"pairs"`            // every couple seated (lobby) or playing
+		Multi    bool              `json:"multi"`            // several couples
+		Active   int               `json:"active,omitempty"` // several couples taking turns: the number of the one playing now
 		Solo     []string          `json:"solo,omitempty"`
 		Cfg      map[string]string `json:"cfg"`
 		Menu     map[string][]opt  `json:"menu"`
@@ -280,8 +283,13 @@ func (g *Game) view(id string) []byte {
 	if id == "" && g.mode == "rysowanie" && (g.phase == "question" || g.phase == "reveal") {
 		v.Strokes = g.strokes
 	}
-	// With several couples the projector shows the ranking, not one couple's answers.
-	own := id != "" || !multi
+	// With several couples the projector shows the ranking, not one couple's answers —
+	// unless they take turns: then it shows the couple playing, like in a game for two.
+	turn := multi && turnModes[g.mode] && (g.phase == "question" || g.phase == "reveal")
+	if turn {
+		v.Active = slices.Index(g.pairs[:], g.pair) + 1
+	}
+	own := id != "" || !multi || turn
 	if g.phase != "lobby" && own {
 		v.Found = p.found // in the lobby the saved list is shown only on request
 	}

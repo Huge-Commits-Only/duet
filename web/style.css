@@ -3,7 +3,7 @@
   --panel: #1a1030;
   --line: #3a2a5c;
   --text: #f6f0ff;
-  --dim: #9a8cb8;
+  --dim: #b3a6cf; /* lighter than the first version: readable on a projector with the lights on */
   --pink: #ff3d9a;
   --violet: #9b5cff;
   --green: #3dffa8;
@@ -26,6 +26,7 @@ h1 {
 }
 h2, p { margin: 0; }
 button { font: inherit; color: inherit; touch-action: manipulation; cursor: pointer; }
+:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .dim { color: var(--dim); }
 .pad { background: #fff; aspect-ratio: 1; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .timer { font-weight: 800; color: var(--pink); font-variant-numeric: tabular-nums; }
@@ -181,6 +182,12 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .phone .list span { padding: .4rem .9rem; border-width: 2px; font-size: 1rem; }
 .phone .big.half { font-size: 4rem; }
 .picker button:disabled { opacity: .35; }
+details { width: 100%; text-align: left; color: var(--dim); }
+details summary { padding: .6rem 0; cursor: pointer; }
+details[open] { display: flex; flex-direction: column; gap: .6rem; }
+details .row { align-items: center; }
+details .row button { width: 2.75rem; height: 2.75rem; border-radius: .6rem; border: 2px solid var(--line); background: var(--panel); }
+a.btn, label.btn { display: block; text-align: center; text-decoration: none; cursor: pointer; }
 .phone .ranking { width: 100%; font-size: 1.1rem; border-spacing: 0 .4rem; }
 .phone .ranking td { padding: .6rem .7rem; }
 #err { color: #ff6b6b; }
