@@ -60,10 +60,18 @@ func TestAPI(t *testing.T) {
 		code, _, _ := do("GET", path, "")
 		expect(path, code, http.StatusOK)
 	}
+	if _, _, h := do("GET", "/play", ""); h.Get("X-Frame-Options") != "DENY" || h.Get("Referrer-Policy") != "no-referrer" || !strings.Contains(h.Get("Content-Security-Policy"), "default-src 'self'") {
+		t.Errorf("security headers missing: %v", h)
+	}
 	code, _, h = do("GET", "/qr.png", "")
 	expect("qr", code, http.StatusOK)
 	if h.Get("Content-Type") != "image/png" {
 		t.Errorf("qr content type %q", h.Get("Content-Type"))
+	}
+
+	t.Setenv("PUBLIC_URL", "https://duet.example.duckdns.org")
+	if code, body, _ := do("GET", "/link", ""); code != http.StatusOK || body != "https://duet.example.duckdns.org/play?k="+g.Key() {
+		t.Errorf("the address under the QR code must be the one in it: %d %q", code, body)
 	}
 
 	// joining needs the code from the QR link
@@ -72,8 +80,8 @@ func TestAPI(t *testing.T) {
 		code, _, _ := do("POST", "/api/join", string(body))
 		return code
 	}
-	expect("join without the code", join("a", "Ola", "#ff00aa", ""), http.StatusForbidden)
-	expect("join", join("a", "Ola", "#ff00aa", g.Key()), http.StatusNoContent)
+	expect("join without the code", join("a", "Natalia", "#ff00aa", ""), http.StatusForbidden)
+	expect("join", join("a", "Natalia", "#ff00aa", g.Key()), http.StatusNoContent)
 	expect("join with bad data", join("b", "", "#ff00aa", g.Key()), http.StatusBadRequest)
 	code, _, _ = do("POST", "/api/join", "not json")
 	expect("join with a broken body", code, http.StatusBadRequest)

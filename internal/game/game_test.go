@@ -15,13 +15,13 @@ import (
 
 func TestJoin(t *testing.T) {
 	g := New(t.TempDir())
-	for _, bad := range [][3]string{{"", "Ola", "#ff00aa"}, {"a", "  ", "#ff00aa"}, {"a", "Ola", "red"}, {"a", "abcdefghijklmnopqrstu", "#ff00aa"}} {
+	for _, bad := range [][3]string{{"", "Natalia", "#ff00aa"}, {"a", "  ", "#ff00aa"}, {"a", "Natalia", "red"}, {"a", "abcdefghijklmnopqrstu", "#ff00aa"}} {
 		if g.join(bad[0], bad[1], bad[2]) != ErrBad {
 			t.Errorf("join%v: want ErrBad", bad)
 		}
 	}
 	a, b := g.Subscribe("a"), g.Subscribe("b")
-	if g.join("a", "Ola", "#ff00aa") != nil || g.join("b", "Jan", "#00ffaa") != nil {
+	if g.join("a", "Natalia", "#ff00aa") != nil || g.join("b", "Jan", "#00ffaa") != nil {
 		t.Fatal("two players must fit")
 	}
 	if g.join("b", "Jan", "#ff00aa") != ErrColor {
@@ -53,7 +53,7 @@ func TestWoliszFlow(t *testing.T) {
 	g := New(dir)
 	a := g.Subscribe("a")
 	g.Subscribe("b")
-	g.join("a", "Ola", "#ff00aa")
+	g.join("a", "Natalia", "#ff00aa")
 	if g.Act("a", "start", "", "") == nil {
 		t.Fatal("start needs two players")
 	}
@@ -159,7 +159,7 @@ func started(t *testing.T, mode string) *Game {
 	g := New(t.TempDir())
 	g.Subscribe("a")
 	g.Subscribe("b")
-	g.join("a", "Ola", "#ff00aa")
+	g.join("a", "Natalia", "#ff00aa")
 	g.join("b", "Jan", "#00ffaa")
 	g.Act("a", "stake", "", "masaż")
 	g.Act("b", "stake", "", "zmywanie")
@@ -251,7 +251,7 @@ func TestZnaszAndKto(t *testing.T) {
 	g = started(t, "kto")
 	var v struct{ Q viewQ }
 	json.Unmarshal(g.view(""), &v)
-	if v.Q.Options[0] != "Ola" || v.Q.Options[1] != "Jan" || g.subject() != -1 {
+	if v.Q.Options[0] != "Natalia" || v.Q.Options[1] != "Jan" || g.subject() != -1 {
 		t.Fatalf("kto: the choices are the players: %+v", v.Q)
 	}
 	g.Act("a", "answer", "", "1")
@@ -666,10 +666,10 @@ func TestRestartKeepsTheGame(t *testing.T) {
 	}
 
 	// the join code: needed for a new phone, not for one that already has a seat
-	if r.JoinAs("c", "Obcy", "#123456", "", "zły kod", 0) != ErrKey || r.JoinAs("a", "Ola", "#ff00aa", "f", "", 0) != nil || r.players[0].Form != "f" {
+	if r.JoinAs("c", "Obcy", "#123456", "", "zły kod", 0) != ErrKey || r.JoinAs("a", "Natalia", "#ff00aa", "f", "", 0) != nil || r.players[0].Form != "f" {
 		t.Fatal("join code must guard free seats only")
 	}
-	if r.JoinAs("a", "Ola", "#ff00aa", "x", r.key, 0) != ErrBad {
+	if r.JoinAs("a", "Natalia", "#ff00aa", "x", r.key, 0) != ErrBad {
 		t.Fatal("unknown form must be rejected")
 	}
 	if strings.Contains(string(r.view("a")), r.key) || !strings.Contains(string(r.view("")), r.key) {
@@ -693,7 +693,7 @@ func TestSeveralCouples(t *testing.T) {
 		g.Subscribe(id)
 	}
 	seat := func(id, name, color string, n int) error { return g.JoinAs(id, name, color, "", g.key, n) }
-	if seat("a", "Ola", "#ff0000", 0) != nil || seat("b", "Jan", "#00ff00", 0) != nil || seat("c", "Kasia", "#0000ff", 1) != nil {
+	if seat("a", "Natalia", "#ff0000", 0) != nil || seat("b", "Jan", "#00ff00", 0) != nil || seat("c", "Kasia", "#0000ff", 1) != nil {
 		t.Fatal("joining two couples")
 	}
 	if seat("x", "Piąty", "#123456", 0) != ErrFull || seat("x", "Piąty", "#123456", 4) != ErrBad {
@@ -747,7 +747,7 @@ func TestSeveralCouples(t *testing.T) {
 		t.Fatalf("a phone sees its own couple's reveal: %+v", c.Answers)
 	}
 	screen := string(g.view(""))
-	if strings.Contains(screen, `"answers"`) || !strings.Contains(screen, `"detail":"Ola: 50 · Jan: 52"`) || !strings.Contains(screen, `"detail":"Kasia: 10 · Tomek: 90"`) {
+	if strings.Contains(screen, `"answers"`) || !strings.Contains(screen, `"detail":"Natalia: 50 · Jan: 52"`) || !strings.Contains(screen, `"detail":"Kasia: 10 · Tomek: 90"`) {
 		t.Fatalf("the projector shows every couple in the ranking, not one couple's answers: %s", screen)
 	}
 
@@ -767,7 +767,7 @@ func TestSeveralCouples(t *testing.T) {
 		t.Fatal("rewards are for a single couple only")
 	}
 	h := g.store.history
-	if len(h) != 1 || len(h[0].Pairs) != 2 || h[0].winner() != "Ola i Jan" || h[0].Pairs[0].Score != 3 {
+	if len(h) != 1 || len(h[0].Pairs) != 2 || h[0].winner() != "Natalia i Jan" || h[0].Pairs[0].Score != 3 {
 		t.Fatalf("history: %+v", h)
 	}
 
@@ -835,7 +835,7 @@ func TestPlayingAloneWithBots(t *testing.T) {
 	defer func() { botDelay = 1500 * time.Millisecond }()
 	g := New(t.TempDir())
 	g.Subscribe("a")
-	g.join("a", "Ola", "#ff00aa")
+	g.join("a", "Natalia", "#ff00aa")
 	// wait until the bots' timers brought the game to the wanted state
 	until := func(what string, ok func() bool) {
 		t.Helper()
@@ -1074,5 +1074,102 @@ func TestKickAndBackup(t *testing.T) {
 	}
 	if g.Act("b", "start", "", "") == nil {
 		t.Fatal("a removed player is out")
+	}
+}
+
+// A second tap carrying the step of a screen that is already gone does nothing.
+func TestLateTapIsDropped(t *testing.T) {
+	twice := func(g *Game, id, act, value string) {
+		t.Helper()
+		step := g.step()
+		for range 2 {
+			if err := g.ActAt(step, id, act, "", value); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	g := started(t, "tak")
+	g.Act("a", "answer", "", "1")
+	twice(g, "b", "answer", "0")
+	if g.round != 2 || g.answers[1] != -1 {
+		t.Fatalf("tak: the second yes landed on the next card: round=%d answers=%v", g.round, g.answers)
+	}
+	g = started(t, "wyzwania")
+	g.Act("a", "answer", "", "0")
+	twice(g, "b", "answer", "0")
+	if g.round != 2 || g.pending == nil {
+		t.Fatalf("wyzwania: the judge's second tap picked truth for them: round=%d", g.round)
+	}
+	g = started(t, "rozmowy")
+	twice(g, "a", "next", "")
+	if g.round != 2 {
+		t.Fatalf("rozmowy: a card was skipped: round=%d", g.round)
+	}
+	g = started(t, "wolisz")
+	g.Act("a", "answer", "", "0")
+	g.Act("b", "answer", "", "0")
+	step := g.step()
+	g.ActAt(step, "a", "next", "", "")
+	if err := g.ActAt(step, "b", "next", "", ""); err != nil || g.round != 2 || g.phase != "question" {
+		t.Fatalf("both tapping next: err=%v round=%d phase=%s", err, g.round, g.phase)
+	}
+	twice(g, "a", "skip", "")
+	if g.round != 3 {
+		t.Fatalf("skip twice skipped two rounds: round=%d", g.round)
+	}
+	g = started(t, "blef")
+	step = g.step()
+	for range 2 { // the second "Gotowe" must not become a guess at the statements
+		if err := g.ActAt(step, "a", "answer", "1", "Raz\nDwa\nTrzy"); err != nil {
+			t.Fatalf("blef: a double tap on Gotowe shows an error: %v", err)
+		}
+	}
+}
+
+// With guests at the table nobody can show, change, download or overwrite the household's saved data.
+func TestGuestsCannotTouchHouseholdData(t *testing.T) {
+	g := New(t.TempDir())
+	g.store.addYes("Kolacja przy świecach")
+	sa := g.Subscribe("a")
+	g.join("a", "Natalia", "#ff0000")
+	if g.Act("a", "list", "", "") != nil || !strings.Contains(string(g.view("")), "Kolacja") {
+		t.Fatal("alone at home the list shows")
+	}
+	g.Subscribe("c")
+	if g.JoinAs("c", "Gość", "#0000ff", "", g.key, 1) != nil {
+		t.Fatal("a guest joins")
+	}
+	if strings.Contains(string(g.view("")), "Kolacja") || strings.Contains(string(g.view("c")), "Kolacja") {
+		t.Fatal("the list must disappear once a guest sits down")
+	}
+	for _, act := range []string{"list", "stats", "yesdone", "yesdel"} {
+		if g.Act("c", act, "", "Kolacja przy świecach") != ErrBad {
+			t.Errorf("a guest can %s", act)
+		}
+	}
+	if _, err := g.Backup("c"); err != ErrBad {
+		t.Error("a guest can download the backup")
+	}
+	if g.Restore("a", []byte(`{"asked":[],"yes":[],"history":[]}`)) != ErrBad || len(g.store.yes) != 1 {
+		t.Error("the backup can be restored with guests around")
+	}
+	// the household's phones go dark: the guest is alone at the table, and still a guest
+	g.Unsubscribe(sa)
+	if _, err := g.Backup("c"); err != ErrBad || g.Act("c", "list", "", "") != ErrBad {
+		t.Error("a guest alone at the table gets the household's data")
+	}
+	if strings.Contains(string(g.view("")), "Kolacja") {
+		t.Error("the list stays on the projector for a guest")
+	}
+}
+
+// Statistics shown on the projector are still there after a restart.
+func TestRestartKeepsTheStats(t *testing.T) {
+	g := New(t.TempDir())
+	g.Subscribe("a")
+	g.join("a", "Natalia", "#ff0000")
+	g.Act("a", "stats", "", "")
+	if !New(g.store.dir).showStats {
+		t.Fatal("the statistics must survive a restart")
 	}
 }

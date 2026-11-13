@@ -2,6 +2,7 @@
 package game
 
 import (
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -9,9 +10,22 @@ import (
 )
 
 // act is every in-game action a phone can take.
-func (g *Game) Act(id, act, key, value string) error {
+func (g *Game) Act(id, act, key, value string) error { return g.ActAt("", id, act, key, value) }
+
+// step names the screen the phones are on; it changes with every new game, round, phase,
+// truth-or-dare pick and bluff written.
+func (g *Game) step() string {
+	return fmt.Sprint(g.epoch, ":", g.round, ":", g.phase, ":", g.pending != nil, ":", g.stmts != nil)
+}
+
+// ActAt is Act from a phone that saw the screen step; a tap meant for an earlier screen (double tap,
+// both tapping at once) is dropped without an error. An empty step skips the check.
+func (g *Game) ActAt(step, id, act, key, value string) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	if step != "" && step != g.step() {
+		return nil
+	}
 	if err := g.do(id, act, key, value); err != nil {
 		return err
 	}
@@ -31,6 +45,10 @@ func (g *Game) do(id, act, key, value string) error {
 	}
 	// When couples take turns, only the one playing answers, draws or gives up; anyone may skip, go on or quit.
 	if g.phase == "question" && turnModes[g.mode] && p != g.pair && act != "skip" && act != "quit" {
+		return ErrBad
+	}
+	// the saved list, statistics and backup belong to the household (couple 1), and only with no guests around
+	if (p != g.pairs[0] || !g.home()) && slices.Contains([]string{"list", "stats", "yesdone", "yesdel"}, act) {
 		return ErrBad
 	}
 	switch {

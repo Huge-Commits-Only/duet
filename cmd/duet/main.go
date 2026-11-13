@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"duet/internal/game"
 	"duet/internal/server"
@@ -32,5 +33,7 @@ func main() {
 		dataDir = "/data"
 	}
 	log.Printf("duet: http://0.0.0.0:%s/screen", port)
-	log.Fatal(http.ListenAndServe(":"+port, server.Handler(game.New(dataDir))))
+	// no WriteTimeout: it would cut the long-lived event streams
+	srv := &http.Server{Addr: ":" + port, Handler: server.Handler(game.New(dataDir)), ReadHeaderTimeout: 10 * time.Second}
+	log.Fatal(srv.ListenAndServe())
 }

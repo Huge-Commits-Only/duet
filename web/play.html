@@ -37,7 +37,7 @@
 </main>
 <script src="/static/common.js"></script>
 <script>
-const COLORS = ['#ff3d9a', '#9b5cff', '#3db8ff', '#3dffa8', '#ffd23d', '#ff7a3d'];
+const COLORS = ['#ff3d9a', '#9b5cff', '#3db8ff', '#3dffa8', '#ffd23d', '#ff7a3d', '#2ee6d6', '#b6ff3d'];
 
 // Profile lives on the phone so a rescan (or a dropped connection) puts you straight back in.
 let me = {};
@@ -79,11 +79,11 @@ me.key = new URLSearchParams(location.search).get('k') || me.key || '';
 
 async function post(path, body) {
   $('err').textContent = '';
-  const r = await fetch(path, { method: 'POST', body: JSON.stringify({ id: me.id, ...body }) }).catch(() => null);
+  const r = await fetch(path, { method: 'POST', body: JSON.stringify({ id: me.id, ...body }), signal: AbortSignal.timeout?.(5000) /* missing before iOS 16: then no time limit */ }).catch(() => null);
   if (!r || !r.ok) $('err').textContent = r ? await r.text() : 'Brak połączenia z grą';
   return !!r && r.ok;
 }
-const act = (act, key, value) => post('/api/act', { act, key, value });
+const act = (act, key, value) => post('/api/act', { act, key, value, step: last.step });
 async function join() {
   if (!await post('/api/join', { name: me.name, color: me.color, form: me.form || '', key: me.key, pair: me.pair })) return false;
   try { localStorage.setItem('duet', JSON.stringify(me)); } catch {}
@@ -101,7 +101,7 @@ const btn = (label, onclick, cls = '') => h('button', { className: 'btn ' + cls,
 
 // One row of options from the menu (mode / tone / length); either phone may change it.
 function picker(s, key, title) {
-  return h('fieldset', { className: 'picker' }, h('legend', {}, title),
+  return h('fieldset', { className: 'picker ' + key }, h('legend', {}, title),
     s.menu[key].map(o => h('button', {
       type: 'button', ariaPressed: s.cfg[key] === o.id, onclick: () => act('config', key, o.id),
       disabled: key === 'mode' && (s.solo || []).includes(o.id), // with several couples: only the modes everyone plays at once
@@ -176,7 +176,9 @@ function show(s) {
   const p = s.players[s.me], other = s.players[1 - s.me];
   const inGame = p && !editing;
   const menu = inGame && s.phase === 'lobby' && other && other.online;
+  const home = s.pair === 1 && !s.multi; // the saved list, stats and backup: couple 1, no guests around
   $('join').hidden = !!inGame;
+  document.querySelector('main').classList.toggle('in', !!inGame);
   document.querySelector('main').classList.toggle('drawing',
     !!inGame && s.phase === 'question' && s.q.kind === 'draw' && s.me === s.subject);
   const taken = s.pairs.flatMap(x => x.players).filter(o => !(p && o.name === p.name && o.color === p.color)).map(o => o.color);
@@ -198,7 +200,7 @@ function show(s) {
   const { answered, left, guesses, ...rest } = s;
   const key = JSON.stringify({ ...rest, players: s.players.map(o => o.name + o.color), menu });
   if (key === lastKey) {
-    if ($('status')) $('status').textContent = waiting;
+    if ($('status') && s.myAnswer != null) $('status').textContent = waiting || '✓ Wysłane — patrzcie na ekran';
     return;
   }
   lastKey = key;
@@ -218,38 +220,43 @@ function show(s) {
       s.phase === 'reveal' && btn(s.round === s.rounds ? 'Zobacz wynik' : 'Dalej', () => act('next')));
   }
 
-  const quit = btn('Zakończ grę', () => confirm('Zakończyć grę i wrócić do menu?') && act('quit'), 'ghost');
-  const skip = btn('Pomiń rundę', () => confirm('Pominąć tę rundę? Nikt nie dostanie punktów.') && act('skip'), 'ghost');
+  // rare actions are small and side by side, so they never compete with the answers
+  const minor = (...bs) => h('div', { className: 'minor' }, bs.filter(Boolean));
+  const quit = h('button', { type: 'button', onclick: () => confirm('Zakończyć grę i wrócić do menu?') && act('quit') }, 'Zakończ grę');
+  const skip = h('button', { type: 'button', onclick: () => confirm('Pominąć tę rundę? Nikt nie dostanie punktów.') && act('skip') }, 'Pomiń rundę');
   let kids;
   if (s.phase === 'lobby') {
     kids = [
       h('div', { className: 'badge', style: '--c:' + p.color }, p.name + (s.multi ? ` · para ${s.pair}` : '')),
       menu
-        ? [picker(s, 'mode', 'Gra'), picker(s, 'tone', 'Ton'), picker(s, 'length', 'Długość'),
-           btn('Start', async () => { await saveStake(); act('start'); }, 'after'),
-           s.listLen > 0 && btn(s.list ? 'Ukryj naszą listę' : `Pokaż na ekranie naszą listę (${s.listLen})`, () => act('list'), 'ghost after'),
-           s.hasStats && btn(s.stats ? 'Ukryj statystyki' : 'Pokaż statystyki na ekranie', () => act('stats'), 'ghost after'),
-           // the saved list is managed here while the projector shows it
-           s.list && h('div', { className: 'yes after' }, s.list.map(it => h('div', { className: 'row' },
-             h('span', { className: it.done ? 'done' : '' }, it.text),
-             h('button', { type: 'button', ariaLabel: it.done ? 'Oznacz jako niezrobione' : 'Oznacz jako zrobione', ariaPressed: it.done, onclick: () => act('yesdone', '', it.text) }, '✓'),
-             h('button', { type: 'button', ariaLabel: 'Usuń z listy', onclick: () => confirm(`Usunąć „${it.text}” z listy?`) && act('yesdel', '', it.text) }, '✕'))))]
+        ? [picker(s, 'mode', 'Gra'), h('p', { className: 'dim rulebox' }, s.rule),
+           picker(s, 'tone', 'Ton'), picker(s, 'length', 'Długość'),
+           btn('Start', async () => { await saveStake(); act('start'); }, 'after start')]
         : [h('p', { className: 'dim' }, 'Czekamy na drugą osobę…'),
            !other && btn('Zagraj z botem (test w pojedynkę)', () => act('bot'), 'ghost')],
-      // trying things out alone: the bot partner can go, and a couple of bots can join for the ranking
-      menu && other.bot && h('div', { className: 'row after' },
-        btn('Usuń bota', () => act('bot'), 'ghost'),
-        btn(s.pairs.some(x => x.players.every(o => o.bot)) ? 'Usuń parę botów' : 'Dodaj parę botów', () => act('botpair'), 'ghost')),
-      btn('Zmień imię lub kolor', () => { editing = true; lastKey = ''; show(last); }, 'ghost after'),
-      // rarely needed, so folded away: who sits where, and the data kept between evenings
-      // stays open across re-renders, or any update would fold it away under your finger
-      h('details', { className: 'after', open: infoOpen, ontoggle: e => { infoOpen = e.target.open; } }, h('summary', {}, 'Gracze i kopia zapasowa'),
+      // everything not needed every evening, folded away; stays open across re-renders,
+      // or any update would fold it away under your finger
+      h('details', { className: 'after', open: infoOpen, ontoggle: e => { infoOpen = e.target.open; } }, h('summary', {}, 'Więcej'),
+        menu && home && s.listLen > 0 && btn(s.list ? 'Ukryj naszą listę' : `Pokaż na ekranie naszą listę (${s.listLen})`, () => act('list'), 'ghost'),
+        menu && home && s.hasStats && btn(s.stats ? 'Ukryj statystyki' : 'Pokaż statystyki na ekranie', () => act('stats'), 'ghost'),
+        // the saved list is managed here while the projector shows it
+        s.list && h('div', { className: 'yes' }, s.list.map(it => h('div', { className: 'row' },
+          h('span', { className: it.done ? 'done' : '' }, it.text),
+          h('button', { type: 'button', ariaLabel: it.done ? 'Oznacz jako niezrobione' : 'Oznacz jako zrobione', ariaPressed: it.done, onclick: () => act('yesdone', '', it.text) }, '✓'),
+          h('button', { type: 'button', ariaLabel: 'Usuń z listy', onclick: () => confirm(`Usunąć „${it.text}” z listy?`) && act('yesdel', '', it.text) }, '✕')))),
+        // trying things out alone: the bot partner can go, and a couple of bots can join for the ranking
+        menu && other.bot && h('div', { className: 'row' },
+          btn('Usuń bota', () => act('bot'), 'ghost'),
+          btn(s.pairs.some(x => x.players.every(o => o.bot)) ? 'Usuń parę botów' : 'Dodaj parę botów', () => act('botpair'), 'ghost')),
+        btn('Zmień imię lub kolor', () => { editing = true; lastKey = ''; show(last); }, 'ghost'),
+        h('small', {}, 'Gracze'),
         s.pairs.flatMap(x => x.players.map((o, seat) => h('div', { className: 'row' },
           h('span', {}, `${o.name} · para ${x.n}` + (o.online ? '' : ' · rozłączony')),
           !(x.n === s.pair && seat === s.me) && h('button', { type: 'button', ariaLabel: `Usuń gracza ${o.name}`,
             onclick: () => confirm(`Usunąć gracza ${o.name}? Zwolni się jego miejsce.`) && act('kick', String(x.n), String(seat)) }, '✕')))),
-        h('a', { className: 'btn ghost', href: '/api/backup?id=' + me.id, download: '' }, 'Pobierz kopię zapasową'),
-        h('label', { className: 'btn ghost' }, 'Wczytaj kopię zapasową',
+        home && h('small', {}, 'Kopia zapasowa'),
+        home && h('a', { className: 'btn ghost', href: '/api/backup?id=' + me.id, download: '' }, 'Pobierz kopię zapasową'),
+        home && h('label', { className: 'btn ghost' }, 'Wczytaj kopię zapasową',
           h('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: async e => {
             const file = e.target.files[0];
             if (!file || !confirm('Wczytanie kopii zastąpi zapisane pytania, listę i statystyki. Kontynuować?')) return;
@@ -268,8 +275,7 @@ function show(s) {
       h('div', { className: 'row' }, btn('Cofnij kreskę', undoPad, 'ghost'), btn('Wyczyść', clearPad, 'ghost')),
     ] : [
       h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`),
-      s.q.text && h('h2', {}, s.q.text),
-      h('p', { className: 'dim' },
+      h('p', { className: 'do' + (mine != null ? ' wait' : ''), id: 'status' }, mine != null ? waiting || '✓ Wysłane — patrzcie na ekran' :
         k === 'draw' ? `Co rysuje ${about.name}? Patrz na ekran i zgaduj`
         : k === 'pick' ? (s.me === s.subject ? 'Twój wybór' : `${about.name} wybiera…`)
         : k === 'talk' ? s.q.options[0] + ' · bez punktów, po prostu porozmawiajcie'
@@ -279,6 +285,7 @@ function show(s) {
         : k === 'write' ? (s.me === s.subject ? 'Napisz o sobie dwie prawdy i jedno kłamstwo. Zaznacz kłamstwo.' : `${about.name} pisze dwie prawdy i jedno kłamstwo…`)
         : s.mode === 'blef' ? (s.me === s.subject ? 'Zaznaczone zdanie to Twoje kłamstwo' : `Które zdanie to kłamstwo?`)
         : !about ? 'Wybierz w tajemnicy' : s.me === s.subject ? 'Odpowiedz o sobie' : `Zgadnij, co odpowie ${about.name}`),
+      s.q.text && h('h2', {}, s.q.text),
       k === 'talk'
         ? btn(s.round === s.rounds ? 'Zakończ rozmowę' : 'Dalej', () => act('next'))
         : k === 'pick'
@@ -319,16 +326,15 @@ function show(s) {
             className: 'btn pick' + (s.q.options.length > 2 ? ' small' : ''), type: 'button',
             ariaPressed: mine === i, onclick: () => act('answer', '', String(i)),
           }, text)),
-      h('p', { className: 'dim', id: 'status' }, waiting),
-      k === 'draw' ? btn('Poddaję się — pokaż hasło', () => act('giveup'), 'ghost') : skip,
-      quit,
+      k === 'draw' ? btn('Poddaję się — pokaż hasło', () => act('giveup'), 'ghost') : null,
+      minor(k !== 'draw' && skip, quit),
     ];
   } else if (s.phase === 'reveal') {
     kids = [
       h('h2', {}, verdict(s).text),
       h('p', { className: 'dim' }, 'Spójrzcie na ekran'),
       btn(s.round === s.rounds ? 'Zobacz wynik' : 'Dalej', () => act('next')),
-      quit,
+      minor(quit),
     ];
   } else {
     kids = [summary(s), btn('Menu', () => act('quit'))];

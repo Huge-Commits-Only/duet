@@ -72,12 +72,12 @@ func (g app) handleJoin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g app) handleAct(w http.ResponseWriter, r *http.Request) {
-	var in struct{ ID, Act, Key, Value string }
+	var in struct{ ID, Act, Key, Value, Step string }
 	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&in) != nil {
 		http.Error(w, game.ErrBad.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := g.Act(in.ID, in.Act, in.Key, in.Value); err != nil {
+	if err := g.ActAt(in.Step, in.ID, in.Act, in.Key, in.Value); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -121,8 +121,11 @@ func baseURL(r *http.Request) string {
 	return scheme + "://" + r.Host
 }
 
+// joinURL is what the QR code holds; the projector also prints it under the code.
+func (g app) joinURL(r *http.Request) string { return baseURL(r) + "/play?k=" + g.Key() } // key never changes after start
+
 func (g app) handleQR(w http.ResponseWriter, r *http.Request) {
-	png, err := qrcode.Encode(baseURL(r)+"/play?k="+g.Key(), qrcode.Medium, 512) // key never changes after start
+	png, err := qrcode.Encode(g.joinURL(r), qrcode.Medium, 512)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -144,11 +147,20 @@ func Handler(gm *game.Game) http.Handler {
 	mux.HandleFunc("GET /play", page("play.html"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(web.FS)))
 	mux.HandleFunc("GET /qr.png", g.handleQR)
+	mux.HandleFunc("GET /link", func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, g.joinURL(r)) })
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = io.WriteString(w, "ok") })
 	mux.HandleFunc("GET /events", g.handleEvents)
 	mux.HandleFunc("POST /api/join", g.handleJoin)
 	mux.HandleFunc("POST /api/act", g.handleAct)
 	mux.HandleFunc("GET /api/backup", g.handleBackup)
 	mux.HandleFunc("POST /api/restore", g.handleRestore)
-	return mux
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("Referrer-Policy", "no-referrer") // the join code is in the /play address
+		h.Set("X-Frame-Options", "DENY")
+		// shortcut: inline scripts and styles stay allowed; dropping 'unsafe-inline' means moving them into files
+		h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
+		mux.ServeHTTP(w, r)
+	})
 }

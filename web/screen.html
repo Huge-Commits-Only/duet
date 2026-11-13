@@ -11,11 +11,15 @@
 </head>
 <body>
 <main class="screen">
-  <h1>Duet</h1>
-  <button id="snd" type="button"></button>
-  <img id="qr" src="/qr.png" alt="Kod QR do dołączenia">
-  <p id="url" class="dim"></p>
-  <div id="app" class="stack"></div>
+  <header><h1>Duet</h1><button id="snd" type="button"></button></header>
+  <!-- the stage takes whatever height is left; fit() shrinks #app when it would not fit -->
+  <div class="stage">
+    <aside id="joinbox">
+      <img id="qr" src="/qr.png" alt="Kod QR do dołączenia">
+      <p id="url" class="dim"></p>
+    </aside>
+    <div id="app" class="stack"></div>
+  </div>
 </main>
 <script src="/static/common.js"></script>
 <script>
@@ -110,8 +114,11 @@ const SFX = { // [frequency Hz, start s, length s, waveform]
   end: [[523, 0, .15], [659, .15, .15], [784, .3, .15], [1047, .45, .6]],
 };
 let audio, muted = false;
-try { muted = localStorage.getItem('duet-mute') === '1'; } catch {}
 try { audio = new AudioContext(); } catch {}
+// Sound is on from the start; the browser still wants one click or key anywhere before it plays.
+const unlock = e => audio && e.target.id !== 'snd' && e.key !== 'm' && audio.resume().then(soundButton, () => {}); // no audio device: stay silent
+addEventListener('pointerdown', unlock);
+addEventListener('keydown', unlock);
 const audible = () => audio && audio.state === 'running' && !muted;
 function play(name, delay = 0) {
   if (!audible()) return;
@@ -132,8 +139,7 @@ function soundButton() {
 }
 $('snd').onclick = async () => {
   if (!audio) return;
-  if (audio.state !== 'running') { await audio.resume(); muted = false; } else muted = !muted;
-  try { localStorage.setItem('duet-mute', muted ? '1' : '0'); } catch {}
+  if (audio.state !== 'running') { await audio.resume().catch(() => {}); muted = false; } else muted = !muted;
   soundButton();
   play('join');
 };
@@ -169,9 +175,10 @@ function render(s) {
   // ready: at least one couple, and nobody still waiting for a partner or offline
   const both = s.pairs.length > 0 && s.pairs.every(p => p.players.length === 2 && p.players.every(x => x.online));
   // the code stays up in the menu, so another couple can still join; it only shrinks once someone is ready
-  $('qr').hidden = $('url').hidden = s.phase !== 'lobby' || !!s.list || !!s.stats;
+  $('joinbox').hidden = s.phase !== 'lobby' || !!s.list || !!s.stats;
   $('qr').classList.toggle('small', both);
-  $('url').textContent = `${location.host}/play?k=${s.key}`; // for a phone that cannot scan the code
+  document.querySelector('main').classList.toggle('ingame', s.phase !== 'lobby'); // small title: the game gets the room
+  $('url').textContent = link || `${location.host}/play?k=${s.key}`; // for a phone that cannot scan the code
   const m = s.mode;
   const round = () => h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}` +
     (s.active ? ` · teraz: ${pairName(activePair(s))}` : m === 'rozmowy' || s.multi ? '' : m === 'tak' ? ` · wspólne TAK: ${(s.found || []).length}`
@@ -232,15 +239,27 @@ function render(s) {
     kids = summary(s);
   }
   $('app').replaceChildren(...kids.flat(3).filter(Boolean));
+  fit();
 }
+
+// Whatever the projector's resolution, the screen never scrolls and nothing is cut off:
+// when the content is taller than the stage, it is shrunk to fit.
+function fit() {
+  const app = $('app'), stage = app.parentElement;
+  app.style.zoom = 1;
+  app.style.zoom = Math.min(1, stage.clientHeight / app.scrollHeight, stage.clientWidth / app.scrollWidth);
+}
+addEventListener('resize', fit);
+$('qr').onload = fit;
 
 // Text size for the room: + and - change it, 0 resets; remembered on this device.
 let zoom = 1;
 try { zoom = +localStorage.getItem('duet-zoom') || 1; } catch {}
 function setZoom(z) {
   zoom = Math.min(1.6, Math.max(.7, Math.round(z * 10) / 10));
-  document.querySelector('main').style.zoom = zoom;
+  document.documentElement.style.setProperty('--zoom', zoom); // scales the projector unit, see style.css
   try { localStorage.setItem('duet-zoom', zoom); } catch {}
+  fit();
 }
 setZoom(zoom);
 addEventListener('keydown', e => {
@@ -250,6 +269,9 @@ addEventListener('keydown', e => {
   else if (e.key === 'm') $('snd').click();
 });
 
+// the same address as in the QR code (PUBLIC_URL, https), not whatever this page was opened with
+let link = '';
+fetch('/link').then(r => r.ok && r.text()).then(t => { if (t) $('url').textContent = link = t; }).catch(() => {});
 live('/events', render);
 </script>
 </body>

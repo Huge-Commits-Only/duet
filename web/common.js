@@ -113,13 +113,18 @@ function paint(c, strokes) {
 function live(url, onState) {
   let es;
   const open = () => {
+    es?.close();
     es = new EventSource(url);
-    es.onmessage = e => onState(JSON.parse(e.data));
+    es.onmessage = e => { document.body.classList.remove('offline'); onState(JSON.parse(e.data)); };
+    es.onerror = () => {
+      document.body.classList.add('offline');
+      if (es.readyState === EventSource.CLOSED) setTimeout(() => es.readyState === EventSource.CLOSED && open(), 3000); // the browser gave up (e.g. a 502 while the server restarts)
+    };
   };
   open();
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
-    if (es.readyState === EventSource.CLOSED) open();
+    open(); // Safari may keep a dead stream OPEN after unlocking, so always start a fresh one
     keepAwake();
   });
 }
