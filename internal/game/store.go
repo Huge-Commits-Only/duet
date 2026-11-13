@@ -14,7 +14,8 @@ type store struct {
 	dir     string
 	asked   map[string]bool
 	yes     []yesItem
-	history []record // finished games, oldest first (history.json)
+	history []record        // finished games, oldest first (history.json)
+	banned  map[string]bool // ids of questions the couple never wants to see again (banned.json)
 }
 
 // yesItem is one idea from "Wspólne TAK" on the couple's saved list.
@@ -24,7 +25,7 @@ type yesItem struct {
 }
 
 func openStore(dir string) *store {
-	s := &store{dir: dir, asked: map[string]bool{}}
+	s := &store{dir: dir, asked: map[string]bool{}, banned: map[string]bool{}}
 	// So own packs can be dropped in with `docker cp` (the scratch image has no shell to mkdir).
 	if err := os.MkdirAll(filepath.Join(dir, "questions"), 0o755); err != nil {
 		log.Printf("katalog danych %s jest niedostępny: %v", dir, err)
@@ -35,6 +36,11 @@ func openStore(dir string) *store {
 		s.asked[id] = true
 	}
 	s.read("history.json", &s.history)
+	ids = nil
+	s.read("banned.json", &ids)
+	for _, id := range ids {
+		s.banned[id] = true
+	}
 	// yes.json used to be a plain list of texts
 	var raw []json.RawMessage
 	s.read("yes.json", &raw)
@@ -85,13 +91,21 @@ func (s *store) removeYes(text string) bool {
 	return i >= 0
 }
 
-func (s *store) saveAsked() {
-	ids := make([]string, 0, len(s.asked))
-	for id := range s.asked {
+func (s *store) saveAsked() { s.write("asked.json", sorted(s.asked)) }
+
+// ban drops a question from every future game.
+func (s *store) ban(id string) {
+	s.banned[id] = true
+	s.write("banned.json", sorted(s.banned))
+}
+
+func sorted(set map[string]bool) []string {
+	ids := make([]string, 0, len(set))
+	for id := range set {
 		ids = append(ids, id)
 	}
 	slices.Sort(ids)
-	s.write("asked.json", ids)
+	return ids
 }
 
 func (s *store) read(name string, v any) {

@@ -177,6 +177,170 @@ let infoOpen = false; // the folded-away "players and backup" section
 const saveStake = () => act('stake', '', $('stake').value);
 $('stake').onchange = saveStake;
 
+// ---- the screens of the phone: show() picks one by phase; c = { p, other, menu, home, waiting } ----
+
+// rare actions are small and side by side, so they never compete with the answers
+const minor = (...bs) => h('div', { className: 'minor' }, bs.filter(Boolean));
+const quitBtn = () => h('button', { type: 'button', onclick: () => confirm('Zakończyć grę i wrócić do menu?') && act('quit') }, 'Zakończ grę');
+const skipBtn = () => h('button', { type: 'button', onclick: () => confirm('Pominąć tę rundę? Nikt nie dostanie punktów.') && act('skip') }, 'Pomiń rundę');
+// a question you never want again: gone from every later game (the household decides, not guests)
+const banBtn = s => s.pair === 1 && h('button', { type: 'button', disabled: !!s.banned,
+  onclick: () => confirm('To pytanie już nigdy nie wróci. Na pewno?') && act('ban') }, s.banned ? '✓ Nie wróci' : 'Nie pokazuj więcej');
+const roundLine = s => h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`);
+
+function lobbyScreen(s, { p, other, menu, home }) {
+  return [
+    h('div', { className: 'badge', style: '--c:' + p.color }, p.name + (s.multi ? ` · para ${s.pair}` : '')),
+    menu
+      ? [picker(s, 'mode', 'Gra'), h('p', { className: 'dim rulebox' }, s.rule),
+         picker(s, 'tone', 'Ton'), picker(s, 'length', 'Długość'),
+         btn('Start', async () => { await saveStake(); act('start'); }, 'after start')]
+      : [h('p', { className: 'dim' }, 'Czekamy na drugą osobę…'),
+         !other && btn('Zagraj z botem (test w pojedynkę)', () => act('bot'), 'ghost')],
+    // everything not needed every evening, folded away; stays open across re-renders,
+    // or any update would fold it away under your finger
+    h('details', { className: 'after', open: infoOpen, ontoggle: e => { infoOpen = e.target.open; } }, h('summary', {}, 'Więcej'),
+      menu && home && s.listLen > 0 && btn(s.list ? 'Ukryj naszą listę' : `Pokaż na ekranie naszą listę (${s.listLen})`, () => act('list'), 'ghost'),
+      menu && home && s.hasStats && btn(s.stats ? 'Ukryj statystyki' : 'Pokaż statystyki na ekranie', () => act('stats'), 'ghost'),
+      // the saved list is managed here while the projector shows it
+      s.list && h('div', { className: 'yes' }, s.list.map(it => h('div', { className: 'row' },
+        h('span', { className: it.done ? 'done' : '' }, it.text),
+        h('button', { type: 'button', ariaLabel: it.done ? 'Oznacz jako niezrobione' : 'Oznacz jako zrobione', ariaPressed: it.done, onclick: () => act('yesdone', '', it.text) }, '✓'),
+        h('button', { type: 'button', ariaLabel: 'Usuń z listy', onclick: () => confirm(`Usunąć „${it.text}” z listy?`) && act('yesdel', '', it.text) }, '✕')))),
+      // trying things out alone: the bot partner can go, and a couple of bots can join for the ranking
+      menu && other.bot && [
+        btn('Usuń bota', () => act('bot'), 'ghost'),
+        btn(s.pairs.some(x => x.players.every(o => o.bot)) ? 'Usuń parę botów' : 'Dodaj parę botów', () => act('botpair'), 'ghost')],
+      btn('Zmień imię lub kolor', () => { editing = true; lastKey = ''; show(last); }, 'ghost'),
+      h('small', {}, 'Gracze'),
+      s.pairs.flatMap(x => x.players.map((o, seat) => h('div', { className: 'row' },
+        h('span', {}, `${o.name} · para ${x.n}` + (o.online ? '' : ' · rozłączony')),
+        !(x.n === s.pair && seat === s.me) && h('button', { type: 'button', ariaLabel: `Usuń gracza ${o.name}`,
+          onclick: () => confirm(`Usunąć gracza ${o.name}? Zwolni się jego miejsce.`) && act('kick', String(x.n), String(seat)) }, '✕')))),
+      home && h('small', {}, 'Kopia zapasowa'),
+      home && h('a', { className: 'btn ghost', href: '/api/backup?id=' + me.id, download: '' }, 'Pobierz kopię zapasową'),
+      home && h('label', { className: 'btn ghost' }, 'Wczytaj kopię zapasową',
+        h('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: async e => {
+          const file = e.target.files[0];
+          if (!file || !confirm('Wczytanie kopii zastąpi zapisane pytania, listę i statystyki. Kontynuować?')) return;
+          $('err').textContent = '';
+          const r = await fetch('/api/restore?id=' + me.id, { method: 'POST', body: file }).catch(() => null);
+          $('err').textContent = !r ? 'Brak połączenia z grą' : r.ok ? 'Kopia wczytana.' : await r.text();
+        } }))),
+  ];
+}
+
+// What the phone asks you to do, per kind of question; q = c plus { about, mineQ, mine }.
+// Choices and scales (and any new kind) fall through to TASK.default.
+const TASK = {
+  draw: (s, q) => `Co rysuje ${q.about.name}? Patrz na projektor i zgaduj`,
+  pick: (s, q) => q.mineQ ? 'Twój wybór' : `${q.about.name} wybiera…`,
+  talk: s => s.q.options[0] + ' · bez punktów, po prostu porozmawiajcie',
+  text: () => 'Wpisz pierwsze skojarzenie — jedno słowo',
+  yesno: () => 'Tajne: ekran pokaże tylko wspólne TAK',
+  dare: (s, q) => q.mineQ ? `${s.q.options[0]} dla Ciebie!` : `${s.q.options[0]} dla: ${q.about.name}. Oceń, gdy skończy`,
+  write: (s, q) => q.mineQ ? 'Napisz o sobie dwie prawdy i jedno kłamstwo. Zaznacz kłamstwo.' : `${q.about.name} pisze dwie prawdy i jedno kłamstwo…`,
+  default: (s, q) => s.mode === 'blef' ? (q.mineQ ? 'Zaznaczone zdanie to Twoje kłamstwo' : 'Które zdanie to kłamstwo?')
+    : !q.about ? 'Wybierz w tajemnicy' : q.mineQ ? '🙋 Pytanie o Ciebie — odpowiedz szczerze' : `🔮 Zgadujesz, co odpowie ${q.about.name}`,
+};
+
+// The word form of "telepatia" and of guessing a drawing.
+const wordForm = (s, q) => q.mine != null
+  ? h('div', { className: 'badge' }, s.myText)
+  : h('form', { className: 'stack', onsubmit: e => {
+      e.preventDefault();
+      const word = $('word').value;
+      $('word').value = ''; // cleared at once, so the next guess in "rysowanie" can be typed right away
+      act('answer', '', word);
+    } },
+      s.q.kind === 'draw' && clock(s),
+      h('input', { id: 'word', maxLength: 30, required: true, autocapitalize: 'off', autocomplete: 'off', enterKeyHint: 'send', ariaLabel: 'Twoje skojarzenie' }),
+      h('button', { className: 'btn' }, 'Wyślij'));
+
+// How you answer, per kind of question. Choices (and yes/no) fall through to ANSWER.default.
+const ANSWER = {
+  talk: s => btn(s.round === s.rounds ? 'Zakończ rozmowę' : 'Dalej', () => act('next')),
+  pick: (s, q) => q.mineQ && s.q.options.map((text, i) => h('button', { className: 'btn pick', type: 'button', onclick: () => act('answer', '', String(i)) }, text)),
+  dare: (s, q) => !q.mineQ && [btn('Zaliczone ✓', () => act('answer', '', '0')), btn('Odpuszczone ✗', () => act('answer', '', '1'), 'ghost')],
+  write: (s, q) => q.mineQ && h('form', { className: 'stack', onsubmit: e => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    act('answer', f.get('lie'), f.getAll('st').map(t => t.replace(/\s+/g, ' ').trim()).join('\n')); // a typed Enter must not split a statement
+  } },
+    [0, 1, 2].map(i => h('div', { className: 'stmt' },
+      h('textarea', { name: 'st', rows: 3, maxLength: 80, required: true, autocomplete: 'off', placeholder: `Zdanie ${i + 1}`, ariaLabel: `Zdanie ${i + 1}` }),
+      h('label', {}, h('input', { type: 'radio', name: 'lie', value: i, required: true }), 'kłamstwo'))),
+    h('button', { className: 'btn' }, 'Gotowe')),
+  text: wordForm,
+  draw: wordForm,
+  scale: (s, q) => q.mine != null
+    ? h('div', { className: 'big' }, String(q.mine))
+    : [h('div', { className: 'big', id: 'val' }, String(draft)),
+       h('input', { type: 'range', min: 0, max: s.q.max || 100, value: draft, ariaLabel: s.q.text,
+         oninput: e => { draft = +e.target.value; $('val').textContent = draft; } }),
+       h('div', { className: 'ends' }, ends(s.q).map(t => h('span', {}, t))),
+       btn('Zatwierdź', () => act('answer', '', String(draft)))],
+  default: (s, q) => s.q.options.map((text, i) => h('button', {
+    className: 'btn pick' + (s.q.options.length > 2 ? ' small' : ''), type: 'button',
+    ariaPressed: q.mine === i, onclick: () => act('answer', '', String(i)),
+  }, text)),
+};
+
+// drawing needs the whole phone screen: just the word, the clock and the pad
+const drawerScreen = s => [
+  h('div', { className: 'row' }, h('h2', {}, s.q.text), clock(s)),
+  pad(s),
+  h('div', { className: 'swatches' }, PALETTE.map(([color, name], i) => h('button', {
+    type: 'button', ariaLabel: 'Kolor: ' + name, ariaPressed: penColor === i, style: '--c:' + color,
+    onclick: e => { penColor = i; for (const b of e.currentTarget.parentNode.children) b.ariaPressed = b === e.currentTarget; },
+  }))),
+  h('div', { className: 'row' }, btn('Cofnij kreskę', undoPad, 'ghost'), btn('Wyczyść', clearPad, 'ghost')),
+];
+
+function questionScreen(s, c) {
+  const k = s.q.kind, q = { ...c, about: subj(s), mineQ: s.me === s.subject, mine: s.myAnswer };
+  if (draftRound !== s.round) { draft = Math.round((s.q.max || 100) / 2); draftRound = s.round; }
+  if (k === 'draw' && q.mineQ) return drawerScreen(s);
+  // a question about one of you: the guesser reads it addressed to the partner, not to themselves
+  const quiz = q.about && (k === 'choice' || k === 'scale') && s.mode !== 'blef';
+  const text = quiz && !q.mineQ && s.q.text ? `${q.about.name}, ${s.q.text[0].toLowerCase()}${s.q.text.slice(1)}` : s.q.text;
+  const top = [roundLine(s), s.rule && h('p', { className: 'rulebox' }, s.rule)];
+  // nothing to do on the phone: say so, and point at the projector
+  const idle = q.mine != null && k !== 'draw' ? c.waiting || '✓ Wysłane'
+    : !q.mineQ && k === 'pick' ? `${q.about.name} wybiera: prawda czy wyzwanie`
+    : !q.mineQ && k === 'write' ? `${q.about.name} pisze dwie prawdy i jedno kłamstwo — potem zgadujesz`
+    : null;
+  if (idle) return [top, look(idle), minor(skipBtn(), banBtn(s), quitBtn())];
+  return [
+    top,
+    h('p', { className: 'do', id: 'status', style: '--c:' + (quiz && !q.mineQ ? q.about.color : c.p.color) }, (TASK[k] || TASK.default)(s, q)),
+    text && h('h2', {}, text),
+    (ANSWER[k] || ANSWER.default)(s, q),
+    k === 'draw' ? btn('Poddaję się — pokaż hasło', () => act('giveup'), 'ghost') : null,
+    minor(k !== 'draw' && skipBtn(), banBtn(s), quitBtn()),
+  ];
+}
+
+// the result belongs to the projector: the phone does not spoil it. Everyone taps Dalej to go on.
+function revealScreen(s, { p }) {
+  const notYet = s.pairs.flatMap(x => x.players).filter(o => o.online && !o.bot && !o.ready).map(o => o.name);
+  return p.ready
+    ? [look('Czekamy na: ' + (s.multi ? 'pozostałych' : notYet.join(', '))), minor(banBtn(s), quitBtn())]
+    : [look('Wynik jest na projektorze'), btn(s.round === s.rounds ? 'Zobacz wynik' : 'Dalej', () => act('next')), minor(banBtn(s), quitBtn())];
+}
+
+const endScreen = s => [summary(s), btn('Jeszcze raz', () => act('again')), btn('Menu', () => act('quit'), 'ghost')];
+
+const SCREENS = { lobby: lobbyScreen, question: questionScreen, reveal: revealScreen, end: endScreen };
+
+// skipping a round or ending the game is a vote: the others say yes or no here
+function voteBox(v) {
+  const what = v.kind === 'skip' ? 'pominąć tę rundę' : 'zakończyć grę';
+  return h('div', { className: 'vote' }, v.agreed
+    ? [h('p', {}, `Czekamy na zgodę: ${v.waiting.join(', ')}`), btn('Wycofaj', () => act('no'), 'ghost')]
+    : [h('p', {}, `${v.by} chce ${what}. Zgadzasz się?`), btn('Zgoda', () => act(v.kind)), btn('Nie', () => act('no'), 'ghost')]);
+}
+
 let draft = 50, draftRound = 0; // slider position in "skala", kept across re-renders
 let last = { phase: 'lobby', players: [], me: -1 }, lastKey = '';
 function show(s) {
@@ -206,7 +370,7 @@ function show(s) {
   if (s.left) endAt = Date.now() + s.left;
   // (Fields are removed rather than overwritten: a field that appears later would change the key order.)
   const { answered, left, guesses, ...rest } = s;
-  const key = JSON.stringify({ ...rest, players: s.players.map(o => o.name + o.color), menu });
+  const key = JSON.stringify({ ...rest, players: s.players.map(o => o.name + o.color + !!o.ready), menu });
   if (key === lastKey) {
     if ($('status') && s.myAnswer != null) $('status').textContent = waiting || '✓ Wysłane';
     return;
@@ -222,143 +386,15 @@ function show(s) {
   // dares, bluffs and drawings go round the table: the couples whose turn it is not just watch
   if (s.active && s.active !== s.pair) {
     return $('app').replaceChildren(
-      h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`),
+      roundLine(s),
       h('h2', {}, `Teraz gra: ${pairName(activePair(s))}`),
       h('p', { className: 'dim' }, 'Patrzcie na ekran. Wasza kolej zaraz przyjdzie.'),
       s.phase === 'reveal' && btn(s.round === s.rounds ? 'Zobacz wynik' : 'Dalej', () => act('next')));
   }
 
-  // rare actions are small and side by side, so they never compete with the answers
-  const minor = (...bs) => h('div', { className: 'minor' }, bs.filter(Boolean));
-  const quit = h('button', { type: 'button', onclick: () => confirm('Zakończyć grę i wrócić do menu?') && act('quit') }, 'Zakończ grę');
-  const skip = h('button', { type: 'button', onclick: () => confirm('Pominąć tę rundę? Nikt nie dostanie punktów.') && act('skip') }, 'Pomiń rundę');
-  let kids;
-  if (s.phase === 'lobby') {
-    kids = [
-      h('div', { className: 'badge', style: '--c:' + p.color }, p.name + (s.multi ? ` · para ${s.pair}` : '')),
-      menu
-        ? [picker(s, 'mode', 'Gra'), h('p', { className: 'dim rulebox' }, s.rule),
-           picker(s, 'tone', 'Ton'), picker(s, 'length', 'Długość'),
-           btn('Start', async () => { await saveStake(); act('start'); }, 'after start')]
-        : [h('p', { className: 'dim' }, 'Czekamy na drugą osobę…'),
-           !other && btn('Zagraj z botem (test w pojedynkę)', () => act('bot'), 'ghost')],
-      // everything not needed every evening, folded away; stays open across re-renders,
-      // or any update would fold it away under your finger
-      h('details', { className: 'after', open: infoOpen, ontoggle: e => { infoOpen = e.target.open; } }, h('summary', {}, 'Więcej'),
-        menu && home && s.listLen > 0 && btn(s.list ? 'Ukryj naszą listę' : `Pokaż na ekranie naszą listę (${s.listLen})`, () => act('list'), 'ghost'),
-        menu && home && s.hasStats && btn(s.stats ? 'Ukryj statystyki' : 'Pokaż statystyki na ekranie', () => act('stats'), 'ghost'),
-        // the saved list is managed here while the projector shows it
-        s.list && h('div', { className: 'yes' }, s.list.map(it => h('div', { className: 'row' },
-          h('span', { className: it.done ? 'done' : '' }, it.text),
-          h('button', { type: 'button', ariaLabel: it.done ? 'Oznacz jako niezrobione' : 'Oznacz jako zrobione', ariaPressed: it.done, onclick: () => act('yesdone', '', it.text) }, '✓'),
-          h('button', { type: 'button', ariaLabel: 'Usuń z listy', onclick: () => confirm(`Usunąć „${it.text}” z listy?`) && act('yesdel', '', it.text) }, '✕')))),
-        // trying things out alone: the bot partner can go, and a couple of bots can join for the ranking
-        menu && other.bot && h('div', { className: 'row' },
-          btn('Usuń bota', () => act('bot'), 'ghost'),
-          btn(s.pairs.some(x => x.players.every(o => o.bot)) ? 'Usuń parę botów' : 'Dodaj parę botów', () => act('botpair'), 'ghost')),
-        btn('Zmień imię lub kolor', () => { editing = true; lastKey = ''; show(last); }, 'ghost'),
-        h('small', {}, 'Gracze'),
-        s.pairs.flatMap(x => x.players.map((o, seat) => h('div', { className: 'row' },
-          h('span', {}, `${o.name} · para ${x.n}` + (o.online ? '' : ' · rozłączony')),
-          !(x.n === s.pair && seat === s.me) && h('button', { type: 'button', ariaLabel: `Usuń gracza ${o.name}`,
-            onclick: () => confirm(`Usunąć gracza ${o.name}? Zwolni się jego miejsce.`) && act('kick', String(x.n), String(seat)) }, '✕')))),
-        home && h('small', {}, 'Kopia zapasowa'),
-        home && h('a', { className: 'btn ghost', href: '/api/backup?id=' + me.id, download: '' }, 'Pobierz kopię zapasową'),
-        home && h('label', { className: 'btn ghost' }, 'Wczytaj kopię zapasową',
-          h('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: async e => {
-            const file = e.target.files[0];
-            if (!file || !confirm('Wczytanie kopii zastąpi zapisane pytania, listę i statystyki. Kontynuować?')) return;
-            $('err').textContent = '';
-            const r = await fetch('/api/restore?id=' + me.id, { method: 'POST', body: file }).catch(() => null);
-            $('err').textContent = !r ? 'Brak połączenia z grą' : r.ok ? 'Kopia wczytana.' : await r.text();
-          } }))),
-    ];
-  } else if (s.phase === 'question') {
-    const mine = s.myAnswer, about = subj(s), k = s.q.kind, mineQ = s.me === s.subject;
-    if (draftRound !== s.round) { draft = Math.round((s.q.max || 100) / 2); draftRound = s.round; }
-    // a question about one of you: the guesser reads it addressed to the partner, not to themselves
-    const quiz = about && (k === 'choice' || k === 'scale') && s.mode !== 'blef';
-    const text = quiz && !mineQ && s.q.text ? `${about.name}, ${s.q.text[0].toLowerCase()}${s.q.text.slice(1)}` : s.q.text;
-    const top = [h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`), s.rule && h('p', { className: 'rulebox' }, s.rule)];
-    // nothing to do on the phone: say so, and point at the projector
-    const idle = mine != null && k !== 'draw' ? waiting || '✓ Wysłane'
-      : !mineQ && k === 'pick' ? `${about.name} wybiera: prawda czy wyzwanie`
-      : !mineQ && k === 'write' ? `${about.name} pisze dwie prawdy i jedno kłamstwo — potem zgadujesz`
-      : null;
-    // drawing needs the whole phone screen: just the word, the clock and the pad
-    kids = k === 'draw' && s.me === s.subject ? [
-      h('div', { className: 'row' }, h('h2', {}, s.q.text), clock(s)),
-      pad(s),
-      h('div', { className: 'swatches' }, PALETTE.map(([color, name], i) => h('button', {
-        type: 'button', ariaLabel: 'Kolor: ' + name, ariaPressed: penColor === i, style: '--c:' + color,
-        onclick: e => { penColor = i; for (const b of e.currentTarget.parentNode.children) b.ariaPressed = b === e.currentTarget; },
-      }))),
-      h('div', { className: 'row' }, btn('Cofnij kreskę', undoPad, 'ghost'), btn('Wyczyść', clearPad, 'ghost')),
-    ] : idle ? [top, look(idle), minor(skip, quit)] : [
-      top,
-      h('p', { className: 'do', id: 'status', style: '--c:' + (quiz && !mineQ ? about.color : p.color) },
-        k === 'draw' ? `Co rysuje ${about.name}? Patrz na projektor i zgaduj`
-        : k === 'pick' ? (s.me === s.subject ? 'Twój wybór' : `${about.name} wybiera…`)
-        : k === 'talk' ? s.q.options[0] + ' · bez punktów, po prostu porozmawiajcie'
-        : k === 'text' ? 'Wpisz pierwsze skojarzenie — jedno słowo'
-        : k === 'yesno' ? 'Tajne: ekran pokaże tylko wspólne TAK'
-        : k === 'dare' ? (s.me === s.subject ? `${s.q.options[0]} dla Ciebie!` : `${s.q.options[0]} dla: ${about.name}. Oceń, gdy skończy`)
-        : k === 'write' ? (s.me === s.subject ? 'Napisz o sobie dwie prawdy i jedno kłamstwo. Zaznacz kłamstwo.' : `${about.name} pisze dwie prawdy i jedno kłamstwo…`)
-        : s.mode === 'blef' ? (s.me === s.subject ? 'Zaznaczone zdanie to Twoje kłamstwo' : `Które zdanie to kłamstwo?`)
-        : !about ? 'Wybierz w tajemnicy' : mineQ ? '🙋 Pytanie o Ciebie — odpowiedz szczerze' : `🔮 Zgadujesz, co odpowie ${about.name}`),
-      text && h('h2', {}, text),
-      k === 'talk'
-        ? btn(s.round === s.rounds ? 'Zakończ rozmowę' : 'Dalej', () => act('next'))
-        : k === 'pick'
-        ? s.me === s.subject && s.q.options.map((text, i) => h('button', { className: 'btn pick', type: 'button', onclick: () => act('answer', '', String(i)) }, text))
-        : k === 'dare'
-        ? s.me !== s.subject && [btn('Zaliczone ✓', () => act('answer', '', '0')), btn('Odpuszczone ✗', () => act('answer', '', '1'), 'ghost')]
-        : k === 'write'
-        ? s.me === s.subject && h('form', { className: 'stack', onsubmit: e => {
-            e.preventDefault();
-            const f = new FormData(e.target);
-            act('answer', f.get('lie'), f.getAll('st').map(t => t.replace(/\s+/g, ' ').trim()).join('\n')); // a typed Enter must not split a statement
-          } },
-            [0, 1, 2].map(i => h('div', { className: 'stmt' },
-              h('textarea', { name: 'st', rows: 3, maxLength: 80, required: true, autocomplete: 'off', placeholder: `Zdanie ${i + 1}`, ariaLabel: `Zdanie ${i + 1}` }),
-              h('label', {}, h('input', { type: 'radio', name: 'lie', value: i, required: true }), 'kłamstwo'))),
-            h('button', { className: 'btn' }, 'Gotowe'))
-        : k === 'text' || k === 'draw'
-        ? (mine != null
-            ? h('div', { className: 'badge' }, s.myText)
-            : h('form', { className: 'stack', onsubmit: e => {
-                e.preventDefault();
-                const word = $('word').value;
-                $('word').value = ''; // cleared at once, so the next guess in "rysowanie" can be typed right away
-                act('answer', '', word);
-              } },
-                k === 'draw' && clock(s),
-                h('input', { id: 'word', maxLength: 30, required: true, autocapitalize: 'off', autocomplete: 'off', enterKeyHint: 'send', ariaLabel: 'Twoje skojarzenie' }),
-                h('button', { className: 'btn' }, 'Wyślij')))
-        : k === 'scale'
-        ? (mine != null
-            ? h('div', { className: 'big' }, String(mine))
-            : [h('div', { className: 'big', id: 'val' }, String(draft)),
-               h('input', { type: 'range', min: 0, max: s.q.max || 100, value: draft, ariaLabel: s.q.text,
-                 oninput: e => { draft = +e.target.value; $('val').textContent = draft; } }),
-               h('div', { className: 'ends' }, ends(s.q).map(t => h('span', {}, t))),
-               btn('Zatwierdź', () => act('answer', '', String(draft)))])
-        : s.q.options.map((text, i) => h('button', {
-            className: 'btn pick' + (s.q.options.length > 2 ? ' small' : ''), type: 'button',
-            ariaPressed: mine === i, onclick: () => act('answer', '', String(i)),
-          }, text)),
-      k === 'draw' ? btn('Poddaję się — pokaż hasło', () => act('giveup'), 'ghost') : null,
-      minor(k !== 'draw' && skip, quit),
-    ];
-  } else if (s.phase === 'reveal') {
-    kids = [ // the result belongs to the projector: the phone does not spoil it
-      look('Wynik jest na projektorze'),
-      btn(s.round === s.rounds ? 'Zobacz wynik' : 'Dalej', () => act('next')),
-      minor(quit),
-    ];
-  } else {
-    kids = [summary(s), btn('Menu', () => act('quit'))];
-  }
+  // one function per screen; a vote to skip or end shows above whatever screen it is
+  const kids = (SCREENS[s.phase] || endScreen)(s, { p, other, menu, home, waiting });
+  if (s.vote && s.phase !== 'lobby') kids.unshift(voteBox(s.vote));
   $('app').replaceChildren(...kids.flat(3).filter(Boolean));
 }
 

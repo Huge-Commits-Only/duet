@@ -40,7 +40,7 @@ func (g *Game) pick(mode string, pool []question, want int) []question {
 func (g *Game) cards(mode string, all map[string][]question, want int) []card {
 	var pool, picked []question
 	for _, q := range all[mode] {
-		if q.Tone == g.cfg["tone"] && q.valid(mode) {
+		if q.Tone == g.cfg["tone"] && q.valid(mode) && !g.store.banned[q.id(mode)] {
 			pool = append(pool, q)
 		}
 	}
@@ -156,6 +156,7 @@ func (g *Game) start() error {
 }
 
 func (g *Game) next() {
+	g.ready, g.vote = map[string]bool{}, nil
 	if g.round == g.rounds {
 		g.phase = "end"
 		g.store.record(g)

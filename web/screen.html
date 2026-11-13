@@ -56,10 +56,14 @@ function statsPanel(st) {
   const tile = (value, label) => h('div', { className: 'tile' }, h('b', {}, value), h('small', {}, label));
   const lines = (title, items, fmt) => items.length > 0 && h('div', { className: 'statlist' }, h('small', {}, title),
     items.slice(0, 4).map(l => h('p', {}, h('span', {}, l.name), h('b', {}, fmt(l)))));
-  // sparkline: the compatibility of the latest games on a 0-100 scale
-  const pts = st.series.map((v, i) => `${st.series.length > 1 ? i * 100 / (st.series.length - 1) : 50},${40 - v * .4}`).join(' ');
+  // the compatibility of the latest games on a 0-100 scale; the box has the chart's own proportions,
+  // so the dots stay round, and the latest game is labelled
+  const n = st.series.length, xy = st.series.map((v, i) => [30 + i * 720 / Math.max(1, n - 1), 110 - v * .9]);
+  const [lx, ly] = xy[n - 1] || [0, 0];
   const chart = h('div', { className: 'chart' });
-  if (st.series.length > 1) chart.innerHTML = `<svg viewBox="-2 -2 104 44" preserveAspectRatio="none" role="img" aria-label="Zgodność w kolejnych grach"><polyline points="${pts}"/></svg>`;
+  if (n > 1) chart.innerHTML = `<svg viewBox="0 0 780 125" role="img" aria-label="Zgodność w kolejnych grach">
+    <polyline points="${xy.join(' ')}"/>${xy.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="7"/>`).join('')}
+    <text x="${lx + 18}" y="${ly + 10}">${st.series[n - 1]}%</text></svg>`;
   return [
     h('h2', {}, 'Wasze statystyki'),
     h('div', { className: 'tiles' },
@@ -229,7 +233,7 @@ function render(s) {
       round(),
       h('h2', { className: 'long' }, s.q.text),
       ranking(s, true),
-      h('p', { className: 'dim' }, 'Dalej — na telefonie'),
+      h('p', { className: 'dim' }, `Dalej — na telefonach · gotowi: ${ready(s)}`),
     ];
   } else if (s.phase === 'reveal') {
     const v = verdict(s);
@@ -237,21 +241,37 @@ function render(s) {
       round(),
       h('h2', { className: v.hit ? 'hit' : 'miss' }, v.text),
       question(s),
-      h('p', { className: 'dim' }, 'Dalej — na telefonie'),
+      h('div', { className: 'slots' }, s.players.map((p, i) => slot(p, i, p.ready ? '✓ dalej' : 'Dalej — na telefonie'))),
     ];
   } else {
     kids = summary(s);
   }
+  const v = s.phase !== 'lobby' && s.vote;
+  if (v) kids.unshift(h('p', { className: 'rule' }, `${v.by} chce ${v.kind === 'skip' ? 'pominąć rundę' : 'zakończyć grę'} · czekamy na: ${v.waiting.join(', ')}`));
   $('app').replaceChildren(...kids.flat(3).filter(Boolean));
   fit();
 }
 
+// "3 z 4": how many of those here tapped Dalej, when several couples play
+function ready(s) {
+  const here = s.pairs.flatMap(p => p.players).filter(x => x.online && !x.bot);
+  return `${here.filter(x => x.ready).length} z ${here.length}`;
+}
+
 // Whatever the projector's resolution, the screen never scrolls and nothing is cut off:
-// when the content is taller than the stage, it is shrunk to fit.
+// the content is scaled to fill the stage, shrunk when it is too tall and, in a game, enlarged
+// (up to 1.5×) when it would leave the screen half empty, so it reads well from the sofa.
 function fit() {
   const app = $('app'), stage = app.parentElement;
   app.style.zoom = 1;
-  app.style.zoom = Math.min(1, stage.clientHeight / app.scrollHeight, stage.clientWidth / app.scrollWidth);
+  const most = document.querySelector('main').classList.contains('ingame') ? 1.5 : 1; // the menu shares the room with the QR code
+  const z = Math.min(most, stage.clientHeight / app.scrollHeight, stage.clientWidth / app.scrollWidth * most);
+  app.style.zoom = z;
+  // text re-wraps at the new size: one more pass, in real pixels, takes back whatever overflows
+  const r = app.getBoundingClientRect();
+  if (r.height > stage.clientHeight + 1 || r.width > stage.clientWidth + 1) {
+    app.style.zoom = z * Math.min(stage.clientHeight / r.height, stage.clientWidth / r.width);
+  }
 }
 addEventListener('resize', fit);
 $('qr').onload = fit;

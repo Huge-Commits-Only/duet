@@ -17,7 +17,7 @@ Rozmiar tekstu na projektorze zmienisz klawiszami `+` i `-` (`0` przywraca domy�
 
 Dźwięk gra z urządzenia podłączonego do projektora. Dźwięk jest zawsze włączony na starcie, ale przeglądarka puści go dopiero po pierwszym kliknięciu lub klawiszu na ekranie projektora. Wyciszasz ikoną głośnika w prawym górnym rogu albo klawiszem `m`.
 
-Projektor: Chrome, Edge albo Safari (Firefox od wersji 126 — starszy nie pomniejsza widoku, gdy się nie mieści). Telefon: iOS 15 lub nowszy, Android z aktualnym Chrome.
+Projektor: Chrome, Edge albo Safari (Firefox od wersji 126 — starszy nie pomniejsza widoku, gdy się nie mieści). Jeśli komputer przy projektorze ma Linuksa, doinstaluj czcionkę emoji (`sudo apt install fonts-noto-color-emoji`) — inaczej 🔇, 📱 i 👀 wyjdą jako puste prostokąty. Telefon: iOS 15 lub nowszy, Android z aktualnym Chrome.
 
 ### Tryby
 | Tryb | O co chodzi |
@@ -112,8 +112,27 @@ DUET_VERSION=1.4.2 docker compose up -d              # konkretna wersja — tak�
 
 Dostępne wersje: `https://github.com/orgs/Huge-Commits-Only/packages/container/package/duet`. Dane w wolumenie zostają przy zmianie wersji.
 
+**Zalecane: przypnij wersję na stałe.** Wpisz ją do pliku `.env` obok `docker-compose.yml` (compose czyta go sam), żeby nowy obraz nie wszedł niespodziewanie w środku wieczoru. Aktualizujesz świadomie, zmieniając numer:
+
+```bash
+echo "DUET_VERSION=1.4.2" > .env
+docker compose pull && docker compose up -d
+```
+
+### Pytania, których nie chcecie
+Pod każdym pytaniem na telefonie jest mały link **Nie pokazuj więcej**: pytanie znika ze wszystkich następnych gier (zapisuje się w `banned.json` w wolumenie). Działa tylko dla pary 1, czyli domowników.
+
 ### Kopia zapasowa
-W menu telefonu, pod przyciskiem „Więcej", są dwa przyciski: **Pobierz kopię zapasową** (jeden plik JSON z historią gier, listą wspólnych TAK i listą zadanych pytań) oraz **Wczytaj kopię zapasową** (zastępuje zapisane dane zawartością pliku). Przydaje się przed przenosinami na inny serwer.
+W menu telefonu, pod przyciskiem „Więcej", są dwa przyciski: **Pobierz kopię zapasową** (jeden plik JSON z historią gier, listą wspólnych TAK, listą zadanych pytań i pytaniami wyłączonymi przyciskiem „Nie pokazuj więcej”) oraz **Wczytaj kopię zapasową** (zastępuje zapisane dane zawartością pliku). Przydaje się przed przenosinami na inny serwer.
+
+**Kopia sama, raz w tygodniu.** Jedyne niezastępowalne dane to lista wspólnych TAK i historia gier w wolumenie. Na Pi dopisz do `crontab -e` (nazwę wolumenu sprawdzisz przez `docker volume ls | grep duet`):
+
+```cron
+# niedziela 4:00: spakuj wolumen Duet, trzymaj kopie z ostatnich 3 miesięcy
+0 4 * * 0 docker run --rm -v duet_duet-data:/data:ro -v $HOME/duet-kopie:/kopie busybox tar czf /kopie/duet-$(date +\%F).tgz -C /data . && find $HOME/duet-kopie -name 'duet-*.tgz' -mtime +90 -delete
+```
+
+Przywrócenie: `docker compose stop duet`, potem `docker run --rm -v duet_duet-data:/data -v $HOME/duet-kopie:/kopie busybox tar xzf /kopie/duet-RRRR-MM-DD.tgz -C /data` i `docker compose start duet`.
 
 ### Parametry
 | Zmienna | Domyślnie | Opis |

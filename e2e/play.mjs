@@ -25,6 +25,10 @@ const more = async page => {
   const box = page.locator('details');
   if (!(await box.evaluate(d => d.open))) await box.locator('summary').click();
 };
+// After a result everyone taps Dalej; the round moves on with the last one.
+async function goOn(pages) {
+  for (const p of pages) await p.getByRole('button', { name: /^(Dalej|Zobacz wynik)$/ }).click();
+}
 // Resolves once the phone shows something else than `before`, i.e. the state update arrived.
 const changed = (page, before) => page.waitForFunction(t => document.getElementById('app').innerText !== t, before);
 
@@ -54,6 +58,9 @@ check((await screen.locator('.slot.on').count()) === 2, 'both players must show 
 // ---- one step of a game: do whatever a phone is waiting for ----
 // Returns false once the game is over. Odd rounds agree or hit, even rounds differ or miss.
 async function step() {
+  // the projector enlarges what fits; nothing may end up off the screen
+  check(await screen.evaluate(() => { const r = document.getElementById('app').getBoundingClientRect(); return r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1 && r.left >= -1; }),
+    `the projector cut something off:\n${await text(screen)}`);
   for (const p of phones) {
     // a mobile browser widens innerWidth to fit the content, so compare with the screen itself
     check(await p.evaluate(w => document.documentElement.scrollWidth <= w, p.viewportSize().width), `the phone scrolls sideways at ${p.viewportSize().width}x${p.viewportSize().height}:\n${await text(p)}`);
@@ -217,7 +224,12 @@ await a.locator('.picker button', { hasText: 'Co wolisz' }).click();
 await a.locator('.picker button[aria-pressed="true"]', { hasText: 'Co wolisz' }).waitFor();
 await a.getByRole('button', { name: 'Start' }).click();
 await a.getByText('Runda 1 z 8').waitFor();
+await a.getByRole('button', { name: 'Nie pokazuj więcej' }).click(); // this one never comes back
+await b.getByRole('button', { name: '✓ Nie wróci' }).waitFor();
 await b.getByRole('button', { name: 'Pomiń rundę' }).click();
+await a.getByText('Kuba chce pominąć tę rundę. Zgadzasz się?').waitFor(); // skipping is a vote
+await screen.getByText('Kuba chce pominąć rundę').waitFor();
+await a.getByRole('button', { name: 'Zgoda' }).click();
 await a.getByText('Runda 2 z 8').waitFor();
 await a.reload();
 await a.getByText('Runda 2 z 8').waitFor(); // straight back in, no name form
@@ -232,6 +244,7 @@ await a.locator('body:not(.offline)').waitFor({ state: 'attached' });
 await screen.locator('#lost').waitFor({ state: 'hidden' });
 await a.getByText('Runda 2 z 8').waitFor();
 await a.getByRole('button', { name: 'Zakończ grę' }).click();
+await b.getByRole('button', { name: 'Zgoda' }).click(); // ending the game too
 await b.getByRole('button', { name: 'Start' }).waitFor();
 
 // ---- statistics across the games just played ----
@@ -286,9 +299,6 @@ for (const [width, height] of [[1024, 768], [1280, 720], [1920, 1080]]) {
   check(fits, `the projector must fit everything at ${width}x${height}`);
 }
 await screen.setViewportSize({ width: 1280, height: 720 });
-// on the phone Start is in reach without scrolling
-const startBox = await a.getByRole('button', { name: 'Start' }).boundingBox();
-check(startBox && startBox.y + startBox.height <= a.viewportSize().height, 'Start must be visible without scrolling');
 await a.locator('.picker button:disabled', { hasText: 'Głębokie rozmowy' }).waitFor(); // a talk is for one couple only
 check((await a.locator('#stakeBox:visible').count()) === 0, 'rewards are for a single couple');
 await c.locator('.picker button', { hasText: 'Co wolisz' }).click();
@@ -305,7 +315,7 @@ for (let i = 1; i <= 8; i++) {
   await d.locator('.pick').nth(1).click();
   await screen.locator('.ranking').waitFor();
   if (i === 1) await shot('round-ranking', screen);
-  await d.getByRole('button', { name: i === 8 ? 'Zobacz wynik' : 'Dalej' }).click();
+  await goOn([a, b, c, d]);
 }
 await screen.getByText('Najbardziej zgrana para').waitFor();
 const final = (await text(screen)).replace(/\s+/g, ' ');
@@ -339,7 +349,7 @@ for (let i = 1; i <= 8; i++) {
   await guesser.fill('#word', word);
   await guesser.getByRole('button', { name: 'Wyślij' }).click();
   await screen.getByText('Zgadnięte!').waitFor();
-  await watchers[0].getByRole('button', { name: i === 8 ? 'Zobacz wynik' : 'Dalej' }).click(); // anyone may move on
+  await goOn([a, b, c, d]); // the couple that watched taps Dalej too
 }
 await screen.getByText('Najbardziej zgrana para').waitFor();
 const turns = (await text(screen)).replace(/\s+/g, ' ');
@@ -387,6 +397,8 @@ for (let i = 1; i <= 8; i++) {
 }
 await screen.getByText('Wasza zgodność').waitFor();
 console.log('✔ sama z botem: ' + (await text(screen)).replace(/\n+/g, ' | '));
+await a.getByRole('button', { name: 'Jeszcze raz' }).click(); // the same game once more, straight away
+await a.getByText('Runda 1 z 8').waitFor();
 
 await browser.close();
 if (errors.length) {
