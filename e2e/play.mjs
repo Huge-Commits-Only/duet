@@ -241,26 +241,6 @@ await shot('final-ranking', screen);
 await shot('final-phone', c);
 console.log(`✔ dwie pary: ${final}`);
 
-// ---- alone with a bot: one phone is enough to try the game out ----
-for (const page of [b, c, d]) await page.context().close(); // everyone else leaves
-await a.getByRole('button', { name: 'Menu' }).click();
-await a.getByRole('button', { name: 'Zmień imię lub kolor' }).click();
-await a.locator('#pairs button', { hasText: '3' }).click(); // an empty couple, to sit alone
-await a.click('#join .btn');
-await a.getByRole('button', { name: /Zagraj z botem/ }).click();
-await a.getByRole('button', { name: 'Start' }).waitFor();
-await screen.locator('.slot small', { hasText: 'bot' }).first().waitFor();
-await a.locator('.picker button', { hasText: 'Jak dobrze mnie znasz' }).click();
-await a.locator('.picker button[aria-pressed="true"]', { hasText: 'Jak dobrze mnie znasz' }).waitFor();
-await a.getByRole('button', { name: 'Start' }).click();
-for (let i = 1; i <= 8; i++) {
-  await a.getByText(`Runda ${i} z 8`).waitFor();
-  await a.locator('.pick').first().click();
-  await a.getByRole('button', { name: i === 8 ? 'Zobacz wynik' : 'Dalej' }).click(); // appears once the bot answered
-}
-await screen.getByText('Wasza zgodność').waitFor();
-console.log('✔ sama z botem: ' + (await text(screen)).replace(/\n+/g, ' | '));
-
 await browser.close();
 if (errors.length) {
   console.error('Browser errors:\n' + errors.join('\n'));

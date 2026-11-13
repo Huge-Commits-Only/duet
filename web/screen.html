@@ -22,7 +22,7 @@
 function slot(p, i, sub) {
   return h('div', { className: 'slot ' + (p ? (p.online ? 'on' : '') : 'empty'), style: p ? '--c:' + p.color : '' },
     p ? p.name : 'Gracz ' + (i + 1),
-    h('small', {}, !p ? 'czeka na telefon' : p.bot ? 'bot' : !p.online ? 'rozłączony' : sub ?? 'w grze'));
+    h('small', {}, !p ? 'czeka na telefon' : !p.online ? 'rozłączony' : sub ?? 'w grze'));
 }
 
 // One answer card; in the reveal it lists who picked it.

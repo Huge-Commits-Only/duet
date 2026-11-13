@@ -60,9 +60,6 @@ func (r record) winner() string {
 
 // record appends the game that just ended. Called with g's lock held.
 func (s *store) record(g *Game) {
-	if g.hasBots() {
-		return // a try-out, not an evening
-	}
 	r := record{When: time.Now(), Mode: g.cfg["mode"], Tone: g.cfg["tone"], Rounds: g.rounds}
 	for _, p := range g.playing {
 		r.Pairs = append(r.Pairs, recordPair{[]string{p.players[0].Name, p.players[1].Name}, p.matches, p.points, p.score})

@@ -31,9 +31,6 @@ Dźwięk gra z urządzenia podłączonego do projektora. Przeglądarka puści go
 ### Kilka par
 Przy dołączaniu każdy wybiera numer pary (partnerzy ten sam). Gdy siedzą co najmniej dwie pary, wszyscy dostają to samo pytanie naraz, każda para odpowiada między sobą, a ekran pokazuje ranking — wygrywa najbardziej zgrana para. Dostępne są wtedy tryby, w których odpowiada się jednocześnie: Co wolisz, Kto prędzej…, Jak dobrze mnie znasz, Skala, Telepatia, Wspólne TAK i Wieczór mix. Pozostałe są dla jednej pary.
 
-### Test w pojedynkę
-Bez drugiej osoby też da się wszystko sprawdzić. Gdy siedzisz w parze sam, telefon pokazuje przycisk „Zagraj z botem" — bot zajmuje miejsce partnera i odpowiada losowo po krótkiej chwili. Z menu można jeszcze dosadzić parę botów, żeby zobaczyć ranking kilku par. Gry z botem nie liczą się do statystyk, a prawdziwy partner, który dołączy do Twojej pary, po prostu zastępuje bota.
-
 ### Statystyki
 Każda dokończona gra trafia do historii. Przycisk „Pokaż statystyki na ekranie" w menu telefonu wyświetla na projektorze liczbę wieczorów i gier, średnią zgodność, wykres zgodności w ostatnich grach, zgodność w poszczególnych trybach, bilans zwycięstw i ostatnie wyniki.
 
