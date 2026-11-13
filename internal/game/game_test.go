@@ -503,11 +503,14 @@ func TestRysowanie(t *testing.T) {
 	if g.phase != "question" || len(g.guesses) != 1 {
 		t.Fatal("a wrong guess keeps the round going")
 	}
-	g.Act("a", "draw", "new", "1,1")
-	g.Act("a", "draw", "new", "2,2,3,3")
+	g.Act("a", "draw", "new:3", "1,1")
+	g.Act("a", "draw", "new:5", "2,2,3,3")
 	g.Act("a", "undo", "", "")
 	if len(g.strokes) != 1 || g.ink != 2 || g.Act("b", "undo", "", "") == nil {
 		t.Fatalf("undo removes the drawer's last stroke: %v ink=%d", g.strokes, g.ink)
+	}
+	if !slices.Equal(g.colors, []int{3}) || !strings.Contains(string(g.view("")), `"colors":[3]`) || g.Act("a", "draw", "new:6", "1,1") == nil {
+		t.Fatalf("each stroke keeps its color, and only the palette's: %v", g.colors)
 	}
 	g.cur.Alt = []string{"Synonim"}
 	g.Act("b", "answer", "", "synonim")
@@ -1171,5 +1174,29 @@ func TestRestartKeepsTheStats(t *testing.T) {
 	g.Act("a", "stats", "", "")
 	if !New(g.store.dir).showStats {
 		t.Fatal("the statistics must survive a restart")
+	}
+}
+
+// "Nigdy przenigdy" is "Co wolisz" with fixed answers; "Szacowanie" is "Skala" on each question's own range.
+func TestNigdyAndSzacowanie(t *testing.T) {
+	g := started(t, "nigdy")
+	if q := g.viewQ(g.pair, 0); q.Kind != "choice" || !slices.Equal(q.Options, nigdyOptions) {
+		t.Fatalf("nigdy: %+v", q)
+	}
+	g.Act("a", "answer", "", "1")
+	g.Act("b", "answer", "", "1")
+	if g.phase != "reveal" || !g.hit || g.points != [2]int{} {
+		t.Fatalf("nigdy: the same answer is a match, without points: hit=%v points=%v", g.hit, g.points)
+	}
+
+	g = started(t, "szacowanie")
+	g.cur.Max = 20
+	if q := g.viewQ(g.pair, 0); q.Kind != "scale" || q.Max != 20 || g.Act("a", "answer", "", "21") == nil {
+		t.Fatalf("szacowanie: the scale ends at the question's max: %+v", q)
+	}
+	g.Act("a", "answer", "", "10")
+	g.Act("b", "answer", "", "13") // 3 off out of 20 is 15%: two points, still a match
+	if g.gain != 2 || !g.hit || g.points != [2]int{0, 2} {
+		t.Fatalf("szacowanie: gain=%d hit=%v points=%v", g.gain, g.hit, g.points)
 	}
 }

@@ -23,13 +23,13 @@ const modeName = s => (s.menu.mode.find(o => o.id === s.mode) || {}).name || '';
 function verdict(s) {
   const m = s.mode, who = guesser(s);
   const text =
-    m === 'skala' ? `Różnica ${Math.abs(s.answers[0] - s.answers[1])} · ` + (s.gain ? `+${s.gain} pkt: ${who.name}` : 'bez punktów')
+    m === 'skala' || m === 'szacowanie' ? `Różnica ${Math.abs(s.answers[0] - s.answers[1])} · ` + (s.gain ? `+${s.gain} pkt: ${who.name}` : 'bez punktów')
     : m === 'znasz' ? (s.hit ? `Trafione! +1 pkt: ${who.name}` : 'Pudło!')
     : m === 'blef' ? (s.hit ? `Kłamstwo wykryte! +1 pkt: ${who.name}` : `Blef się udał! +1 pkt: ${subj(s).name}`)
     : m === 'rysowanie' ? (s.hit ? `Zgadnięte! +2 pkt: ${who.name}, +1 pkt: ${subj(s).name}` : 'Czas minął!')
     : m === 'telepatia' ? (s.hit ? 'Telepatia! To samo słowo' : 'Tym razem inne słowa')
     : s.hit ? 'Zgodni!' : 'Tym razem inaczej';
-  return { hit: m === 'skala' ? s.gain > 0 : s.hit, text };
+  return { hit: m === 'skala' || m === 'szacowanie' ? s.gain > 0 : s.hit, text };
 }
 
 const score = s => `${s.players[0].name} ${s.points[0]} : ${s.points[1]} ${s.players[1].name}`;
@@ -87,7 +87,13 @@ function clock(s) {
 }
 setInterval(() => { if ($('timer')) $('timer').textContent = secs(); }, 250);
 
+// The ends of a scale: 0-100 with words ("skala"), or 0 to the question's own max ("szacowanie").
+const ends = q => q.max ? [`0${q.options[0] ? ' · ' + q.options[0] : ''}`, `${q.options[1] ? q.options[1] + ' · ' : ''}${q.max}`]
+  : ['0 · ' + q.options[0], q.options[1] + ' · 100'];
+
 // Drawings are strokes of x,y,x,y… on a 1000x1000 canvas, on the phone and on the projector alike.
+// Pen colors; a stroke carries its index. As many as drawColors in modes.go.
+const PALETTE = [['#111', 'czarny'], ['#e53935', 'czerwony'], ['#1e66f5', 'niebieski'], ['#2e9e44', 'zielony'], ['#f59e0b', 'pomarańczowy'], ['#8b5a2b', 'brązowy']];
 function pen(canvas) {
   const c = canvas.getContext('2d');
   c.lineWidth = 9;
@@ -101,9 +107,10 @@ function line(c, x0, y0, x1, y1) {
   c.lineTo(x1, y1);
   c.stroke();
 }
-function paint(c, strokes) {
+function paint(c, strokes, colors = []) {
   c.clearRect(0, 0, 1000, 1000);
-  for (const st of strokes) { // a single point is drawn as a dot
+  for (const [n, st] of strokes.entries()) { // a single point is drawn as a dot
+    c.strokeStyle = PALETTE[colors[n] || 0][0];
     for (let i = 0; i < st.length; i += 2) line(c, st[Math.max(0, i - 2)], st[Math.max(1, i - 1)], st[i] + (i ? 0 : .1), st[i + 1]);
   }
 }

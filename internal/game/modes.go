@@ -39,6 +39,12 @@ var modes = []modeDef{
 		valid: func(q question) bool { return q.Q != "" },
 	},
 	{
+		id: "nigdy", name: "Nigdy przenigdy",
+		rule:   "Oboje w tajemnicy odpowiadacie, czy Wam się zdarzyło. Ekran odsłania obie odpowiedzi.",
+		rounds: [3]int{8, 20, 36}, subject: false, multi: "all", mix: true,
+		valid: func(q question) bool { return q.Q != "" },
+	},
+	{
 		id: "znasz", name: "Jak dobrze mnie znasz",
 		rule:   "Jedno odpowiada o sobie, drugie zgaduje jego odpowiedź. Trafienie to punkt.",
 		rounds: [3]int{8, 20, 36}, subject: true, multi: "all", mix: true,
@@ -49,6 +55,12 @@ var modes = []modeDef{
 		rule:   "Jedno ustawia suwak od 0 do 100, drugie zgaduje. Im bliżej, tym więcej punktów.",
 		rounds: [3]int{8, 20, 36}, subject: true, multi: "all", mix: true,
 		valid: func(q question) bool { return q.Q != "" },
+	},
+	{
+		id: "szacowanie", name: "Szacowanie",
+		rule:   "Jedno podaje liczbę o sobie, drugie zgaduje. Im bliżej, tym więcej punktów.",
+		rounds: [3]int{8, 20, 36}, subject: true, multi: "all", mix: true,
+		valid: func(q question) bool { return q.Q != "" && q.Max >= 1 && q.Max <= 1000 },
 	},
 	{
 		id: "telepatia", name: "Telepatia",
@@ -134,11 +146,15 @@ var drawTime = 60 * time.Second
 // maxInk caps one drawing (numbers, i.e. two per point) so a stuck phone cannot grow it without bound.
 const maxInk = 12000
 
+// drawColors is how many pen colors there are (PALETTE in common.js).
+const drawColors = 6
+
 // viewQ is the current question in the shape the pages render: a list of options, or a 0-100 scale.
 type viewQ struct {
 	Kind    string   `json:"kind"` // choice | scale | text | yesno | talk | pick | dare | write | draw
 	Text    string   `json:"text"`
-	Options []string `json:"options"` // choices; the two end labels of a scale; the depth label of a talk card
+	Options []string `json:"options"`       // choices; the two end labels of a scale; the depth label of a talk card
+	Max     int      `json:"max,omitempty"` // "szacowanie": the top of the scale (0 = the usual 0-100)
 }
 
 // p and me are the viewer's couple and seat there (-1 for the projector):
@@ -148,41 +164,48 @@ func (g *Game) viewQ(p *pair, me int) *viewQ {
 	switch g.mode {
 	case "rysowanie":
 		if drawing := p == g.pair && me == g.subj; !drawing && g.phase != "reveal" {
-			return &viewQ{"draw", "", nil}
+			return &viewQ{"draw", "", nil, 0}
 		}
-		return &viewQ{"draw", q.Q, nil}
+		return &viewQ{"draw", q.Q, nil, 0}
 	case "wolisz":
-		return &viewQ{"choice", "Co wolisz?", []string{q.A, q.B}}
+		return &viewQ{"choice", "Co wolisz?", []string{q.A, q.B}, 0}
 	case "kto":
 		if me < 0 && g.multi() { // every couple has its own two names, so the projector lists none
-			return &viewQ{"choice", q.Q, nil}
+			return &viewQ{"choice", q.Q, nil, 0}
 		}
-		return &viewQ{"choice", q.Q, []string{p.players[0].Name, p.players[1].Name}}
+		return &viewQ{"choice", q.Q, []string{p.players[0].Name, p.players[1].Name}, 0}
 	case "znasz":
-		return &viewQ{"choice", q.Q, q.Options}
+		return &viewQ{"choice", q.Q, q.Options, 0}
+	case "nigdy":
+		return &viewQ{"choice", q.Q, nigdyOptions, 0}
+	case "szacowanie":
+		return &viewQ{"scale", q.Q, []string{q.A, q.B}, q.Max}
 	case "telepatia":
-		return &viewQ{"text", q.Q, nil}
+		return &viewQ{"text", q.Q, nil, 0}
 	case "tak":
-		return &viewQ{"yesno", q.Q, []string{"Tak", "Nie"}}
+		return &viewQ{"yesno", q.Q, []string{"Tak", "Nie"}, 0}
 	case "wyzwania":
 		if g.pending != nil {
-			return &viewQ{"pick", "Prawda czy wyzwanie?", []string{"Prawda", "Wyzwanie"}}
+			return &viewQ{"pick", "Prawda czy wyzwanie?", []string{"Prawda", "Wyzwanie"}, 0}
 		}
-		return &viewQ{"dare", q.Q, []string{map[string]string{"prawda": "Prawda", "wyzwanie": "Wyzwanie"}[q.Kind]}}
+		return &viewQ{"dare", q.Q, []string{map[string]string{"prawda": "Prawda", "wyzwanie": "Wyzwanie"}[q.Kind]}, 0}
 	case "blef":
 		if g.stmts == nil {
-			return &viewQ{"write", q.Q, nil}
+			return &viewQ{"write", q.Q, nil, 0}
 		}
-		return &viewQ{"choice", "Które zdanie to kłamstwo?", g.stmts}
+		return &viewQ{"choice", "Które zdanie to kłamstwo?", g.stmts, 0}
 	case "rozmowy":
-		return &viewQ{"talk", q.Q, []string{[]string{"Poziom 1 · Rozgrzewka", "Poziom 2 · Głębiej", "Poziom 3 · Od serca"}[q.Level-1]}}
+		return &viewQ{"talk", q.Q, []string{[]string{"Poziom 1 · Rozgrzewka", "Poziom 2 · Głębiej", "Poziom 3 · Od serca"}[q.Level-1]}, 0}
 	}
 	lo, hi := q.A, q.B
 	if lo == "" || hi == "" {
 		lo, hi = "wcale", "bardzo"
 	}
-	return &viewQ{"scale", q.Q, []string{lo, hi}}
+	return &viewQ{"scale", q.Q, []string{lo, hi}, 0}
 }
+
+// nigdyOptions are the two answers in "Nigdy przenigdy"; the cards are short phrases, so no gendered verbs.
+var nigdyOptions = []string{"Zdarzyło mi się", "Nigdy przenigdy"}
 
 // subject is the seat in the spotlight this round, or -1 when both answer for themselves.
 func (g *Game) subject() int { return g.subj }
@@ -193,6 +216,8 @@ func (g *Game) maxAnswer() int {
 		return len(g.stmts) - 1 // -1 until the statements exist: nothing to pick yet
 	case "skala":
 		return 100
+	case "szacowanie":
+		return g.cur.Max
 	case "znasz":
 		return len(g.cur.Options) - 1
 	}
@@ -208,7 +233,7 @@ func (g *Game) score(p *pair) {
 			p.matches++
 		}
 		// what couples are ranked by: closeness in "skala", otherwise one per match
-		if g.mode == "skala" {
+		if g.mode == "skala" || g.mode == "szacowanie" {
 			p.score += p.gain
 		} else if p.hit {
 			p.score++
@@ -232,8 +257,11 @@ func (g *Game) score(p *pair) {
 			}
 		}
 		return
-	case "skala":
+	case "skala", "szacowanie":
 		d := max(a-b, b-a)
+		if g.mode == "szacowanie" { // closeness relative to the range: 2 off out of 10 is far, out of 1000 spot on
+			d = d * 100 / g.cur.Max
+		}
 		switch {
 		case d <= 5:
 			p.gain = 3
@@ -262,8 +290,10 @@ func (g *Game) detail(p *pair) string {
 		switch g.mode {
 		case "telepatia":
 			return p.texts[seat]
-		case "skala":
+		case "skala", "szacowanie":
 			return strconv.Itoa(a)
+		case "nigdy":
+			return nigdyOptions[a]
 		case "kto":
 			return p.players[a].Name
 		case "wolisz":

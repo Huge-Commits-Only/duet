@@ -66,6 +66,7 @@ type Game struct {
 	pending   *card    // "wyzwania": truth or dare not chosen yet
 	strokes   [][]int  // "rysowanie": the drawing, each stroke as x,y,x,y… on a 0-1000 square
 	ink       int      // numbers in strokes
+	colors    []int    // "rysowanie": color of each stroke, an index into PALETTE in common.js
 	guesses   []string // "rysowanie": the latest wrong guesses
 	deadline  time.Time
 	seen      map[string]bool // modes already played in this game
@@ -241,6 +242,7 @@ func (g *Game) view(id string) []byte {
 		MyText   string            `json:"myText,omitempty"`  // own word in "telepatia"
 		Texts    *[2]string        `json:"texts,omitempty"`   // both words, in the reveal
 		Strokes  [][]int           `json:"strokes,omitempty"` // "rysowanie": only sent to the projector
+		Colors   []int             `json:"colors,omitempty"`
 		Guesses  []string          `json:"guesses,omitempty"`
 		Left     int64             `json:"left,omitempty"`  // ms until the round times out
 		Found    []string          `json:"found,omitempty"` // "tak": mutual yeses of this game (never the non-matches)
@@ -289,7 +291,7 @@ func (g *Game) view(id string) []byte {
 		v.Key = g.key
 	}
 	if id == "" && g.mode == "rysowanie" && (g.phase == "question" || g.phase == "reveal") {
-		v.Strokes = g.strokes
+		v.Strokes, v.Colors = g.strokes, g.colors
 	}
 	// With several couples the projector shows the ranking, not one couple's answers —
 	// unless they take turns: then it shows the couple playing, like in a game for two.

@@ -170,7 +170,7 @@ func (g *Game) next() {
 	if g.deck[g.round-1].dare != nil {
 		g.pending = &g.deck[g.round-1]
 	}
-	g.strokes, g.ink, g.guesses = nil, 0, nil
+	g.strokes, g.colors, g.ink, g.guesses = nil, nil, 0, nil
 	g.intro, g.seen[g.mode] = !g.seen[g.mode], true
 	// Whose round it is. When couples take turns they go round the table, and the spotlight
 	// moves to the other partner once everyone had a go.

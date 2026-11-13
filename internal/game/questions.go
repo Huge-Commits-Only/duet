@@ -16,6 +16,9 @@ import (
 //   - kto:    q ("Kto prędzej…?"; the choices are the two players)
 //   - znasz:  q + 2-4 options (asked about one player, in second person)
 //   - skala:  q, optionally a and b as labels for 0 and 100
+//   - szacowanie: q (a number about one player, in second person) + max (top of the range, 1-1000),
+//     optionally a and b as labels for 0 and max
+//   - nigdy:  q (a short phrase: something one has done or never did)
 //   - telepatia: q (the word to associate with)
 //   - tak:    q (an idea both can say yes or no to)
 //   - rozmowy: q + level 1-3 (depth)
@@ -32,6 +35,7 @@ type question struct {
 	Level   int      `json:"level,omitempty"`
 	Kind    string   `json:"kind,omitempty"`
 	Alt     []string `json:"alt,omitempty"`
+	Max     int      `json:"max,omitempty"`
 }
 
 // valid reports whether the question has what its mode needs, so a broken hand-written pack cannot crash a game.

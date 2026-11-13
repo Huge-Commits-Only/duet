@@ -24,8 +24,10 @@ Projektor: Chrome, Edge albo Safari (Firefox od wersji 126 — starszy nie pomni
 |---|---|
 | Co wolisz | Oboje wybieracie jedną z dwóch opcji — liczy się zgodność |
 | Kto prędzej… | Oboje wskazujecie, kogo z Was dotyczy pytanie |
+| Nigdy przenigdy | Oboje w tajemnicy: zdarzyło mi się czy nigdy — ekran odsłania obie odpowiedzi |
 | Jak dobrze mnie znasz | Jedno odpowiada o sobie, drugie zgaduje |
 | Skala | Jedno ustawia suwak 0–100, drugie zgaduje jak najbliżej |
+| Szacowanie | Jedno podaje liczbę o sobie (np. ile razy w tygodniu…), drugie zgaduje jak najbliżej |
 | Telepatia | Oboje wpisujecie skojarzenie — punkt za to samo słowo |
 | Wspólne TAK | Tak/nie na pomysły; ekran pokazuje tylko to, na co oboje się zgodziliście, i zapisuje listę |
 | Głębokie rozmowy | Karty do rozmowy na trzech poziomach głębi, bez punktów |
@@ -37,7 +39,7 @@ Projektor: Chrome, Edge albo Safari (Firefox od wersji 126 — starszy nie pomni
 ### Kilka par
 Przy dołączaniu każdy wybiera numer pary (partnerzy ten sam). Gdy siedzą co najmniej dwie pary, ekran pokazuje ranking — wygrywa najbardziej zgrana para.
 
-- **Wszyscy naraz:** Co wolisz, Kto prędzej…, Jak dobrze mnie znasz, Skala, Telepatia, Wspólne TAK. Każda para odpowiada między sobą na to samo pytanie.
+- **Wszyscy naraz:** Co wolisz, Kto prędzej…, Nigdy przenigdy, Jak dobrze mnie znasz, Skala, Szacowanie, Telepatia, Wspólne TAK. Każda para odpowiada między sobą na to samo pytanie.
 - **Po kolei:** Wyzwania, Blef, Rysowanie. Jedna para gra, reszta patrzy na ekran; kolejka idzie wokół stołu, a gra jest odpowiednio dłuższa, żeby każdy miał tyle samo rund.
 - **Wieczór mix** miesza jedne i drugie. **Głębokie rozmowy** są tylko dla jednej pary.
 

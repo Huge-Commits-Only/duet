@@ -118,6 +118,8 @@ func (g *Game) botMove(p *pair, me int) (act, key, value string, wait time.Durat
 		return "answer", "", "słońce", botDelay
 	case "skala":
 		return "answer", "", pick(101), botDelay
+	case "szacowanie":
+		return "answer", "", pick(g.cur.Max + 1), botDelay
 	case "znasz":
 		return "answer", "", pick(len(g.cur.Options)), botDelay
 	}
