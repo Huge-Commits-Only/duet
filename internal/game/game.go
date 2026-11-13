@@ -148,6 +148,13 @@ func (g *Game) live() []*pair {
 	return out
 }
 
+// home reports whether only the household sits at the table: couple 1 is here and nobody else is.
+// The saved list, statistics and backup are theirs alone.
+func (g *Game) home() bool {
+	live := g.live()
+	return len(live) == 1 && live[0] == g.pairs[0]
+}
+
 // multi reports whether several couples are in play (in the lobby: here to play).
 func (g *Game) multi() bool {
 	if g.phase == "lobby" {
@@ -216,6 +223,7 @@ func (g *Game) view(id string) []byte {
 		Cfg      map[string]string `json:"cfg"`
 		Menu     map[string][]opt  `json:"menu"`
 		Round    int               `json:"round"`
+		Step     string            `json:"step"` // echoed back with every action, so a late tap cannot land on the next screen
 		Rounds   int               `json:"rounds"`
 		Matches  int               `json:"matches"`
 		Mode     string            `json:"mode"` // mode of the current round
@@ -244,7 +252,7 @@ func (g *Game) view(id string) []byte {
 		Answers  *[2]int           `json:"answers,omitempty"`
 		Winner   *int              `json:"winner,omitempty"` // at the end; -1 = draw
 		Stakes   *[2]string        `json:"stakes,omitempty"` // at the end; only the revealed ones
-	}{Phase: g.phase, Players: g.viewPlayers(p), Me: me, Multi: multi, Pairs: []viewPair{}, Cfg: g.cfg, Menu: menu, Round: g.round, Rounds: g.rounds, Matches: p.matches,
+	}{Phase: g.phase, Players: g.viewPlayers(p), Me: me, Multi: multi, Pairs: []viewPair{}, Cfg: g.cfg, Menu: menu, Round: g.round, Step: g.step(), Rounds: g.rounds, Matches: p.matches,
 		// rewards are between the two of a couple, so only when one couple plays
 		Scored:  (subjectModes[g.cfg["mode"]] || g.cfg["mode"] == "mix") && !multi,
 		Subject: -1, Mode: g.cfg["mode"], Points: p.points, StakeSet: [2]bool{p.stakes[0] != "", p.stakes[1] != ""},
@@ -296,10 +304,10 @@ func (g *Game) view(id string) []byte {
 	switch g.phase {
 	case "lobby":
 		v.Rule = rules[g.cfg["mode"]]
-		if g.showList {
+		if g.showList && g.home() {
 			v.List = g.store.yes
 		}
-		if g.showStats {
+		if g.showStats && g.home() {
 			v.Stats = g.store.stats()
 		}
 	case "question":

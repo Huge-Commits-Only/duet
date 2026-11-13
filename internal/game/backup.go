@@ -15,11 +15,11 @@ type backup struct {
 
 var errNotBackup = errors.New("to nie jest plik kopii zapasowej Duet")
 
-// Backup returns the saved data as JSON. Only a seated player may take it.
+// Backup returns the saved data as JSON. Only a seated player may take it, and only with no guests.
 func (g *Game) Backup(id string) ([]byte, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	if p, _ := g.find(id); p == nil {
+	if p, _ := g.find(id); p != g.pairs[0] || !g.home() { // household data, not for guests
 		return nil, ErrBad
 	}
 	b := backup{Asked: []string{}, Yes: g.store.yes, History: g.store.history}
@@ -30,11 +30,11 @@ func (g *Game) Backup(id string) ([]byte, error) {
 	return json.MarshalIndent(b, "", "  ")
 }
 
-// Restore replaces the saved data with a backup. Only from the menu, by a seated player.
+// Restore replaces the saved data with a backup. Only from the menu, by a seated player, with no guests.
 func (g *Game) Restore(id string, data []byte) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	if p, _ := g.find(id); p == nil || g.phase != "lobby" {
+	if p, _ := g.find(id); p != g.pairs[0] || !g.home() || g.phase != "lobby" {
 		return ErrBad
 	}
 	var raw map[string]json.RawMessage

@@ -5,6 +5,11 @@ services:
     build: .
     container_name: duet
     restart: unless-stopped
+    # gra pisze tylko do /data; reszta systemu plików tylko do odczytu, bez uprawnień roota
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
     ports:
       - "8080:8080"
     volumes:

@@ -1,16 +1,16 @@
 // Browser test: a projector and two phones play every mode from the menu to the final score.
 // It answers whatever the phones ask for, so new modes built from the existing inputs need no changes here.
 import { readFileSync } from 'node:fs';
-import { chromium, devices } from 'playwright';
+import { chromium, devices, webkit } from 'playwright';
 
 const base = process.argv[2];
-const browser = await chromium.launch();
+const browser = await (process.env.BROWSER === 'webkit' ? webkit : chromium).launch(); // webkit = the engine of the players' iPhones
 const errors = [];
 async function open(options, path, refused = false) {
   const page = await (await browser.newContext(options)).newPage();
   page.on('pageerror', e => errors.push(`${path}: ${e.message}`));
-  // a refused request is logged by the browser as an error; expected only where the test provokes one
-  page.on('console', m => m.type() === 'error' && !refused && errors.push(`${path}: ${m.text()}`));
+  // a refused request is logged by the browser as an error; expected only where the test provokes one (and while offline)
+  page.on('console', m => m.type() === 'error' && !refused && !/ERR_INTERNET_DISCONNECTED|WebKit encountered an internal error/.test(m.text()) && errors.push(`${path}: ${m.text()}`));
   page.on('dialog', d => d.accept());
   await page.goto(base + path);
   return page;
@@ -20,6 +20,11 @@ const check = (ok, what) => { if (!ok) throw new Error(what); };
 const shot = (name, page) => process.env.SHOTS && page.screenshot({ path: `${process.env.SHOTS}/${name}.png` });
 const has = async (page, selector) => (await page.locator(selector).count()) > 0;
 const text = page => page.locator('#app').innerText();
+// the rarely used buttons live under "Więcej" in the phone menu; it stays open once opened
+const more = async page => {
+  const box = page.locator('details');
+  if (!(await box.evaluate(d => d.open))) await box.locator('summary').click();
+};
 // Resolves once the phone shows something else than `before`, i.e. the state update arrived.
 const changed = (page, before) => page.waitForFunction(t => document.getElementById('app').innerText !== t, before);
 
@@ -37,10 +42,10 @@ const link = '/play?k=' + (await screen.locator('#url').textContent()).split('k=
 const a = await open(devices['iPhone 14'], link);
 const b = await open(devices['iPhone 14'], link);
 const phones = [a, b];
-await a.fill('#name', 'Ola');
+await a.fill('#name', 'Natalia');
 await a.getByRole('button', { name: 'jak do niej' }).click();
 await a.click('#join .btn');
-await b.fill('#name', 'Michał');
+await b.fill('#name', 'Kuba');
 await b.getByRole('button', { name: 'jak do niego' }).click();
 await b.click('#join .btn');
 await a.getByRole('button', { name: 'Start' }).waitFor();
@@ -50,6 +55,8 @@ check((await screen.locator('.slot.on').count()) === 2, 'both players must show 
 // Returns false once the game is over. Odd rounds agree or hit, even rounds differ or miss.
 async function step() {
   for (const p of phones) {
+    // a mobile browser widens innerWidth to fit the content, so compare with the screen itself
+    check(await p.evaluate(w => document.documentElement.scrollWidth <= w, p.viewportSize().width), `the phone scrolls sideways at ${p.viewportSize().width}x${p.viewportSize().height}:\n${await text(p)}`);
     // both players picked a form, so a phone never shows a double spelling like "zrobiłeś/aś"
     const double = (await text(p)).match(/\p{L}+\/aś|\p{L}+\(a\)\p{L}*|\p{L}+y\/a\b/u);
     check(!double, `unresolved form on a phone: ${double}`);
@@ -83,6 +90,10 @@ async function step() {
         for (const pt of pts.slice(1)) await p.mouse.move(...at(...pt), { steps: 6 });
         await p.mouse.up();
       }
+      await shot('drawing', p);
+      const undo = await p.getByRole('button', { name: 'Cofnij kreskę' }).boundingBox();
+      check(box.y + box.height <= p.viewportSize().height && undo.y + undo.height <= p.viewportSize().height,
+        `the drawing pad and its buttons must fit on a ${p.viewportSize().width}x${p.viewportSize().height} screen`);
       await p.getByRole('button', { name: 'Cofnij kreskę' }).click();
       await other.fill('#word', 'na pewno nie to');
       await other.getByRole('button', { name: 'Wyślij' }).click();
@@ -129,7 +140,12 @@ async function step() {
   return true;
 }
 
+// every game is played on another phone screen: iPhone SE, 13 turned sideways (drawing lands here), 15 Pro Max, 13
+const sizes = [[320, 568], [844, 390], [430, 932], [390, 844]];
+let games = 0;
 async function play(label, expectAtEnd) {
+  const [width, height] = sizes[games++ % sizes.length];
+  for (const p of phones) await p.setViewportSize({ width, height });
   const pick = a.locator('.picker button', { hasText: label });
   await pick.click();
   await a.locator('.picker button[aria-pressed="true"]', { hasText: label }).waitFor();
@@ -164,8 +180,8 @@ await b.locator('.picker button', { hasText: 'Lekko' }).click();
 await play('Co wolisz', /Wasza zgodność \| 50%$/); // no points, so no reward either
 await play('Kto prędzej', /Wasza zgodność \| 50%/);
 await play('Jak dobrze mnie znasz', /Wygrywa|Remis/);
-// Michał guesses in the odd rounds, which are the close ones: only the winner's reward is revealed
-await play('Skala', /Wygrywa Michał! \| Ola 0 : 12 Michał \| Nagroda dla: Michał — tydzień zmywania$/);
+// Kuba guesses in the odd rounds, which are the close ones: only the winner's reward is revealed
+await play('Skala', /Wygrywa Kuba! \| Natalia 0 : 12 Kuba \| Nagroda dla: Kuba — tydzień zmywania$/);
 await play('Telepatia', /Wasza zgodność \| 50%/);
 await play('Wspólne TAK', /Wspólne TAK \| 4/);
 await play('Głębokie rozmowy', /Koniec rozmowy/);
@@ -173,8 +189,11 @@ await play('Wyzwania', /Zaliczone zadania \| 6 z 6/);
 await play('Blef', /Wykryte kłamstwa \| 4 z 4/);
 await play('Rysowanie', /Odgadnięte hasła \| 4 z 4/);
 await play('Wieczór mix', /Wspólny wynik/);
+for (const p of phones) await p.setViewportSize(devices['iPhone 14'].viewport);
 
 // ---- the saved list of mutual yeses: show, tick off, remove ----
+await more(a);
+await more(b);
 await a.getByRole('button', { name: /Pokaż na ekranie naszą listę/ }).click();
 await screen.getByText('Wasze wspólne TAK').waitFor();
 const saved = await screen.locator('.list span').count();
@@ -194,10 +213,19 @@ await b.getByRole('button', { name: 'Pomiń rundę' }).click();
 await a.getByText('Runda 2 z 8').waitFor();
 await a.reload();
 await a.getByText('Runda 2 z 8').waitFor(); // straight back in, no name form
+// a lost connection shows up on the phone, and coming back to the tab brings the game back
+await a.context().setOffline(true);
+await a.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+await a.locator('body.offline').waitFor({ state: 'attached' });
+await a.context().setOffline(false);
+await a.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+await a.locator('body:not(.offline)').waitFor({ state: 'attached' });
+await a.getByText('Runda 2 z 8').waitFor();
 await a.getByRole('button', { name: 'Zakończ grę' }).click();
 await b.getByRole('button', { name: 'Start' }).waitFor();
 
 // ---- statistics across the games just played ----
+await more(a);
 await a.getByRole('button', { name: 'Pokaż statystyki na ekranie' }).click();
 await screen.getByText('Wasze statystyki').waitFor();
 check(Number(await screen.locator('.tile b').nth(1).textContent()) === 11, 'every finished game must be counted, the abandoned one not');
@@ -216,14 +244,48 @@ for (const [page, name] of [[c, 'Kasia'], [d, 'Tomek']]) {
 }
 await d.getByRole('button', { name: 'Start' }).waitFor();
 await screen.getByText('Para 2').waitFor();
+// four couples fit: eight phones, eight different colors
+const guests = [];
+for (const [name, n] of [['Ewa', '3'], ['Piotr', '3'], ['Zosia', '4'], ['Adam', '4']]) {
+  const page = await open(devices['iPhone 14'], link);
+  await page.fill('#name', name);
+  await page.locator('#pairs button', { hasText: n }).click();
+  await page.click('#join .btn');
+  await screen.locator('.slot', { hasText: name }).waitFor();
+  guests.push(page);
+}
+await screen.getByText('Para 4').waitFor();
+const colors = await Promise.all([a, b, c, d, ...guests].map(p => p.evaluate(() => JSON.parse(localStorage.getItem('duet')).color)));
+check(new Set(colors).size === 8, 'eight players need eight colors: ' + colors);
+await more(a);
+for (const name of ['Ewa', 'Piotr', 'Zosia', 'Adam']) {
+  const before = await text(a);
+  await a.getByRole('button', { name: `Usuń gracza ${name}` }).click();
+  await changed(a, before);
+}
+for (const page of guests) await page.context().close();
 await shot('lobby-two-couples', screen);
+// whatever the projector's shape, everything is on screen and nothing scrolls
+for (const [width, height] of [[1024, 768], [1280, 720], [1920, 1080]]) {
+  await screen.setViewportSize({ width, height });
+  await screen.waitForTimeout(100);
+  const fits = await screen.evaluate(() => {
+    const r = document.getElementById('app').getBoundingClientRect();
+    return r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1 && document.documentElement.scrollHeight <= innerHeight + 1;
+  });
+  check(fits, `the projector must fit everything at ${width}x${height}`);
+}
+await screen.setViewportSize({ width: 1280, height: 720 });
+// on the phone Start is in reach without scrolling
+const startBox = await a.getByRole('button', { name: 'Start' }).boundingBox();
+check(startBox && startBox.y + startBox.height <= a.viewportSize().height, 'Start must be visible without scrolling');
 await a.locator('.picker button:disabled', { hasText: 'Głębokie rozmowy' }).waitFor(); // a talk is for one couple only
 check((await a.locator('#stakeBox:visible').count()) === 0, 'rewards are for a single couple');
 await c.locator('.picker button', { hasText: 'Co wolisz' }).click();
 await c.getByRole('button', { name: 'Start' }).click();
 for (let i = 1; i <= 8; i++) {
   for (const page of [a, b, c, d]) await page.getByText(`Runda ${i} z 8`).waitFor();
-  await a.locator('.pick').first().click(); // Ola and Michał always agree,
+  await a.locator('.pick').first().click(); // Natalia and Kuba always agree,
   await b.locator('.pick').first().click();
   await c.locator('.pick').first().click(); // Kasia and Tomek never do
   if (i === 1) {
@@ -237,7 +299,7 @@ for (let i = 1; i <= 8; i++) {
 }
 await screen.getByText('Najbardziej zgrana para').waitFor();
 const final = (await text(screen)).replace(/\s+/g, ' ');
-check(/Ola i Michał 1\. Ola i Michał 8 pkt 2\. Kasia i Tomek 0 pkt/.test(final), `unexpected ranking: ${final}`);
+check(/Natalia i Kuba 1\. Natalia i Kuba 8 pkt 2\. Kasia i Tomek 0 pkt/.test(final), `unexpected ranking: ${final}`);
 await shot('final-ranking', screen);
 await shot('final-phone', c);
 console.log(`✔ dwie pary: ${final}`);
@@ -276,11 +338,13 @@ console.log(`✔ pary po kolei: ${turns}`);
 
 // ---- the folded-away corner of the menu: removing a player, backup and restore ----
 await a.getByRole('button', { name: 'Menu' }).click();
-await a.getByText('Gracze i kopia zapasowa').click();
+await more(a);
+check(!(await has(a, 'text=Pobierz kopię zapasową')), 'with guests at the table the backup must be hidden');
 await a.getByRole('button', { name: 'Usuń gracza Tomek' }).click();
 await d.locator('#join:visible').waitFor(); // Tomek is back at the name form and does not bounce in again
 await screen.locator('.slot', { hasText: 'Tomek' }).waitFor({ state: 'detached' });
 await a.waitForFunction(() => !document.getElementById('app').innerText.includes('Tomek ·')); // gone from the list too
+await a.getByRole('button', { name: 'Usuń gracza Kasia' }).click(); // the guests are gone: the household's data is back
 // the section stays open across the update, so the download link is right there
 const [download] = await Promise.all([a.waitForEvent('download'), a.getByText('Pobierz kopię zapasową').click()]);
 const backup = JSON.parse(readFileSync(await download.path(), 'utf8'));
@@ -291,11 +355,12 @@ console.log(`✔ kopia zapasowa: ${backup.history.length} gier, ${backup.asked.l
 
 // ---- text size on the projector ----
 await screen.keyboard.press('+');
-check((await screen.locator('main').evaluate(el => el.style.zoom)) === '1.1', 'the + key must enlarge the projector view');
+check((await screen.evaluate(() => document.documentElement.style.getPropertyValue('--zoom'))) === '1.1', 'the + key must enlarge the projector view');
 await screen.keyboard.press('0');
 
 // ---- alone with a bot: one phone is enough to try the game out ----
 for (const page of [b, c, d]) await page.context().close(); // everyone else leaves
+await more(a);
 await a.getByRole('button', { name: 'Zmień imię lub kolor' }).click();
 await a.locator('#pairs button', { hasText: '3' }).click(); // an empty couple, to sit alone
 await a.click('#join .btn');

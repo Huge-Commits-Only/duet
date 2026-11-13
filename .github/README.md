@@ -11,9 +11,13 @@ Gry i quizy dla par. Projektor (albo telewizor) pokazuje grę, a telefony służ
 3. Na telefonie wybieracie grę, ton (lekko / romantycznie / pikantnie 18+) i długość, a potem **Start**.
 4. Odpowiadacie w tajemnicy na telefonach; projektor odsłania odpowiedzi i liczy zgodność.
 
+Menu na telefonie ma na wierzchu tylko wybór gry, tonu i długości oraz przycisk Start; lista wspólnych TAK, statystyki, boty, zmiana imienia, gracze i kopia zapasowa są pod „Więcej". Ekran projektora dopasowuje się do każdej rozdzielczości i proporcji (16:9, 16:10, 4:3) — gdy treść się nie mieści, sam ją pomniejsza.
+
 Rozmiar tekstu na projektorze zmienisz klawiszami `+` i `-` (`0` przywraca domyślny), a `m` wycisza dźwięk.
 
-Dźwięk gra z urządzenia podłączonego do projektora. Przeglądarka puści go dopiero po kliknięciu — kliknij ikonę głośnika w prawym górnym rogu ekranu (ten sam przycisk wycisza).
+Dźwięk gra z urządzenia podłączonego do projektora. Dźwięk jest zawsze włączony na starcie, ale przeglądarka puści go dopiero po pierwszym kliknięciu lub klawiszu na ekranie projektora. Wyciszasz ikoną głośnika w prawym górnym rogu albo klawiszem `m`.
+
+Projektor: Chrome, Edge albo Safari (Firefox od wersji 126 — starszy nie pomniejsza widoku, gdy się nie mieści). Telefon: iOS 15 lub nowszy, Android z aktualnym Chrome.
 
 ### Tryby
 | Tryb | O co chodzi |
@@ -37,7 +41,9 @@ Przy dołączaniu każdy wybiera numer pary (partnerzy ten sam). Gdy siedzą co 
 - **Po kolei:** Wyzwania, Blef, Rysowanie. Jedna para gra, reszta patrzy na ekran; kolejka idzie wokół stołu, a gra jest odpowiednio dłuższa, żeby każdy miał tyle samo rund.
 - **Wieczór mix** miesza jedne i drugie. **Głębokie rozmowy** są tylko dla jednej pary.
 
-W złożonym na dole menu telefonu („Gracze i kopia zapasowa") widać, kto siedzi w której parze, i można usunąć gracza, który zajął miejsce przez pomyłkę.
+Pod przyciskiem „Więcej" na dole menu telefonu widać, kto siedzi w której parze, i można usunąć gracza, który zajął miejsce przez pomyłkę.
+
+**Para 1 to domownicy.** Tylko ona widzi zapisaną listę wspólnych TAK, statystyki i kopię zapasową, i tylko wtedy, gdy nie siedzi nikt inny. Goście wybierają pary 2–4.
 
 ### Test w pojedynkę
 Bez drugiej osoby też da się wszystko sprawdzić. Gdy siedzisz w parze sam, telefon pokazuje przycisk „Zagraj z botem" — bot zajmuje miejsce partnera i odpowiada losowo po krótkiej chwili. Z menu można jeszcze dosadzić parę botów, żeby zobaczyć ranking kilku par. Gry z botem nie liczą się do statystyk, a prawdziwy partner, który dołączy do Twojej pary, po prostu zastępuje bota.
@@ -105,7 +111,7 @@ DUET_VERSION=1.4.2 docker compose up -d              # konkretna wersja — tak�
 Dostępne wersje: `https://github.com/orgs/Huge-Commits-Only/packages/container/package/duet`. Dane w wolumenie zostają przy zmianie wersji.
 
 ### Kopia zapasowa
-W menu telefonu, w sekcji „Gracze i kopia zapasowa", są dwa przyciski: **Pobierz kopię zapasową** (jeden plik JSON z historią gier, listą wspólnych TAK i listą zadanych pytań) oraz **Wczytaj kopię zapasową** (zastępuje zapisane dane zawartością pliku). Przydaje się przed przenosinami na inny serwer.
+W menu telefonu, pod przyciskiem „Więcej", są dwa przyciski: **Pobierz kopię zapasową** (jeden plik JSON z historią gier, listą wspólnych TAK i listą zadanych pytań) oraz **Wczytaj kopię zapasową** (zastępuje zapisane dane zawartością pliku). Przydaje się przed przenosinami na inny serwer.
 
 ### Parametry
 | Zmienna | Domyślnie | Opis |
@@ -115,17 +121,19 @@ W menu telefonu, w sekcji „Gracze i kopia zapasowa", są dwa przyciski: **Pobi
 
 Dane (lista zadanych pytań, Wasza lista wspólnych TAK, historia gier, własne paczki pytań, stan trwającej gry) leżą w wolumenie `duet-data` pod `/data`. Restart kontenera nie przerywa gry — telefony same do niej wracają.
 
-Na iPhonie stronę pilota można dodać do ekranu głównego (Udostępnij → Do ekranu początkowego); ma własną ikonę i otwiera się bez paska przeglądarki.
+Na iPhonie stronę pilota warto dodać do ekranu głównego (Udostępnij → Do ekranu początkowego): ma własną ikonę, otwiera się bez paska przeglądarki, a przy rysowaniu przeciągnięcie palcem od krawędzi nie cofa strony (w zwykłym Safari cofa i nie da się tego wyłączyć).
 
 ### Nginx Proxy Manager
 1. **Hosts → Proxy Hosts → Add Proxy Host**.
 2. *Domain Names*: np. `duet.twoja-domena.duckdns.org`, *Scheme*: `http`, *Forward Hostname / IP*: adres Raspberry Pi, *Forward Port*: `8080`.
 3. Zakładka **SSL**: wybierz certyfikat i włącz *Force SSL*.
 
-Nic więcej nie trzeba ustawiać — gra sama wyłącza buforowanie dla połączenia na żywo. HTTPS jest potrzebny, żeby telefon nie wygaszał ekranu w trakcie gry.
+Nic więcej nie trzeba ustawiać — gra sama wyłącza buforowanie dla połączenia na żywo. HTTPS jest potrzebny, żeby telefon nie wygaszał ekranu w trakcie gry. To samo dotyczy projektora: otwieraj go przez domenę (`https://…/screen`), nie przez `http://ip:8080` — inaczej komputer przy projektorze może wygasić ekran np. w trakcie Głębokich rozmów. Gdyby i tak gasł, wyłącz wygaszanie ekranu w systemie tego komputera.
 
 > [!WARNING]
 > Gra nie ma logowania. Trzymaj ją wyłącznie w sieci domowej i nie wystawiaj do internetu.
+> Kod w adresie z QR (`/play?k=…`) chroni tylko przed przypadkowym zajęciem miejsca — każdy, kto otworzy `/screen` w twojej sieci, go zobaczy. To nie jest hasło.
+> Gdyby gra kiedyś musiała być dostępna z zewnątrz, ustaw w Nginx Proxy Manager **Access List** (login i hasło) dla tego hosta.
 
 
 <br>
