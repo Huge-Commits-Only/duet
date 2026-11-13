@@ -42,7 +42,10 @@ type savedPair struct {
 	Found   []string
 }
 
-type savedPlayer struct{ ID, Name, Color, Form string }
+type savedPlayer struct {
+	ID, Name, Color, Form string
+	Bot                   bool
+}
 
 type savedCard struct {
 	Mode string
@@ -62,7 +65,7 @@ func (g *Game) save() {
 		sp := savedPair{Answers: p.answers, Texts: p.texts, Points: p.points, Stakes: p.stakes,
 			Matches: p.matches, Score: p.score, Gain: p.gain, Hit: p.hit, Found: p.found}
 		for _, pl := range p.players {
-			sp.Players = append(sp.Players, savedPlayer{pl.ID, pl.Name, pl.Color, pl.Form})
+			sp.Players = append(sp.Players, savedPlayer{pl.ID, pl.Name, pl.Color, pl.Form, pl.Bot})
 		}
 		s.Pairs = append(s.Pairs, sp)
 	}
@@ -90,7 +93,7 @@ func (g *Game) load() {
 		}
 		p := g.pairs[i]
 		for _, pl := range sp.Players[:min(2, len(sp.Players))] {
-			p.players = append(p.players, &player{ID: pl.ID, Name: pl.Name, Color: pl.Color, Form: pl.Form})
+			p.players = append(p.players, &player{ID: pl.ID, Name: pl.Name, Color: pl.Color, Form: pl.Form, Bot: pl.Bot})
 		}
 		p.stakes = sp.Stakes
 	}
@@ -136,4 +139,5 @@ func (g *Game) load() {
 	if g.phase == "question" && g.mode == "rysowanie" {
 		g.endDrawing(false)
 	}
+	g.botsThink() // their timers did not survive the restart
 }

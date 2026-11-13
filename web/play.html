@@ -223,7 +223,12 @@ function show(s) {
              h('span', { className: it.done ? 'done' : '' }, it.text),
              h('button', { type: 'button', ariaLabel: it.done ? 'Oznacz jako niezrobione' : 'Oznacz jako zrobione', ariaPressed: it.done, onclick: () => act('yesdone', '', it.text) }, '✓'),
              h('button', { type: 'button', ariaLabel: 'Usuń z listy', onclick: () => confirm(`Usunąć „${it.text}” z listy?`) && act('yesdel', '', it.text) }, '✕'))))]
-        : h('p', { className: 'dim' }, 'Czekamy na drugą osobę…'),
+        : [h('p', { className: 'dim' }, 'Czekamy na drugą osobę…'),
+           !other && btn('Zagraj z botem (test w pojedynkę)', () => act('bot'), 'ghost')],
+      // trying things out alone: the bot partner can go, and a couple of bots can join for the ranking
+      menu && other.bot && h('div', { className: 'row after' },
+        btn('Usuń bota', () => act('bot'), 'ghost'),
+        btn(s.pairs.some(x => x.players.every(o => o.bot)) ? 'Usuń parę botów' : 'Dodaj parę botów', () => act('botpair'), 'ghost')),
       btn('Zmień imię lub kolor', () => { editing = true; lastKey = ''; show(last); }, 'ghost after'),
     ];
   } else if (s.phase === 'question') {

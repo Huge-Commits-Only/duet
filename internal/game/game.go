@@ -21,6 +21,7 @@ type player struct {
 	Color  string `json:"color"`
 	Form   string `json:"form"` // "m" or "f": how to address the player; "" = not chosen
 	Online bool   `json:"online"`
+	Bot    bool   `json:"bot,omitempty"` // a stand-in for trying the game out alone
 }
 
 // maxPairs is how many couples can sit at one projector.
@@ -72,13 +73,14 @@ type Game struct {
 	epoch     int             // bumped on every start, so a timer from an abandoned game does nothing
 	round     int             // 1-based number of the current question
 	rounds    int
-	showList  bool // lobby: the projector shows the saved list of mutual yeses
-	showStats bool // lobby: the projector shows the statistics
+	showList  bool              // lobby: the projector shows the saved list of mutual yeses
+	showStats bool              // lobby: the projector shows the statistics
+	botStage  map[string]string // per bot: the situation its pending move was scheduled for
 }
 
 func New(dataDir string) *Game {
 	g := &Game{
-		conns: map[string]int{}, subs: map[chan []byte]string{}, store: openStore(dataDir),
+		conns: map[string]int{}, subs: map[chan []byte]string{}, store: openStore(dataDir), botStage: map[string]string{},
 		phase: "lobby", cfg: map[string]string{"mode": "wolisz", "tone": "lekko", "length": "krotka"},
 	}
 	for i := range g.pairs {
@@ -131,10 +133,25 @@ func (g *Game) seated() []*pair {
 	return out
 }
 
-// multi reports whether several couples are in play (in the lobby: seated).
+// here reports whether a player's phone is connected (a bot always is).
+func (g *Game) here(pl *player) bool { return pl.Bot || g.conns[pl.ID] > 0 }
+
+// live is the seated couples with at least one player here. Couples whose phones are all
+// gone (guests who left) keep their seats but neither play nor block anyone.
+func (g *Game) live() []*pair {
+	var out []*pair
+	for _, p := range g.seated() {
+		if slices.ContainsFunc(p.players, g.here) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// multi reports whether several couples are in play (in the lobby: here to play).
 func (g *Game) multi() bool {
 	if g.phase == "lobby" {
-		return len(g.seated()) > 1
+		return len(g.live()) > 1
 	}
 	return len(g.playing) > 1
 }
@@ -144,6 +161,8 @@ func (g *Game) lead() {
 	switch {
 	case g.phase != "lobby" && len(g.playing) > 0:
 		g.pair = g.playing[0]
+	case len(g.live()) > 0:
+		g.pair = g.live()[0]
 	case len(g.seated()) > 0:
 		g.pair = g.seated()[0]
 	default:
@@ -166,7 +185,7 @@ func (g *Game) viewPlayers(p *pair) []player {
 	out := []player{}
 	for _, pl := range p.players {
 		c := *pl
-		c.Online = g.conns[pl.ID] > 0
+		c.Online = g.here(pl)
 		out = append(out, c)
 	}
 	return out
@@ -227,7 +246,7 @@ func (g *Game) view(id string) []byte {
 		Scored:  (subjectModes[g.cfg["mode"]] || g.cfg["mode"] == "mix") && !multi,
 		Subject: -1, Mode: g.cfg["mode"], Points: p.points, StakeSet: [2]bool{p.stakes[0] != "", p.stakes[1] != ""},
 		ListLen: len(g.store.yes), HasStats: len(g.store.history) > 0}
-	shown := g.seated()
+	shown := g.live() // couples whose phones are all gone are not listed
 	if g.phase != "lobby" {
 		shown = g.playing
 	}
@@ -356,7 +375,7 @@ func (g *Game) JoinAs(id, name, color, form, key string, n int) error {
 	} else {
 		slot := -1
 		for i, pl := range target.players {
-			if g.conns[pl.ID] == 0 {
+			if g.conns[pl.ID] == 0 { // also a bot: a real partner simply takes its place
 				slot = i // a phone that went away frees its seat when the couple is complete
 				break
 			}

@@ -90,9 +90,9 @@ func byKind(pool []question, kind string) []question {
 }
 
 func (g *Game) start() error {
-	// Every complete couple plays; a half-seated one would be left out, so it blocks the start instead.
+	// Every complete couple that is here plays; a half-seated one would be left out, so it blocks the start instead.
 	var playing []*pair
-	for _, p := range g.seated() {
+	for _, p := range g.live() {
 		if len(p.players) < 2 {
 			return errAlone
 		}

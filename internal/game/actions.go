@@ -12,6 +12,19 @@ import (
 func (g *Game) Act(id, act, key, value string) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	if err := g.do(id, act, key, value); err != nil {
+		return err
+	}
+	g.botsThink()
+	if act != "draw" && act != "clear" && act != "undo" { // strokes are not saved, and there are many of them
+		g.save()
+	}
+	g.broadcast()
+	return nil
+}
+
+// do applies one action; people and bots go through the same rules. Caller holds mu.
+func (g *Game) do(id, act, key, value string) error {
 	p, me := g.find(id)
 	if p == nil || g.phase != "lobby" && !slices.Contains(g.playing, p) { // seated, and not just watching a game in progress
 		return ErrBad
@@ -36,6 +49,15 @@ func (g *Game) Act(id, act, key, value string) error {
 			return ErrBad
 		}
 		p.stakes[me] = value
+	case act == "bot" && g.phase == "lobby":
+		if err := g.toggleBot(p); err != nil {
+			return err
+		}
+		g.lead()
+	case act == "botpair" && g.phase == "lobby":
+		if err := g.toggleBotPair(); err != nil {
+			return err
+		}
 	case act == "list" && g.phase == "lobby":
 		g.showList, g.showStats = !g.showList, false
 	case act == "stats" && g.phase == "lobby":
@@ -155,10 +177,6 @@ func (g *Game) Act(id, act, key, value string) error {
 	default:
 		return ErrBad
 	}
-	if act != "draw" && act != "clear" && act != "undo" { // strokes are not saved, and there are many of them
-		g.save()
-	}
-	g.broadcast()
 	return nil
 }
 
