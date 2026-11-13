@@ -3,7 +3,6 @@ package game
 import (
 	"encoding/json"
 	"errors"
-	"slices"
 )
 
 // backup is everything Duet remembers between evenings, as one file to keep somewhere safe.
@@ -11,6 +10,7 @@ type backup struct {
 	Asked   []string  `json:"asked"`   // questions already asked
 	Yes     []yesItem `json:"yes"`     // the saved list of mutual yeses
 	History []record  `json:"history"` // finished games
+	Banned  []string  `json:"banned"`  // questions never to show again; missing in older backups
 }
 
 var errNotBackup = errors.New("to nie jest plik kopii zapasowej Duet")
@@ -22,11 +22,7 @@ func (g *Game) Backup(id string) ([]byte, error) {
 	if p, _ := g.find(id); p != g.pairs[0] || !g.home() { // household data, not for guests
 		return nil, ErrBad
 	}
-	b := backup{Asked: []string{}, Yes: g.store.yes, History: g.store.history}
-	for q := range g.store.asked {
-		b.Asked = append(b.Asked, q)
-	}
-	slices.Sort(b.Asked)
+	b := backup{Asked: sorted(g.store.asked), Yes: g.store.yes, History: g.store.history, Banned: sorted(g.store.banned)}
 	return json.MarshalIndent(b, "", "  ")
 }
 
@@ -49,6 +45,13 @@ func (g *Game) Restore(id string, data []byte) error {
 		s.asked[q] = true
 	}
 	s.yes, s.history = b.Yes, b.History
+	if raw["banned"] != nil { // an older backup keeps today's bans
+		s.banned = map[string]bool{}
+		for _, q := range b.Banned {
+			s.banned[q] = true
+		}
+		s.write("banned.json", sorted(s.banned))
+	}
 	s.saveAsked()
 	s.write("yes.json", s.yes)
 	s.write("history.json", s.history)

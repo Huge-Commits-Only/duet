@@ -100,14 +100,20 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .ranking td:first-child { border-radius: calc(var(--u) * 2) 0 0 calc(var(--u) * 2); color: var(--dim); }
 .ranking td:last-child { border-radius: 0 calc(var(--u) * 2) calc(var(--u) * 2) 0; font-weight: 700; text-align: right; white-space: nowrap; }
 .ranking small { display: block; font-size: calc(var(--u) * 2.4); color: var(--dim); }
-.ranking .hit td { box-shadow: inset 0 calc(var(--u) * 0.4) var(--green), inset 0 calc(var(--u) * -0.4) var(--green); }
+.ranking .hit td { --b: calc(var(--u) * 0.4); box-shadow: inset 0 var(--b) var(--green), inset 0 calc(-1 * var(--b)) var(--green); }
+/* the outline closes at both ends of the row, round corners included */
+.ranking .hit td:first-child { box-shadow: inset 0 var(--b) var(--green), inset 0 calc(-1 * var(--b)) var(--green), inset var(--b) 0 var(--green); }
+.ranking .hit td:last-child { box-shadow: inset 0 var(--b) var(--green), inset 0 calc(-1 * var(--b)) var(--green), inset calc(-1 * var(--b)) 0 var(--green); }
+.phone .ranking .hit td { --b: 2px; }
 .tiles { display: flex; gap: calc(var(--u) * 3.56); }
 .tile { min-width: calc(var(--u) * 32.04); padding: calc(var(--u) * 1.5) calc(var(--u) * 3.56); border-radius: calc(var(--u) * 2); background: var(--panel); }
 .tile b { display: block; font-size: calc(var(--u) * 7); line-height: 1.1; color: var(--pink); }
 .tile small, .statlist small { font-size: calc(var(--u) * 2.4); color: var(--dim); }
-.chart { width: calc(var(--u) * 124.6); height: calc(var(--u) * 11); }
+.chart { width: calc(var(--u) * 124.6); height: calc(var(--u) * 20); }
 .chart svg { width: 100%; height: 100%; overflow: visible; }
-.chart polyline { fill: none; stroke: var(--green); stroke-width: 1.2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.chart polyline { fill: none; stroke: var(--green); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
+.chart circle { fill: var(--bg); stroke: var(--green); stroke-width: 4; }
+.chart text { fill: var(--green); font-size: 30px; font-weight: 700; }
 .statlists { display: flex; align-items: flex-start; justify-content: center; gap: calc(var(--u) * 5.34); width: 100%; }
 .statlist { flex: 1; max-width: calc(var(--u) * 53.4); text-align: left; }
 .statlist p { display: flex; justify-content: space-between; gap: calc(var(--u) * 1.78); padding: calc(var(--u) * 0.6) 0; border-bottom: calc(var(--u) * 0.2) solid var(--line); font-size: calc(var(--u) * 2.6) !important; }
@@ -153,16 +159,16 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .phone h1 { font-size: 2rem; }
 .phone.in h1 { display: none; } /* in the game the screen space goes to the game */
 .phone.in { justify-content: flex-start; gap: 1rem; }
+.vote { display: flex; flex-direction: column; gap: .6rem; width: 100%; padding: 1rem; border-radius: .8rem; background: var(--panel); box-shadow: 0 0 1.2rem -.3rem var(--pink); }
+.vote p { margin: 0; font-weight: 700; }
 .look { display: flex; flex-direction: column; align-items: center; gap: .4rem; padding: 2.5rem 0 1rem; }
 .look .eye { font-size: 4.5rem; line-height: 1; }
 .look b { font-size: 1.7rem; }
 .look p { margin: 0; }
 .rulebox { width: 100%; margin-top: -.5rem; text-align: left; font-size: .9rem; }
-/* Start stays in reach while the options scroll */
-.btn.start { position: sticky; bottom: max(.75rem, env(safe-area-inset-bottom)); z-index: 1; box-shadow: 0 -.5rem 1.5rem var(--bg), 0 .5rem 1.5rem rgba(0, 0, 0, .6); }
 /* what to do now: the one thing to read on the phone */
 .do { --c: var(--pink); width: 100%; padding: .8rem 1rem; border-radius: .8rem; background: linear-gradient(90deg, var(--c) 5px, var(--panel) 5px); box-shadow: 0 0 1.2rem -.3rem var(--c); /* a straight stripe; a border would bend with the corners */ font-size: 1.1rem; font-weight: 600; text-align: left; }
-.minor { display: flex; justify-content: center; gap: 1.5rem; width: 100%; margin-top: .5rem; }
+.minor { display: flex; flex-wrap: wrap; justify-content: center; gap: .2rem 1.2rem; width: 100%; margin-top: .5rem; }
 .minor button { padding: .6rem .4rem; border: 0; background: none; color: var(--dim); font-size: .95rem; text-decoration: underline; text-underline-offset: .2em; }
 .phone h2 { font-size: 1.75rem; }
 /* #app's children are laid out directly in .phone, so the static stake box can sit between them */
@@ -192,8 +198,8 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .phone .big { font-size: 6rem; font-weight: 800; color: var(--pink); text-shadow: 0 0 2rem var(--pink); }
 .phone .pad { width: 100%; max-width: min(100%, 55dvh); margin-inline: auto; border-radius: 1rem; } /* sideways it would be taller than the screen */
 .phone.drawing { justify-content: flex-start; gap: .75rem; }
-.swatches { display: flex; justify-content: center; gap: .6rem; }
-.swatches button { width: 2.75rem; height: 2.75rem; border-radius: 50%; border: 3px solid var(--panel); background: var(--c); }
+.swatches { display: flex; justify-content: center; gap: .4rem; }
+.swatches button { width: min(2.75rem, 12vw); height: min(2.75rem, 12vw); /* six fit on a 320 px screen */ border-radius: 50%; border: 3px solid var(--panel); background: var(--c); }
 .swatches button[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 .8rem var(--c); }
 @media (max-height: 500px) { /* a phone turned sideways: pad, colors and buttons on one screen */
   .phone.drawing { gap: .4rem; }

@@ -21,7 +21,15 @@ type player struct {
 	Color  string `json:"color"`
 	Form   string `json:"form"` // "m" or "f": how to address the player; "" = not chosen
 	Online bool   `json:"online"`
-	Bot    bool   `json:"bot,omitempty"` // a stand-in for trying the game out alone
+	Bot    bool   `json:"bot,omitempty"`   // a stand-in for trying the game out alone
+	Ready  bool   `json:"ready,omitempty"` // reveal: tapped "Dalej"
+}
+
+// vote is a proposal to skip the round or end the game; it goes through once everyone here agreed.
+type vote struct {
+	kind string          // "skip" or "quit"
+	by   string          // id of the player who proposed it
+	yes  map[string]bool // ids of those who agreed, the proposer included
 }
 
 // maxPairs is how many couples can sit at one projector.
@@ -77,12 +85,14 @@ type Game struct {
 	showList  bool              // lobby: the projector shows the saved list of mutual yeses
 	showStats bool              // lobby: the projector shows the statistics
 	botStage  map[string]string // per bot: the situation its pending move was scheduled for
+	ready     map[string]bool   // reveal: ids of the players who tapped "Dalej"
+	vote      *vote
 }
 
 func New(dataDir string) *Game {
 	g := &Game{
 		conns: map[string]int{}, subs: map[chan []byte]string{}, store: openStore(dataDir), botStage: map[string]string{},
-		phase: "lobby", cfg: map[string]string{"mode": "wolisz", "tone": "lekko", "length": "krotka"},
+		phase: "lobby", cfg: map[string]string{"mode": "mix", "tone": "lekko", "length": "krotka"},
 	}
 	for i := range g.pairs {
 		g.pairs[i] = &pair{}
@@ -191,14 +201,69 @@ type viewPair struct {
 	Detail  string   `json:"detail,omitempty"` // reveal: what they answered
 }
 
+// viewVote is a vote as the pages show it.
+type viewVote struct {
+	Kind    string   `json:"kind"`    // "skip" or "quit"
+	By      string   `json:"by"`      // who proposed it
+	Agreed  bool     `json:"agreed"`  // the viewer already said yes
+	Waiting []string `json:"waiting"` // who still has to agree
+}
+
 func (g *Game) viewPlayers(p *pair) []player {
 	out := []player{}
 	for _, pl := range p.players {
 		c := *pl
-		c.Online = g.here(pl)
+		c.Online, c.Ready = g.here(pl), g.ready[pl.ID]
 		out = append(out, c)
 	}
 	return out
+}
+
+// snapshot is everything one viewer gets in each update.
+type snapshot struct {
+	Phase    string            `json:"phase"`
+	Players  []player          `json:"players"`
+	Me       int               `json:"me"`
+	Pair     int               `json:"pair"`             // number of the viewer's couple, 1-based
+	Pairs    []viewPair        `json:"pairs"`            // every couple seated (lobby) or playing
+	Multi    bool              `json:"multi"`            // several couples
+	Active   int               `json:"active,omitempty"` // several couples taking turns: the number of the one playing now
+	Solo     []string          `json:"solo,omitempty"`
+	Cfg      map[string]string `json:"cfg"`
+	Menu     map[string][]opt  `json:"menu"`
+	Round    int               `json:"round"`
+	Step     string            `json:"step"` // echoed back with every action, so a late tap cannot land on the next screen
+	Rounds   int               `json:"rounds"`
+	Matches  int               `json:"matches"`
+	Mode     string            `json:"mode"` // mode of the current round
+	Rule     string            `json:"rule,omitempty"`
+	Key      string            `json:"key,omitempty"` // join code, only for the projector
+	Scored   bool              `json:"scored"`        // this game gives individual points and rewards
+	Subject  int               `json:"subject"`       // seat the question is about, -1 = both
+	Points   [2]int            `json:"points"`
+	Gain     int               `json:"gain"`
+	Hit      bool              `json:"hit"`
+	ListLen  int               `json:"listLen"`           // saved mutual yeses
+	List     []yesItem         `json:"list,omitempty"`    // only while shown on the projector
+	HasStats bool              `json:"hasStats"`          // at least one game was recorded
+	Stats    *stats            `json:"stats,omitempty"`   // only while shown on the projector
+	MyText   string            `json:"myText,omitempty"`  // own word in "telepatia"
+	Texts    *[2]string        `json:"texts,omitempty"`   // both words, in the reveal
+	Strokes  [][]int           `json:"strokes,omitempty"` // "rysowanie": only sent to the projector
+	Colors   []int             `json:"colors,omitempty"`
+	Guesses  []string          `json:"guesses,omitempty"`
+	Left     int64             `json:"left,omitempty"`  // ms until the round times out
+	Found    []string          `json:"found,omitempty"` // "tak": mutual yeses of this game (never the non-matches)
+	StakeSet [2]bool           `json:"stakeSet"`
+	MyStake  string            `json:"myStake"`
+	Vote     *viewVote         `json:"vote,omitempty"`   // a proposal to skip the round or end the game
+	Banned   bool              `json:"banned,omitempty"` // the current question will not come back
+	Q        *viewQ            `json:"q,omitempty"`
+	Answered *[2]bool          `json:"answered,omitempty"`
+	MyAnswer *int              `json:"myAnswer,omitempty"`
+	Answers  *[2]int           `json:"answers,omitempty"`
+	Winner   *int              `json:"winner,omitempty"` // at the end; -1 = draw
+	Stakes   *[2]string        `json:"stakes,omitempty"` // at the end; only the revealed ones
 }
 
 // view renders the state as seen by one viewer, so secrets (a partner's answer
@@ -212,80 +277,17 @@ func (g *Game) view(id string) []byte {
 		p = g.pair
 	}
 	multi := g.multi()
-	v := struct {
-		Phase    string            `json:"phase"`
-		Players  []player          `json:"players"`
-		Me       int               `json:"me"`
-		Pair     int               `json:"pair"`             // number of the viewer's couple, 1-based
-		Pairs    []viewPair        `json:"pairs"`            // every couple seated (lobby) or playing
-		Multi    bool              `json:"multi"`            // several couples
-		Active   int               `json:"active,omitempty"` // several couples taking turns: the number of the one playing now
-		Solo     []string          `json:"solo,omitempty"`
-		Cfg      map[string]string `json:"cfg"`
-		Menu     map[string][]opt  `json:"menu"`
-		Round    int               `json:"round"`
-		Step     string            `json:"step"` // echoed back with every action, so a late tap cannot land on the next screen
-		Rounds   int               `json:"rounds"`
-		Matches  int               `json:"matches"`
-		Mode     string            `json:"mode"` // mode of the current round
-		Rule     string            `json:"rule,omitempty"`
-		Key      string            `json:"key,omitempty"` // join code, only for the projector
-		Scored   bool              `json:"scored"`        // this game gives individual points and rewards
-		Subject  int               `json:"subject"`       // seat the question is about, -1 = both
-		Points   [2]int            `json:"points"`
-		Gain     int               `json:"gain"`
-		Hit      bool              `json:"hit"`
-		ListLen  int               `json:"listLen"`           // saved mutual yeses
-		List     []yesItem         `json:"list,omitempty"`    // only while shown on the projector
-		HasStats bool              `json:"hasStats"`          // at least one game was recorded
-		Stats    *stats            `json:"stats,omitempty"`   // only while shown on the projector
-		MyText   string            `json:"myText,omitempty"`  // own word in "telepatia"
-		Texts    *[2]string        `json:"texts,omitempty"`   // both words, in the reveal
-		Strokes  [][]int           `json:"strokes,omitempty"` // "rysowanie": only sent to the projector
-		Colors   []int             `json:"colors,omitempty"`
-		Guesses  []string          `json:"guesses,omitempty"`
-		Left     int64             `json:"left,omitempty"`  // ms until the round times out
-		Found    []string          `json:"found,omitempty"` // "tak": mutual yeses of this game (never the non-matches)
-		StakeSet [2]bool           `json:"stakeSet"`
-		MyStake  string            `json:"myStake"`
-		Q        *viewQ            `json:"q,omitempty"`
-		Answered *[2]bool          `json:"answered,omitempty"`
-		MyAnswer *int              `json:"myAnswer,omitempty"`
-		Answers  *[2]int           `json:"answers,omitempty"`
-		Winner   *int              `json:"winner,omitempty"` // at the end; -1 = draw
-		Stakes   *[2]string        `json:"stakes,omitempty"` // at the end; only the revealed ones
-	}{Phase: g.phase, Players: g.viewPlayers(p), Me: me, Multi: multi, Pairs: []viewPair{}, Cfg: g.cfg, Menu: menu, Round: g.round, Step: g.step(), Rounds: g.rounds, Matches: p.matches,
+	v := snapshot{Phase: g.phase, Players: g.viewPlayers(p), Me: me, Multi: multi, Pairs: []viewPair{}, Cfg: g.cfg, Menu: menu, Round: g.round, Step: g.step(), Rounds: g.rounds, Matches: p.matches,
 		// rewards are between the two of a couple, so only when one couple plays
 		Scored:  (subjectModes[g.cfg["mode"]] || g.cfg["mode"] == "mix") && !multi,
 		Subject: -1, Mode: g.cfg["mode"], Points: p.points, StakeSet: [2]bool{p.stakes[0] != "", p.stakes[1] != ""},
 		ListLen: len(g.store.yes), HasStats: len(g.store.history) > 0}
-	shown := g.live() // couples whose phones are all gone are not listed
-	if g.phase != "lobby" {
-		shown = g.playing
-	}
-	for _, sp := range shown {
-		vp := viewPair{N: slices.Index(g.pairs[:], sp) + 1, Players: g.viewPlayers(sp), Score: sp.score}
-		switch g.phase {
-		case "question":
-			vp.Done = sp.answers[0] >= 0 && sp.answers[1] >= 0
-		case "reveal":
-			vp.Hit, vp.Gain, vp.Detail = sp.hit, sp.gain, g.detail(sp)
-		}
-		v.Pairs = append(v.Pairs, vp)
-	}
-	v.Pair = slices.Index(g.pairs[:], p) + 1
-	if multi {
-		for _, o := range menu["mode"] {
-			if !multiModes[o.ID] {
-				v.Solo = append(v.Solo, o.ID)
-			}
-		}
-	}
+	v.Pairs, v.Pair, v.Solo, v.Vote = g.pairsView(), slices.Index(g.pairs[:], p)+1, g.soloModes(multi), g.voteView(id)
 	if me >= 0 {
 		v.MyStake = p.stakes[me]
 	}
 	if g.phase == "question" || g.phase == "reveal" {
-		v.Mode = g.mode
+		v.Mode, v.Banned = g.mode, g.store.banned[g.cur.id(g.mode)]
 	}
 	if id == "" {
 		v.Key = g.key
@@ -303,6 +305,60 @@ func (g *Game) view(id string) []byte {
 	if g.phase != "lobby" && own {
 		v.Found = p.found // in the lobby the saved list is shown only on request
 	}
+	g.phaseView(&v, p, me, own)
+	b, _ := json.Marshal(v)
+	return b
+}
+
+// pairsView lists the couples: seated ones in the lobby (not those whose phones are all gone), the playing ones in a game.
+func (g *Game) pairsView() []viewPair {
+	out, shown := []viewPair{}, g.live()
+	if g.phase != "lobby" {
+		shown = g.playing
+	}
+	for _, sp := range shown {
+		vp := viewPair{N: slices.Index(g.pairs[:], sp) + 1, Players: g.viewPlayers(sp), Score: sp.score}
+		switch g.phase {
+		case "question":
+			vp.Done = sp.answers[0] >= 0 && sp.answers[1] >= 0
+		case "reveal":
+			vp.Hit, vp.Gain, vp.Detail = sp.hit, sp.gain, g.detail(sp)
+		}
+		out = append(out, vp)
+	}
+	return out
+}
+
+// soloModes are the games the menu greys out while several couples sit at the table.
+func (g *Game) soloModes(multi bool) []string {
+	var out []string
+	for _, o := range menu["mode"] {
+		if multi && !multiModes[o.ID] {
+			out = append(out, o.ID)
+		}
+	}
+	return out
+}
+
+// voteView is a running vote as viewer id sees it: who proposed it, who is still missing, and whether they agreed.
+func (g *Game) voteView(id string) *viewVote {
+	if g.vote == nil {
+		return nil
+	}
+	vv := &viewVote{Kind: g.vote.kind, Agreed: g.vote.yes[id]}
+	if bp, seat := g.find(g.vote.by); bp != nil {
+		vv.By = bp.players[seat].Name
+	}
+	for _, pid := range g.present() {
+		if wp, seat := g.find(pid); !g.vote.yes[pid] {
+			vv.Waiting = append(vv.Waiting, wp.players[seat].Name)
+		}
+	}
+	return vv
+}
+
+// phaseView adds what only one phase shows. own: the viewer may see this couple's answers.
+func (g *Game) phaseView(v *snapshot, p *pair, me int, own bool) {
 	switch g.phase {
 	case "lobby":
 		v.Rule = rules[g.cfg["mode"]]
@@ -333,22 +389,23 @@ func (g *Game) view(id string) []byte {
 			}
 		}
 	case "end":
-		if !v.Scored {
-			break // nobody wins a game without points, so there is nothing to reward
+		if v.Scored { // nobody wins a game without points, so there is nothing to reward
+			v.Winner, v.Stakes = rewards(p)
 		}
-		// A draw reveals both rewards; otherwise only the winner's.
-		w, st := -1, p.stakes
-		if p.points[0] != p.points[1] {
-			w = 0
-			if p.points[1] > p.points[0] {
-				w = 1
-			}
-			st[1-w] = ""
-		}
-		v.Winner, v.Stakes = &w, &st
 	}
-	b, _ := json.Marshal(v)
-	return b
+}
+
+// rewards is the winner (-1 = draw) and the stakes revealed: a draw reveals both, otherwise only the winner's.
+func rewards(p *pair) (*int, *[2]string) {
+	w, st := -1, p.stakes
+	if p.points[0] != p.points[1] {
+		w = 0
+		if p.points[1] > p.points[0] {
+			w = 1
+		}
+		st[1-w] = ""
+	}
+	return &w, &st
 }
 
 // broadcast sends everyone a fresh snapshot. Caller holds mu.
@@ -439,5 +496,10 @@ func (g *Game) Unsubscribe(ch chan []byte) {
 		}
 	}
 	delete(g.subs, ch)
+	if g.phase == "reveal" || g.vote != nil { // the one everybody waited for may be the one who left
+		g.carryOut()
+		g.botsThink()
+		g.save()
+	}
 	g.broadcast()
 }

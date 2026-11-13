@@ -204,22 +204,70 @@ func (g *Game) do(id, act, key, value string) error {
 		}
 		p.answers[me] = n
 		g.settle()
-	case act == "next" && (g.phase == "reveal" || g.phase == "question" && g.mode == "rozmowy"):
+	case act == "next" && g.phase == "reveal":
+		g.ready[id] = true // everyone here moves on together, once they all saw the result
+		g.carryOut()
+	case act == "next" && g.phase == "question" && g.mode == "rozmowy":
 		g.store.mark(g.cur.id(g.mode)) // talk cards have no answers; they count as asked once passed
 		g.next()
-	case act == "skip" && g.phase == "question":
-		// a way out when a phone died or someone would rather not answer: no points, on to the next round
-		if g.pending == nil { // nothing was shown yet while truth or dare is being picked
-			g.store.mark(g.cur.id(g.mode))
+	case (act == "skip" && g.phase == "question" || act == "quit" && g.phase != "lobby" && g.phase != "end"):
+		// skipping a round or ending the game is proposed by one and goes through when everyone here agrees
+		if g.vote == nil || g.vote.kind != act {
+			g.vote = &vote{act, id, map[string]bool{}}
 		}
-		g.next()
-	case act == "quit" && g.phase != "lobby":
+		g.vote.yes[id] = true
+		g.carryOut()
+	case act == "ban" && (g.phase == "question" || g.phase == "reveal") && p == g.pairs[0]:
+		g.store.ban(g.cur.id(g.mode)) // "nie pokazuj więcej": the household's choice, not the guests'
+	case act == "no" && g.vote != nil:
+		g.vote = nil
+	case act == "again" && g.phase == "end": // the same game once more, with a fresh deck
+		if err := g.start(); err != nil {
+			return err
+		}
+	case act == "quit" && g.phase == "end":
 		g.phase = "lobby"
 		g.lead()
 	default:
 		return ErrBad
 	}
 	return nil
+}
+
+// present lists the ids of the people taking part right now: bots and dropped phones never hold anyone up.
+func (g *Game) present() []string {
+	var ids []string
+	for _, p := range g.playing {
+		for _, pl := range p.players {
+			if !pl.Bot && g.conns[pl.ID] > 0 {
+				ids = append(ids, pl.ID)
+			}
+		}
+	}
+	return ids
+}
+
+// agreed reports whether someone said yes and nobody present is still missing.
+func (g *Game) agreed(set map[string]bool) bool {
+	return len(set) > 0 && !slices.ContainsFunc(g.present(), func(id string) bool { return !set[id] })
+}
+
+// carryOut does what everyone agreed on: the next round after a reveal, or a vote.
+// Also called when a phone drops out, as the one still missing may be the one who left.
+func (g *Game) carryOut() {
+	switch {
+	case g.vote != nil && g.agreed(g.vote.yes) && g.vote.kind == "skip":
+		if g.pending == nil { // nothing was shown yet while truth or dare is being picked
+			g.store.mark(g.cur.id(g.mode))
+		}
+		g.next()
+	case g.vote != nil && g.agreed(g.vote.yes): // "quit"
+		g.vote, g.phase = nil, "lobby"
+		g.lead()
+	case g.phase == "reveal" && g.agreed(g.ready):
+		g.store.mark(g.cur.id(g.mode))
+		g.next()
+	}
 }
 
 // endDrawing closes a "rysowanie" round: guessed in time, or the clock ran out.
