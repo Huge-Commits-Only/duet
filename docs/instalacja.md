@@ -1,4 +1,4 @@
-# Instalacja i utrzymanie
+# 🚀 Instalacja i utrzymanie
 
 [← README](../.github/README.md)
 

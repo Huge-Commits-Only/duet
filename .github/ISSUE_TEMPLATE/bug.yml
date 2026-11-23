@@ -1,4 +1,4 @@
-name: Błąd
+name: 🐛 Błąd
 description: Coś nie działa tak, jak powinno
 labels: ["bug"]
 body:

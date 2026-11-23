@@ -1,4 +1,4 @@
-# Własne pytania
+# ✏️ Własne pytania
 
 [← README](../.github/README.md)
 

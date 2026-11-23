@@ -16,7 +16,7 @@
 
 Projektor albo telewizor pokazuje grę, a telefony są pilotami: dołączacie, skanując kod QR. Gracie we dwoje albo z gośćmi, do czterech par przy jednym ekranie. Całość działa lokalnie w homelabie, bez kont i bez chmury.
 
-## Funkcje
+## ✨ Funkcje
 - Telefon jest pilotem. Skanujesz kod QR i grasz, bez aplikacji, kont i logowania.
 - 13 trybów w trzech tonach, od „Co wolisz” przez Blef po rysowanie palcem: lekko, romantycznie albo pikantnie (18+).
 - Do czterech par przy jednym ekranie, z rankingiem najbardziej zgranej pary i botami do testów w pojedynkę.
@@ -24,7 +24,7 @@ Projektor albo telewizor pokazuje grę, a telefony są pilotami: dołączacie, s
 - Jeden plik binarny w Go, obraz `scratch`, około 25 MB RAM na Raspberry Pi.
 - Testy w prawdziwej przeglądarce, fuzzing, CodeQL oraz podpisane obrazy i binarki.
 
-## Szybki start
+## 🚀 Szybki start
 ```bash
 docker compose pull && docker compose up -d
 ```
@@ -33,26 +33,26 @@ Otwórz `http://<adres-pi>:8080/screen` na projektorze i zeskanujcie kod QR tele
 > [!WARNING]
 > Gra nie ma logowania, więc trzymaj ją wyłącznie w sieci domowej. Kod w adresie z QR nie jest hasłem.
 
-## Tryby
+## 🎮 Tryby
 | Tryb | O co chodzi |
 |---|---|
-| Co wolisz | Oboje wybieracie jedną z dwóch opcji; liczy się zgodność |
-| Kto prędzej… | Oboje wskazujecie, kogo z Was dotyczy pytanie |
-| Nigdy przenigdy | Oboje w tajemnicy: zdarzyło mi się albo nigdy. Ekran odsłania obie odpowiedzi |
-| Jak dobrze mnie znasz | Jedno odpowiada o sobie, drugie zgaduje |
-| Skala | Jedno ustawia suwak 0–100, drugie zgaduje jak najbliżej |
-| Szacowanie | Jedno podaje liczbę o sobie (np. ile razy w tygodniu…), drugie zgaduje jak najbliżej |
-| Telepatia | Oboje wpisujecie skojarzenie, punkt za to samo słowo |
-| Wspólne TAK | Tak albo nie dla pomysłów; ekran pokazuje tylko to, na co oboje się zgodziliście, i zapisuje listę |
-| Głębokie rozmowy | Karty do rozmowy na trzech poziomach głębi, bez punktów |
-| Wyzwania | Prawda albo zadanie dla jednej osoby, druga ocenia wykonanie |
-| Blef | Dwie prawdy i jedno kłamstwo; druga osoba szuka kłamstwa |
-| Rysowanie | Jedno rysuje palcem na telefonie, drugie zgaduje hasło w 60 sekund |
-| Wieczór mix | Gra sama przeplata tryby i liczy wspólny wynik |
+| 🤔 Co wolisz | Oboje wybieracie jedną z dwóch opcji; liczy się zgodność |
+| 👉 Kto prędzej… | Oboje wskazujecie, kogo z Was dotyczy pytanie |
+| 🙊 Nigdy przenigdy | Oboje w tajemnicy: zdarzyło mi się albo nigdy. Ekran odsłania obie odpowiedzi |
+| 💭 Jak dobrze mnie znasz | Jedno odpowiada o sobie, drugie zgaduje |
+| 🎚️ Skala | Jedno ustawia suwak 0–100, drugie zgaduje jak najbliżej |
+| 🔢 Szacowanie | Jedno podaje liczbę o sobie (np. ile razy w tygodniu…), drugie zgaduje jak najbliżej |
+| 🔮 Telepatia | Oboje wpisujecie skojarzenie, punkt za to samo słowo |
+| ✅ Wspólne TAK | Tak albo nie dla pomysłów; ekran pokazuje tylko to, na co oboje się zgodziliście, i zapisuje listę |
+| 🕯️ Głębokie rozmowy | Karty do rozmowy na trzech poziomach głębi, bez punktów |
+| 🎯 Wyzwania | Prawda albo zadanie dla jednej osoby, druga ocenia wykonanie |
+| 🃏 Blef | Dwie prawdy i jedno kłamstwo; druga osoba szuka kłamstwa |
+| 🎨 Rysowanie | Jedno rysuje palcem na telefonie, drugie zgaduje hasło w 60 sekund |
+| 🎲 Wieczór mix | Gra sama przeplata tryby i liczy wspólny wynik |
 
 Masz pomysł na pytanie? [Zaproponuj je przez formularz](https://github.com/Huge-Commits-Only/duet/issues/new?template=pytanie.yml).
 
-## Dokumentacja
+## 📚 Dokumentacja
 | | |
 |---|---|
 | [Gra](../docs/gra.md) | Zrzuty, kilka par, boty, statystyki, stawka, wyłączanie pytań |
