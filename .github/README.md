@@ -1,17 +1,19 @@
 <div align="center">
 
-# 💞 `duet`
+<img src="assets/banner.png" alt="Duet — gry i quizy dla par" width="100%">
 
-**Gry i quizy dla par: projektor pokazuje grę, telefony są pilotami.**
+<br>
 
 [![License](https://img.shields.io/github/license/Huge-Commits-Only/duet?style=flat-square&color=A3BE8C)](../LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.27-00ADD8?style=flat-square&logo=go&logoColor=white)](../go.mod)
 [![Docker](https://img.shields.io/badge/Docker-scratch-2496ED?style=flat-square&logo=docker&logoColor=white)](../Dockerfile)
 [![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi-c51a4a?style=flat-square&logo=raspberrypi&logoColor=white)](https://www.raspberrypi.com/)
-
+<br>
 [![Go Verification](https://img.shields.io/github/actions/workflow/status/Huge-Commits-Only/duet/go-test.yml?branch=main&style=flat-square&label=Go%20Verification)](https://github.com/Huge-Commits-Only/duet/actions/workflows/go-test.yml)
 [![Security Verification](https://img.shields.io/github/actions/workflow/status/Huge-Commits-Only/duet/security-test.yml?branch=main&style=flat-square&label=Security%20Verification)](https://github.com/Huge-Commits-Only/duet/actions/workflows/security-test.yml)
 [![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/Huge-Commits-Only/duet?style=flat-square&label=OpenSSF%20Scorecard)](https://scorecard.dev/viewer/?uri=github.com/Huge-Commits-Only/duet)
+
+**[Jak to działa](#-jak-to-działa)** · **[Tryby](#-tryby)** · **[Uruchomienie](#-uruchomienie-w-homelabie)** · **[Własne pytania](#️-własne-pytania)** · **[CI/CD](#-cicd)** · **[Praca lokalna](#️-praca-lokalna)**
 
 </div>
 
@@ -19,15 +21,64 @@
 
 Gry i quizy dla par. Projektor (albo telewizor) pokazuje grę, a telefony służą za piloty — dołączacie, skanując kod QR. Gracie we dwoje albo z gośćmi: do czterech par przy jednym ekranie. Całość działa lokalnie w homelabie, bez kont i bez chmury.
 
+<p align="center"><img src="assets/hero.png" alt="Projektor pokazuje wynik rundy „Co wolisz”, telefon wybór odpowiedzi" width="100%"></p>
+
+<table>
+<tr>
+<td width="33%" valign="top"><h3>📱 Telefon to pilot</h3>Skanujecie kod QR i gracie. Bez aplikacji, kont i logowania.</td>
+<td width="33%" valign="top"><h3>🎮 13 trybów</h3>Od „Co wolisz” przez Blef po Rysowanie palcem — w trzech tonach, aż po pikantny 18+.</td>
+<td width="33%" valign="top"><h3>👥 Do 4 par</h3>Ranking najbardziej zgranej pary, boty do testów w pojedynkę.</td>
+</tr>
+<tr>
+<td valign="top"><h3>🏠 Bez chmury</h3>Wszystko zostaje w Waszej sieci, na Raspberry Pi. Zero zasobów z internetu.</td>
+<td valign="top"><h3>⚡ Lekki</h3>Jeden plik binarny w Go, obraz <code>scratch</code>, ok. 25 MB RAM.</td>
+<td valign="top"><h3>🔒 Zweryfikowany</h3>Testy w prawdziwej przeglądarce, fuzzing, CodeQL i podpisane obrazy.</td>
+</tr>
+</table>
 
 <br>
 
-
 ## 🌟 Jak to działa
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant P as 📽️ Projektor
+    participant S as 🖥️ Duet na Pi
+    actor A as 📱 Natalia
+    actor B as 📱 Kuba
+    P->>S: otwiera /screen
+    S-->>P: kod QR z adresem gry
+    A->>S: skanuje QR, wpisuje imię
+    B->>S: skanuje QR, wpisuje imię
+    A->>S: tryb, ton, długość → Start
+    S-->>P: pytanie
+    A->>S: odpowiedź w tajemnicy
+    B->>S: odpowiedź w tajemnicy
+    S-->>P: odsłonięcie odpowiedzi i zgodność
+```
+
 1. Na projektorze otwierasz `https://twoja-domena/screen` — pojawia się kod QR.
 2. Oboje skanujecie kod telefonami, wpisujecie imię i wybieracie, jak się do Was zwracać („byłeś" czy „byłaś") — telefon to zapamięta. Dołączyć może tylko ktoś, kto ma adres z kodu QR.
 3. Na telefonie wybieracie grę, ton (lekko / romantycznie / pikantnie 18+) i długość, a potem **Start**.
 4. Odpowiadacie w tajemnicy na telefonach; projektor odsłania odpowiedzi i liczy zgodność.
+
+<table>
+<tr>
+<td width="62%"><img src="assets/screen-lobby.png" alt="Projektor przed grą: kod QR i gracze"></td>
+<td width="19%"><img src="assets/phone-menu.png" alt="Telefon: wybór gry, tonu i długości"></td>
+<td width="19%"><img src="assets/phone-reveal.png" alt="Telefon po odpowiedzi: patrz na projektor"></td>
+</tr>
+<tr>
+<td align="center"><sub>Projektor czeka na graczy</sub></td>
+<td align="center"><sub>Menu na telefonie</sub></td>
+<td align="center"><sub>Wynik jest na projektorze</sub></td>
+</tr>
+</table>
+
+<details>
+<summary><b>Menu, projektor, dźwięk i przeglądarki</b></summary>
+<br>
 
 Menu na telefonie ma na wierzchu tylko wybór gry, tonu i długości oraz przycisk Start; lista wspólnych TAK, statystyki, boty, zmiana imienia, gracze i kopia zapasowa są pod „Więcej". Ekran projektora dopasowuje się do każdej rozdzielczości i proporcji (16:9, 16:10, 4:3) — gdy treść się nie mieści, sam ją pomniejsza.
 
@@ -37,24 +88,33 @@ Dźwięk gra z urządzenia podłączonego do projektora. Dźwięk jest zawsze w�
 
 Projektor: Chrome, Edge albo Safari (Firefox od wersji 126 — starszy nie pomniejsza widoku, gdy się nie mieści). Jeśli komputer przy projektorze ma Linuksa, doinstaluj czcionkę emoji (`sudo apt install fonts-noto-color-emoji`) — inaczej 🔇, 📱 i 👀 wyjdą jako puste prostokąty. Telefon: iOS 15 lub nowszy, Android z aktualnym Chrome.
 
-### Tryby
+Na iPhonie stronę pilota warto dodać do ekranu głównego (Udostępnij → Do ekranu początkowego): ma własną ikonę, otwiera się bez paska przeglądarki, a przy rysowaniu przeciągnięcie palcem od krawędzi nie cofa strony (w zwykłym Safari cofa i nie da się tego wyłączyć).
+
+</details>
+
+<br>
+
+## 🎮 Tryby
 | Tryb | O co chodzi |
 |---|---|
-| Co wolisz | Oboje wybieracie jedną z dwóch opcji — liczy się zgodność |
-| Kto prędzej… | Oboje wskazujecie, kogo z Was dotyczy pytanie |
-| Nigdy przenigdy | Oboje w tajemnicy: zdarzyło mi się czy nigdy — ekran odsłania obie odpowiedzi |
-| Jak dobrze mnie znasz | Jedno odpowiada o sobie, drugie zgaduje |
-| Skala | Jedno ustawia suwak 0–100, drugie zgaduje jak najbliżej |
-| Szacowanie | Jedno podaje liczbę o sobie (np. ile razy w tygodniu…), drugie zgaduje jak najbliżej |
-| Telepatia | Oboje wpisujecie skojarzenie — punkt za to samo słowo |
-| Wspólne TAK | Tak/nie na pomysły; ekran pokazuje tylko to, na co oboje się zgodziliście, i zapisuje listę |
-| Głębokie rozmowy | Karty do rozmowy na trzech poziomach głębi, bez punktów |
-| Wyzwania | Prawda albo zadanie dla jednej osoby, druga ocenia wykonanie |
-| Blef | Dwie prawdy i jedno kłamstwo — druga osoba szuka kłamstwa |
-| Rysowanie | Jedno rysuje palcem na telefonie, drugie zgaduje hasło w 60 sekund |
-| Wieczór mix | Gra sama przeplata tryby i liczy wspólny wynik |
+| 🤔 Co wolisz | Oboje wybieracie jedną z dwóch opcji — liczy się zgodność |
+| 👉 Kto prędzej… | Oboje wskazujecie, kogo z Was dotyczy pytanie |
+| 🙊 Nigdy przenigdy | Oboje w tajemnicy: zdarzyło mi się czy nigdy — ekran odsłania obie odpowiedzi |
+| 💭 Jak dobrze mnie znasz | Jedno odpowiada o sobie, drugie zgaduje |
+| 🎚️ Skala | Jedno ustawia suwak 0–100, drugie zgaduje jak najbliżej |
+| 🔢 Szacowanie | Jedno podaje liczbę o sobie (np. ile razy w tygodniu…), drugie zgaduje jak najbliżej |
+| 🔮 Telepatia | Oboje wpisujecie skojarzenie — punkt za to samo słowo |
+| ✅ Wspólne TAK | Tak/nie na pomysły; ekran pokazuje tylko to, na co oboje się zgodziliście, i zapisuje listę |
+| 🕯️ Głębokie rozmowy | Karty do rozmowy na trzech poziomach głębi, bez punktów |
+| 🎯 Wyzwania | Prawda albo zadanie dla jednej osoby, druga ocenia wykonanie |
+| 🃏 Blef | Dwie prawdy i jedno kłamstwo — druga osoba szuka kłamstwa |
+| 🎨 Rysowanie | Jedno rysuje palcem na telefonie, drugie zgaduje hasło w 60 sekund |
+| 🎲 Wieczór mix | Gra sama przeplata tryby i liczy wspólny wynik |
 
-### Kilka par
+<details>
+<summary><b>👥 Kilka par</b></summary>
+<br>
+
 Przy dołączaniu każdy wybiera numer pary (partnerzy ten sam). Gdy siedzą co najmniej dwie pary, ekran pokazuje ranking — wygrywa najbardziej zgrana para.
 
 - **Wszyscy naraz:** Co wolisz, Kto prędzej…, Nigdy przenigdy, Jak dobrze mnie znasz, Skala, Szacowanie, Telepatia, Wspólne TAK. Każda para odpowiada między sobą na to samo pytanie.
@@ -65,20 +125,38 @@ Pod przyciskiem „Więcej" na dole menu telefonu widać, kto siedzi w której p
 
 **Para 1 to domownicy.** Tylko ona widzi zapisaną listę wspólnych TAK, statystyki i kopię zapasową, i tylko wtedy, gdy nie siedzi nikt inny. Goście wybierają pary 2–4.
 
-### Test w pojedynkę
+</details>
+
+<details>
+<summary><b>🤖 Test w pojedynkę</b></summary>
+<br>
+
 Bez drugiej osoby też da się wszystko sprawdzić. Gdy siedzisz w parze sam, telefon pokazuje przycisk „Zagraj z botem" — bot zajmuje miejsce partnera i odpowiada losowo po krótkiej chwili. Z menu można jeszcze dosadzić parę botów, żeby zobaczyć ranking kilku par. Gry z botem nie liczą się do statystyk, a prawdziwy partner, który dołączy do Twojej pary, po prostu zastępuje bota.
 
-### Statystyki
-Każda dokończona gra trafia do historii. Przycisk „Pokaż statystyki na ekranie" w menu telefonu wyświetla na projektorze liczbę wieczorów i gier, średnią zgodność, wykres zgodności w ostatnich grach, zgodność w poszczególnych trybach, bilans zwycięstw i ostatnie wyniki.
+</details>
 
-### Stawka
-Gdy gra jedna para, w grach z punktami każde z Was może przed startem wpisać tajną stawkę — co przegrany robi dla wygranego. Ekran odsłania stawkę zwycięzcy na końcu (przy remisie obie).
+<details>
+<summary><b>📊 Statystyki i 🎁 stawka</b></summary>
+<br>
 
+**Statystyki.** Każda dokończona gra trafia do historii. Przycisk „Pokaż statystyki na ekranie" w menu telefonu wyświetla na projektorze liczbę wieczorów i gier, średnią zgodność, wykres zgodności w ostatnich grach, zgodność w poszczególnych trybach, bilans zwycięstw i ostatnie wyniki.
+
+**Stawka.** Gdy gra jedna para, w grach z punktami każde z Was może przed startem wpisać tajną stawkę — co przegrany robi dla wygranego. Ekran odsłania stawkę zwycięzcy na końcu (przy remisie obie).
+
+</details>
 
 <br>
 
-
 ## 💻 Technologie
+
+```mermaid
+flowchart LR
+    P["📽️ Projektor<br/>/screen"] <-- "strumień zdarzeń (SSE)" --> S
+    T["📱 Telefony<br/>/play"] <-- "akcje + SSE" --> S
+    S["🎯 Serwer Go<br/>jeden plik binarny"] --> D[("💾 /data<br/>historia, lista TAK,<br/>stan gry")]
+    Q["🗂️ Paczki pytań<br/>JSON"] --> S
+```
+
 | Technologia | Rola | Szczegóły |
 |---|---|---|
 | 🎯 **Go** | Serwer | Jeden plik binarny, frontend wbudowany, ok. 25 MB RAM |
@@ -87,11 +165,10 @@ Gdy gra jedna para, w grach z punktami każde z Was może przed startem wpisać 
 | 🔄 **GitHub Actions** | CI/CD | Testy, lint, skany bezpieczeństwa, publikacja obrazu |
 | 📦 **GHCR** | Rejestr | `ghcr.io/huge-commits-only/duet` |
 
-
+<details>
+<summary><b>📁 Struktura projektu</b></summary>
 <br>
 
-
-## 📁 Struktura projektu
 ```
 duet/
 ├── cmd/duet/            # punkt startowy programu
@@ -101,14 +178,14 @@ duet/
 ├── questions/           # paczki pytań, jeden plik JSON na tryb
 ├── web/                 # ekran projektora i pilot na telefon
 ├── e2e/                 # test w przeglądarce (Playwright)
-├── .github/             # workflowy CI/CD i to README
+├── .github/             # workflowy CI/CD, to README i grafiki
 ├── Dockerfile
 └── docker-compose.yml
 ```
 
+</details>
 
 <br>
-
 
 ## 🚀 Uruchomienie w homelabie
 Wystarczy plik [`docker-compose.yml`](../docker-compose.yml) z tego repozytorium:
@@ -120,7 +197,15 @@ docker compose up -d
 
 Gra słucha na porcie `8080`. Otwórz `http://<adres-ip>:8080/screen`.
 
-### Wersje: aktualizacja i powrót
+> [!WARNING]
+> Gra nie ma logowania. Trzymaj ją wyłącznie w sieci domowej i nie wystawiaj do internetu.
+> Kod w adresie z QR (`/play?k=…`) chroni tylko przed przypadkowym zajęciem miejsca — każdy, kto otworzy `/screen` w twojej sieci, go zobaczy. To nie jest hasło.
+> Gdyby gra kiedyś musiała być dostępna z zewnątrz, ustaw w Nginx Proxy Manager **Access List** (login i hasło) dla tego hosta.
+
+<details>
+<summary><b>🏷️ Wersje: aktualizacja i powrót</b></summary>
+<br>
+
 Każdy merge do `main` publikuje obraz z trzema tagami: `latest`, numerem wersji (np. `1.4.2`) i skrótem commita.
 
 ```bash
@@ -137,10 +222,23 @@ echo "DUET_VERSION=1.4.2" > .env
 docker compose pull && docker compose up -d
 ```
 
-### Pytania, których nie chcecie
-Pod każdym pytaniem na telefonie jest mały link **Nie pokazuj więcej**: pytanie znika ze wszystkich następnych gier (zapisuje się w `banned.json` w wolumenie). Działa tylko dla pary 1, czyli domowników.
+</details>
 
-### Kopia zapasowa
+<details>
+<summary><b>🔏 Weryfikacja obrazu</b></summary>
+<br>
+
+Każdy obraz z `main` ma podpisaną atestację pochodzenia: z jakiego commita i workflowu powstał. Sprawdzisz ją przed wdrożeniem:
+```bash
+gh attestation verify oci://ghcr.io/huge-commits-only/duet:latest -R Huge-Commits-Only/duet
+```
+
+</details>
+
+<details>
+<summary><b>💾 Kopia zapasowa</b></summary>
+<br>
+
 W menu telefonu, pod przyciskiem „Więcej", są dwa przyciski: **Pobierz kopię zapasową** (jeden plik JSON z historią gier, listą wspólnych TAK, listą zadanych pytań i pytaniami wyłączonymi przyciskiem „Nie pokazuj więcej”) oraz **Wczytaj kopię zapasową** (zastępuje zapisane dane zawartością pliku). Przydaje się przed przenosinami na inny serwer.
 
 **Kopia sama, raz w tygodniu.** Jedyne niezastępowalne dane to lista wspólnych TAK i historia gier w wolumenie. Na Pi dopisz do `crontab -e` (nazwę wolumenu sprawdzisz przez `docker volume ls | grep duet`):
@@ -152,7 +250,20 @@ W menu telefonu, pod przyciskiem „Więcej", są dwa przyciski: **Pobierz kopi�
 
 Przywrócenie: `docker compose stop duet`, potem `docker run --rm -v duet_duet-data:/data -v $HOME/duet-kopie:/kopie busybox tar xzf /kopie/duet-RRRR-MM-DD.tgz -C /data` i `docker compose start duet`.
 
-### Parametry
+</details>
+
+<details>
+<summary><b>🙈 Pytania, których nie chcecie</b></summary>
+<br>
+
+Pod każdym pytaniem na telefonie jest mały link **Nie pokazuj więcej**: pytanie znika ze wszystkich następnych gier (zapisuje się w `banned.json` w wolumenie). Działa tylko dla pary 1, czyli domowników.
+
+</details>
+
+<details>
+<summary><b>⚙️ Parametry i dane</b></summary>
+<br>
+
 | Zmienna | Domyślnie | Opis |
 |---|---|---|
 | `PORT` | `8080` | Port serwera w kontenerze |
@@ -160,23 +271,21 @@ Przywrócenie: `docker compose stop duet`, potem `docker run --rm -v duet_duet-d
 
 Dane (lista zadanych pytań, Wasza lista wspólnych TAK, historia gier, własne paczki pytań, stan trwającej gry) leżą w wolumenie `duet-data` pod `/data`. Restart kontenera nie przerywa gry — telefony same do niej wracają.
 
-Na iPhonie stronę pilota warto dodać do ekranu głównego (Udostępnij → Do ekranu początkowego): ma własną ikonę, otwiera się bez paska przeglądarki, a przy rysowaniu przeciągnięcie palcem od krawędzi nie cofa strony (w zwykłym Safari cofa i nie da się tego wyłączyć).
+</details>
 
-### Nginx Proxy Manager
+<details>
+<summary><b>🌐 Nginx Proxy Manager</b></summary>
+<br>
+
 1. **Hosts → Proxy Hosts → Add Proxy Host**.
 2. *Domain Names*: np. `duet.twoja-domena.duckdns.org`, *Scheme*: `http`, *Forward Hostname / IP*: adres Raspberry Pi, *Forward Port*: `8080`.
 3. Zakładka **SSL**: wybierz certyfikat i włącz *Force SSL*.
 
 Nic więcej nie trzeba ustawiać — gra sama wyłącza buforowanie dla połączenia na żywo. HTTPS jest potrzebny, żeby telefon nie wygaszał ekranu w trakcie gry. To samo dotyczy projektora: otwieraj go przez domenę (`https://…/screen`), nie przez `http://ip:8080` — inaczej komputer przy projektorze może wygasić ekran np. w trakcie Głębokich rozmów. Gdyby i tak gasł, wyłącz wygaszanie ekranu w systemie tego komputera.
 
-> [!WARNING]
-> Gra nie ma logowania. Trzymaj ją wyłącznie w sieci domowej i nie wystawiaj do internetu.
-> Kod w adresie z QR (`/play?k=…`) chroni tylko przed przypadkowym zajęciem miejsca — każdy, kto otworzy `/screen` w twojej sieci, go zobaczy. To nie jest hasło.
-> Gdyby gra kiedyś musiała być dostępna z zewnątrz, ustaw w Nginx Proxy Manager **Access List** (login i hasło) dla tego hosta.
-
+</details>
 
 <br>
-
 
 ## ✏️ Własne pytania
 Wrzuć plik JSON do `/data/questions/` w wolumenie — gra wczyta go przy następnym starcie rundy, bez restartu:
@@ -193,6 +302,10 @@ Wrzuć plik JSON do `/data/questions/` w wolumenie — gra wczyta go przy nastę
 ```bash
 docker cp moje-pytania.json duet:/data/questions/moje-pytania.json
 ```
+
+<details>
+<summary><b>Pola dla każdego trybu</b></summary>
+<br>
 
 `tone` to `lekko`, `romantycznie` albo `pikantnie`. Formy zależne od płci zapisuj tak jak w gotowych paczkach („zrobiłeś/aś", „chciał(a)byś", „pewny/a") — gra sama wybierze właściwą. Pola zależą od trybu (`mode`):
 
@@ -211,11 +324,17 @@ docker cp moje-pytania.json duet:/data/questions/moje-pytania.json
 
 „Wieczór mix" nie ma własnych pytań — losuje rundy z pozostałych trybów.
 
+</details>
 
 <br>
 
-
 ## 🔄 CI/CD
+Każdy PR przechodzi testy jednostkowe z fuzzingiem, testy w prawdziwej przeglądarce, lint, CodeQL i skany bezpieczeństwa, a każdy merge publikuje podpisany obraz multi-arch.
+
+<details>
+<summary><b>Wszystkie workflowy</b></summary>
+<br>
+
 | Workflow | Plik | Kiedy | Co robi |
 |---|---|---|---|
 | Go Verification | `go-test.yml` | PR, `main` | `go mod verify`, `go mod tidy -diff`, `gofmt`, kompilacja |
@@ -231,23 +350,13 @@ docker cp moje-pytania.json duet:/data/questions/moje-pytania.json
 | Docker Image Publish | `docker-build.yml` | `main` | Buduje obraz amd64 + arm64, publikuje do GHCR (`latest` + wersja) z podpisaną atestacją pochodzenia i SBOM |
 | Scorecard Verification | `scorecard.yml` | `main`, co tydzień | OpenSSF Scorecard: ocena bezpieczeństwa łańcucha dostaw, wynik na scorecard.dev |
 
-### Weryfikacja obrazu
-Każdy obraz z `main` ma podpisaną atestację pochodzenia: z jakiego commita i workflowu powstał. Sprawdzisz ją przed wdrożeniem:
-```bash
-gh attestation verify oci://ghcr.io/huge-commits-only/duet:latest -R Huge-Commits-Only/duet
-```
+**Etykiety z nazwy brancha:** `feat/*`, `feature/*` → `enhancement` · `fix/*`, `bug/*` → `bug` · `docs/*` → `documentation` · `chore/*` → `chore` · `deps/*` → `dependencies`
 
-### Po pierwszym merge'u (jednorazowo)
-- **Paczka publiczna** — patrz sekcja wyżej.
-- **Pierwszy release** — Release Drafter zbiera PR-y od ostatniego *opublikowanego* wydania. Opublikuj pierwsze ręcznie (**Releases → Draft a new release → Generate release notes**) i go nie usuwaj; inaczej szkic będzie pusty.
-- **Ruleset na `main`** — wymagane checki to nazwy jobów (`Build & Modules`, `Go Tests`, `golangci-lint`, `govulncheck & Trivy`, `Trivy Image Scan`, `Playwright Game Run`, `Actionlint`). Pojawiają się do wyboru dopiero po pierwszym uruchomieniu.
+**Ruleset na `main`:** tylko PR ze squashem, podpisane commity, aktualna gałąź i wymagane checki: `Build & Modules`, `Go Tests`, `golangci-lint`, `govulncheck & Trivy`, `Trivy Image Scan`, `Playwright Game Run`, `Actionlint` i trzy joby `CodeQL`. Release Drafter zbiera PR-y od ostatniego *opublikowanego* wydania — nie usuwaj opublikowanych wydań, bo szkic będzie pusty.
 
-### Etykiety z nazwy brancha
-`feat/*`, `feature/*` → `enhancement` · `fix/*`, `bug/*` → `bug` · `docs/*` → `documentation` · `chore/*` → `chore` · `deps/*` → `dependencies`
-
+</details>
 
 <br>
-
 
 ## 🛠️ Praca lokalna
 ```bash
@@ -258,3 +367,11 @@ DATA_DIR=./data PORT=18080 go run ./cmd/duet   # http://localhost:18080/screen
 (cd e2e && npm ci && npx playwright install chromium)
 go build -o bin/duet ./cmd/duet && ./e2e/run.sh
 ```
+
+<br>
+
+<div align="center">
+<a href="https://github.com/Huge-Commits-Only"><img src="assets/logo.svg" alt="Huge Commits Only" width="56"></a>
+<br>
+<sub>Część <a href="https://github.com/Huge-Commits-Only"><b>Huge Commits Only</b></a> · licencja <a href="../LICENSE">MIT</a></sub>
+</div>
