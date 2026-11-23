@@ -1,4 +1,4 @@
-# 🛠️ Rozwój
+# Rozwój
 
 [← README](../.github/README.md)
 
@@ -6,19 +6,19 @@
 
 ```mermaid
 flowchart LR
-    P["📽️ Projektor<br/>/screen"] <-- "strumień zdarzeń (SSE)" --> S
-    T["📱 Telefony<br/>/play"] <-- "akcje + SSE" --> S
-    S["🎯 Serwer Go<br/>jeden plik binarny"] --> D[("💾 /data<br/>historia, lista TAK,<br/>stan gry")]
-    Q["🗂️ Paczki pytań<br/>JSON"] --> S
+    P["Projektor<br/>/screen"] <-- "strumień zdarzeń (SSE)" --> S
+    T["Telefony<br/>/play"] <-- "akcje + SSE" --> S
+    S["Serwer Go<br/>jeden plik binarny"] --> D[("/data<br/>historia, lista TAK,<br/>stan gry")]
+    Q["Paczki pytań<br/>JSON"] --> S
 ```
 
 | Technologia | Rola | Szczegóły |
 |---|---|---|
-| 🎯 **Go** | Serwer | Jeden plik binarny, frontend wbudowany, ok. 25 MB RAM |
-| 🌐 **HTML / CSS / JS** | Ekran i pilot | Bez frameworka i bez kroku budowania, zero zasobów z internetu |
-| 🐳 **Docker** | Kontener | Obraz `scratch`, multi-arch (amd64 / arm64 dla Raspberry Pi) |
-| 🔄 **GitHub Actions** | CI/CD | Testy, lint, skany bezpieczeństwa, publikacja obrazu |
-| 📦 **GHCR** | Rejestr | `ghcr.io/huge-commits-only/duet` |
+| **Go** | Serwer | Jeden plik binarny, frontend wbudowany, ok. 25 MB RAM |
+| **HTML / CSS / JS** | Ekran i pilot | Bez frameworka i bez kroku budowania, zero zasobów z internetu |
+| **Docker** | Kontener | Obraz `scratch`, multi-arch (amd64 / arm64 dla Raspberry Pi) |
+| **GitHub Actions** | CI/CD | Testy, lint, skany bezpieczeństwa, publikacja obrazu |
+| **GHCR** | Rejestr | `ghcr.io/huge-commits-only/duet` |
 
 ```
 duet/
@@ -56,7 +56,7 @@ go build -o bin/duet ./cmd/duet && ./e2e/run.sh
 | Container Verification | `container-test.yml` | PR | Buduje obraz, sprawdza czy kontener startuje, skanuje go Trivy |
 | E2E Verification | `e2e-test.yml` | PR, `main` | Playwright: projektor i dwa telefony rozgrywają każdy tryb w prawdziwej przeglądarce |
 | Workflow Verification | `workflow-test.yml` | PR, `main` | `actionlint` dla workflowów |
-| Dependabot Auto-Merge | `dependabot-auto-merge.yml` | PR od Dependabota | Łatki i drobne wersje scalają się same po przejściu wymaganych checków; duże wersje czekają na człowieka. Merge tokenem workflowu nie uruchamia workflowów na `main` — obraz z nową zależnością powstaje przy następnym merge'u |
+| Dependabot Auto-Merge | `dependabot-auto-merge.yml` | PR od Dependabota | Łatki i drobne wersje scalają się same po przejściu wymaganych checków; duże wersje czekają na człowieka. Merge tokenem workflowu nie uruchamia workflowów na `main`, więc obraz z nową zależnością powstaje przy następnym merge'u |
 | PR Automation | `pr-automation.yml` | nowy PR | Przypisuje autora i reviewera, nadaje etykiety z nazwy brancha, ustawia milestone |
 | Release Draft | `release-draft.yml` | `main` | Aktualizuje szkic notatek wydania |
 | Docker Image Publish | `docker-build.yml` | `main` | Buduje obraz amd64 + arm64, publikuje do GHCR (`latest` + wersja) z podpisaną atestacją pochodzenia i SBOM |
@@ -65,4 +65,4 @@ go build -o bin/duet ./cmd/duet && ./e2e/run.sh
 
 **Etykiety z nazwy brancha:** `feat/*`, `feature/*` → `enhancement` · `fix/*`, `bug/*` → `bug` · `docs/*` → `documentation` · `chore/*` → `chore` · `deps/*` → `dependencies`
 
-**Ruleset na `main`:** tylko PR ze squashem, aktualna gałąź i wymagane checki: `Build & Modules`, `Go Tests`, `golangci-lint`, `govulncheck & Trivy`, `Trivy Image Scan`, `Playwright Game Run`, `Actionlint` i trzy joby `CodeQL`. Release Drafter zbiera PR-y od ostatniego *opublikowanego* wydania — nie usuwaj opublikowanych wydań, bo szkic będzie pusty.
+**Ruleset na `main`:** tylko PR ze squashem, aktualna gałąź i wymagane checki: `Build & Modules`, `Go Tests`, `golangci-lint`, `govulncheck & Trivy`, `Trivy Image Scan`, `Playwright Game Run`, `Actionlint` i trzy joby `CodeQL`. Release Drafter zbiera PR-y od ostatniego *opublikowanego* wydania, więc nie usuwaj opublikowanych wydań, bo szkic będzie pusty.

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Duet — gry i quizy dla par" width="100%">
+  <img src="assets/banner.png" alt="Duet, gry i quizy dla par" width="100%">
 </p>
 
 <p align="center">
@@ -11,52 +11,54 @@
 </p>
 
 <p align="center">
-  <img src="assets/demo.gif" alt="Natalia dołącza telefonem, wybiera „Co wolisz”, oboje odpowiadają, projektor pokazuje „Zgodni!”" width="100%">
+  <img src="assets/demo.gif" alt="Natalia dołącza telefonem, wybiera tryb Co wolisz, oboje odpowiadają, a projektor pokazuje wynik" width="100%">
 </p>
 
-Projektor (albo telewizor) pokazuje grę, a telefony są pilotami — dołączacie, skanując kod QR. Gracie we dwoje albo z gośćmi: do czterech par przy jednym ekranie. Całość działa lokalnie w homelabie, bez kont i bez chmury.
+Projektor albo telewizor pokazuje grę, a telefony są pilotami: dołączacie, skanując kod QR. Gracie we dwoje albo z gośćmi, do czterech par przy jednym ekranie. Całość działa lokalnie w homelabie, bez kont i bez chmury.
 
-## ✨ Co potrafi
-- **📱 Telefon to pilot** — skanujesz QR i grasz. Bez aplikacji, kont i logowania.
-- **🎮 13 trybów, 3 tony** — od „Co wolisz” przez Blef po Rysowanie palcem; lekko, romantycznie albo pikantnie 18+.
-- **👥 Do czterech par** — ranking najbardziej zgranej pary, boty do testów w pojedynkę.
-- **📊 Pamięta wieczory** — statystyki, lista wspólnych TAK, tajne stawki dla przegranych.
-- **⚡ Lekki** — jeden plik binarny w Go, obraz `scratch`, ok. 25 MB RAM na Raspberry Pi.
-- **🔒 Zweryfikowany** — testy w prawdziwej przeglądarce, fuzzing, CodeQL i podpisane obrazy.
+## Funkcje
+- Telefon jest pilotem. Skanujesz kod QR i grasz, bez aplikacji, kont i logowania.
+- 13 trybów w trzech tonach, od „Co wolisz” przez Blef po rysowanie palcem: lekko, romantycznie albo pikantnie (18+).
+- Do czterech par przy jednym ekranie, z rankingiem najbardziej zgranej pary i botami do testów w pojedynkę.
+- Statystyki wieczorów, lista wspólnych TAK i tajne stawki dla przegranych.
+- Jeden plik binarny w Go, obraz `scratch`, około 25 MB RAM na Raspberry Pi.
+- Testy w prawdziwej przeglądarce, fuzzing, CodeQL oraz podpisane obrazy i binarki.
 
-## 🚀 Szybki start
+## Szybki start
 ```bash
 docker compose pull && docker compose up -d
 ```
 Otwórz `http://<adres-pi>:8080/screen` na projektorze i zeskanujcie kod QR telefonami. Bez Dockera: podpisana binarka z [Releases](https://github.com/Huge-Commits-Only/duet/releases). Domena, HTTPS, wersje i kopie zapasowe: [docs/instalacja.md](../docs/instalacja.md).
 
 > [!WARNING]
-> Gra nie ma logowania — trzymaj ją wyłącznie w sieci domowej. Kod w adresie z QR to nie hasło.
+> Gra nie ma logowania, więc trzymaj ją wyłącznie w sieci domowej. Kod w adresie z QR nie jest hasłem.
 
-## 🎮 Tryby
+## Tryby
 | Tryb | O co chodzi |
 |---|---|
-| 🤔 Co wolisz | Oboje wybieracie jedną z dwóch opcji — liczy się zgodność |
-| 👉 Kto prędzej… | Oboje wskazujecie, kogo z Was dotyczy pytanie |
-| 🙊 Nigdy przenigdy | Oboje w tajemnicy: zdarzyło mi się czy nigdy — ekran odsłania obie odpowiedzi |
-| 💭 Jak dobrze mnie znasz | Jedno odpowiada o sobie, drugie zgaduje |
-| 🎚️ Skala | Jedno ustawia suwak 0–100, drugie zgaduje jak najbliżej |
-| 🔢 Szacowanie | Jedno podaje liczbę o sobie (np. ile razy w tygodniu…), drugie zgaduje jak najbliżej |
-| 🔮 Telepatia | Oboje wpisujecie skojarzenie — punkt za to samo słowo |
-| ✅ Wspólne TAK | Tak/nie na pomysły; ekran pokazuje tylko to, na co oboje się zgodziliście, i zapisuje listę |
-| 🕯️ Głębokie rozmowy | Karty do rozmowy na trzech poziomach głębi, bez punktów |
-| 🎯 Wyzwania | Prawda albo zadanie dla jednej osoby, druga ocenia wykonanie |
-| 🃏 Blef | Dwie prawdy i jedno kłamstwo — druga osoba szuka kłamstwa |
-| 🎨 Rysowanie | Jedno rysuje palcem na telefonie, drugie zgaduje hasło w 60 sekund |
-| 🎲 Wieczór mix | Gra sama przeplata tryby i liczy wspólny wynik |
+| Co wolisz | Oboje wybieracie jedną z dwóch opcji; liczy się zgodność |
+| Kto prędzej… | Oboje wskazujecie, kogo z Was dotyczy pytanie |
+| Nigdy przenigdy | Oboje w tajemnicy: zdarzyło mi się albo nigdy. Ekran odsłania obie odpowiedzi |
+| Jak dobrze mnie znasz | Jedno odpowiada o sobie, drugie zgaduje |
+| Skala | Jedno ustawia suwak 0–100, drugie zgaduje jak najbliżej |
+| Szacowanie | Jedno podaje liczbę o sobie (np. ile razy w tygodniu…), drugie zgaduje jak najbliżej |
+| Telepatia | Oboje wpisujecie skojarzenie, punkt za to samo słowo |
+| Wspólne TAK | Tak albo nie dla pomysłów; ekran pokazuje tylko to, na co oboje się zgodziliście, i zapisuje listę |
+| Głębokie rozmowy | Karty do rozmowy na trzech poziomach głębi, bez punktów |
+| Wyzwania | Prawda albo zadanie dla jednej osoby, druga ocenia wykonanie |
+| Blef | Dwie prawdy i jedno kłamstwo; druga osoba szuka kłamstwa |
+| Rysowanie | Jedno rysuje palcem na telefonie, drugie zgaduje hasło w 60 sekund |
+| Wieczór mix | Gra sama przeplata tryby i liczy wspólny wynik |
 
-## 📚 Dokumentacja
+Masz pomysł na pytanie? [Zaproponuj je przez formularz](https://github.com/Huge-Commits-Only/duet/issues/new?template=pytanie.yml).
+
+## Dokumentacja
 | | |
 |---|---|
-| 🎮 [Gra](../docs/gra.md) | Zrzuty, kilka par, boty, statystyki, stawka, wyłączanie pytań |
-| 🚀 [Instalacja i utrzymanie](../docs/instalacja.md) | Docker, przeglądarki, wersje, weryfikacja obrazu, kopie, Nginx Proxy Manager |
-| ✏️ [Własne pytania](../docs/pytania.md) | Format JSON i pola dla każdego trybu |
-| 🛠️ [Rozwój](../docs/rozwoj.md) | Architektura, praca lokalna, CI/CD |
+| [Gra](../docs/gra.md) | Zrzuty, kilka par, boty, statystyki, stawka, wyłączanie pytań |
+| [Instalacja i utrzymanie](../docs/instalacja.md) | Docker, binarki, przeglądarki, wersje, weryfikacja, kopie, Nginx Proxy Manager |
+| [Własne pytania](../docs/pytania.md) | Format JSON i pola dla każdego trybu |
+| [Rozwój](../docs/rozwoj.md) | Architektura, praca lokalna, CI/CD |
 
 ---
 

@@ -1,4 +1,4 @@
-# 🚀 Instalacja i utrzymanie
+# Instalacja i utrzymanie
 
 [← README](../.github/README.md)
 
@@ -14,7 +14,7 @@ Gra słucha na porcie `8080`. Otwórz `http://<adres-ip>:8080/screen`.
 
 > [!WARNING]
 > Gra nie ma logowania. Trzymaj ją wyłącznie w sieci domowej i nie wystawiaj do internetu.
-> Kod w adresie z QR (`/play?k=…`) chroni tylko przed przypadkowym zajęciem miejsca — każdy, kto otworzy `/screen` w twojej sieci, go zobaczy. To nie jest hasło.
+> Kod w adresie z QR (`/play?k=…`) chroni tylko przed przypadkowym zajęciem miejsca: każdy, kto otworzy `/screen` w twojej sieci, go zobaczy. To nie jest hasło.
 > Gdyby gra kiedyś musiała być dostępna z zewnątrz, ustaw w Nginx Proxy Manager **Access List** (login i hasło) dla tego hosta.
 
 ## Bez Dockera: plik z wydania
@@ -27,7 +27,7 @@ chmod +x duet_linux_arm64 && DATA_DIR=$HOME/duet-data ./duet_linux_arm64   # htt
 ```
 
 ## Przeglądarki
-Projektor: Chrome, Edge albo Safari (Firefox od wersji 126 — starszy nie pomniejsza widoku, gdy się nie mieści). Jeśli komputer przy projektorze ma Linuksa, doinstaluj czcionkę emoji (`sudo apt install fonts-noto-color-emoji`) — inaczej 🔇, 📱 i 👀 wyjdą jako puste prostokąty. Telefon: iOS 15 lub nowszy, Android z aktualnym Chrome.
+Projektor: Chrome, Edge albo Safari (Firefox od wersji 126, bo starszy nie pomniejsza widoku, gdy się nie mieści). Jeśli komputer przy projektorze ma Linuksa, doinstaluj czcionkę emoji (`sudo apt install fonts-noto-color-emoji`), inaczej 🔇, 📱 i 👀 wyjdą jako puste prostokąty. Telefon: iOS 15 lub nowszy, Android z aktualnym Chrome.
 
 Na iPhonie stronę pilota warto dodać do ekranu głównego (Udostępnij → Do ekranu początkowego): ma własną ikonę, otwiera się bez paska przeglądarki, a przy rysowaniu przeciągnięcie palcem od krawędzi nie cofa strony (w zwykłym Safari cofa i nie da się tego wyłączyć).
 
@@ -36,7 +36,7 @@ Każdy merge do `main` publikuje obraz z trzema tagami: `latest`, numerem wersji
 
 ```bash
 docker compose pull && docker compose up -d          # najnowsza wersja
-DUET_VERSION=1.4.2 docker compose up -d              # konkretna wersja — także powrót do poprzedniej
+DUET_VERSION=1.4.2 docker compose up -d              # konkretna wersja, także powrót do poprzedniej
 ```
 
 Dostępne wersje: `https://github.com/orgs/Huge-Commits-Only/packages/container/package/duet`. Dane w wolumenie zostają przy zmianie wersji.
@@ -70,13 +70,13 @@ Przywrócenie: `docker compose stop duet`, potem `docker run --rm -v duet_duet-d
 | Zmienna | Domyślnie | Opis |
 |---|---|---|
 | `PORT` | `8080` | Port serwera w kontenerze |
-| `PUBLIC_URL` | *(brak)* | Adres wpisywany w kod QR. Ustaw tylko wtedy, gdy QR pokazuje zły adres — normalnie gra bierze go z adresu, pod którym otwarto ekran |
+| `PUBLIC_URL` | *(brak)* | Adres wpisywany w kod QR. Ustaw tylko wtedy, gdy QR pokazuje zły adres; normalnie gra bierze go z adresu, pod którym otwarto ekran |
 
-Dane (lista zadanych pytań, Wasza lista wspólnych TAK, historia gier, własne paczki pytań, stan trwającej gry) leżą w wolumenie `duet-data` pod `/data`. Restart kontenera nie przerywa gry — telefony same do niej wracają.
+Dane (lista zadanych pytań, Wasza lista wspólnych TAK, historia gier, własne paczki pytań, stan trwającej gry) leżą w wolumenie `duet-data` pod `/data`. Restart kontenera nie przerywa gry, bo telefony same do niej wracają.
 
 ## Nginx Proxy Manager
 1. **Hosts → Proxy Hosts → Add Proxy Host**.
 2. *Domain Names*: np. `duet.twoja-domena.duckdns.org`, *Scheme*: `http`, *Forward Hostname / IP*: adres Raspberry Pi, *Forward Port*: `8080`.
 3. Zakładka **SSL**: wybierz certyfikat i włącz *Force SSL*.
 
-Nic więcej nie trzeba ustawiać — gra sama wyłącza buforowanie dla połączenia na żywo. HTTPS jest potrzebny, żeby telefon nie wygaszał ekranu w trakcie gry. To samo dotyczy projektora: otwieraj go przez domenę (`https://…/screen`), nie przez `http://ip:8080` — inaczej komputer przy projektorze może wygasić ekran np. w trakcie Głębokich rozmów. Gdyby i tak gasł, wyłącz wygaszanie ekranu w systemie tego komputera.
+Nic więcej nie trzeba ustawiać: gra sama wyłącza buforowanie dla połączenia na żywo. HTTPS jest potrzebny, żeby telefon nie wygaszał ekranu w trakcie gry. To samo dotyczy projektora: otwieraj go przez domenę (`https://…/screen`), nie przez `http://ip:8080`, bo inaczej komputer przy projektorze może wygasić ekran np. w trakcie Głębokich rozmów. Gdyby i tak gasł, wyłącz wygaszanie ekranu w systemie tego komputera.

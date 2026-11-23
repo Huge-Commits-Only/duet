@@ -2,20 +2,20 @@ name-template: "v$RESOLVED_VERSION"
 tag-template: "v$RESOLVED_VERSION"
 
 categories:
-  - title: "🚀 Features"
+  - title: "Nowe funkcje"
     when:
       labels:
         - "feature"
         - "enhancement"
 
-  - title: "🐛 Fixes"
+  - title: "Poprawki"
     when:
       labels:
         - "fix"
         - "bugfix"
         - "bug"
 
-  - title: "🧰 Maintenance"
+  - title: "Porządki"
     when:
       labels:
         - "chore"
@@ -44,6 +44,6 @@ change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
 change-title-escapes: '\<*_&'
 
 template: |
-  ## What’s Changed
+  ## Zmiany
 
   $CHANGES
