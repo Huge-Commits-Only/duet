@@ -1,4 +1,4 @@
-name: 🐛 Błąd
+name: Błąd
 description: Coś nie działa tak, jak powinno
 labels: ["bug"]
 body:
@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Dzięki za zgłoszenie! Im dokładniej opiszesz problem, tym szybciej go naprawimy.
-        **Podatność bezpieczeństwa?** Nie zgłaszaj jej tutaj — użyj **Security → Report a vulnerability**.
+        **Podatność bezpieczeństwa?** Nie zgłaszaj jej tutaj, tylko użyj **Security → Report a vulnerability**.
   - type: textarea
     id: what
     attributes:

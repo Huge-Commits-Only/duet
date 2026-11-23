@@ -1,12 +1,12 @@
-name: 💡 Zaproponuj pytanie
-description: Nowe pytanie do gry — po przeglądzie trafi do paczki pytań
+name: Zaproponuj pytanie
+description: Nowe pytanie do gry, które po przeglądzie trafi do paczki pytań
 title: "[pytanie] "
 labels: ["pytanie"]
 body:
   - type: markdown
     attributes:
       value: |
-        Masz dobre pytanie do Duetu? Wybierz tryb i ton, wpisz pytanie — resztę zrobimy my.
+        Masz dobre pytanie do Duetu? Wybierz tryb i ton, wpisz pytanie, a resztę zrobimy my.
         Format paczek i pola wszystkich trybów: [docs/pytania.md](https://github.com/Huge-Commits-Only/duet/blob/main/docs/pytania.md).
   - type: dropdown
     id: mode

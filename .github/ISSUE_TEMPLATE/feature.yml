@@ -1,11 +1,11 @@
-name: 🚀 Pomysł
+name: Pomysł
 description: Nowa funkcja albo zmiana
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Masz pomysł? Opisz najpierw **problem**, potem rozwiązanie — łatwiej wtedy znaleźć najprostsze.
+        Masz pomysł? Opisz najpierw **problem**, potem rozwiązanie, bo łatwiej wtedy znaleźć najprostsze.
   - type: textarea
     id: problem
     attributes:
