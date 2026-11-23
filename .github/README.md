@@ -28,7 +28,7 @@ Projektor (albo telewizor) pokazuje grę, a telefony są pilotami — dołączac
 ```bash
 docker compose pull && docker compose up -d
 ```
-Otwórz `http://<adres-pi>:8080/screen` na projektorze i zeskanujcie kod QR telefonami. Domena, HTTPS, wersje i kopie zapasowe: [docs/instalacja.md](../docs/instalacja.md).
+Otwórz `http://<adres-pi>:8080/screen` na projektorze i zeskanujcie kod QR telefonami. Bez Dockera: podpisana binarka z [Releases](https://github.com/Huge-Commits-Only/duet/releases). Domena, HTTPS, wersje i kopie zapasowe: [docs/instalacja.md](../docs/instalacja.md).
 
 > [!WARNING]
 > Gra nie ma logowania — trzymaj ją wyłącznie w sieci domowej. Kod w adresie z QR to nie hasło.
