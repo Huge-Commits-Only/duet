@@ -1,4 +1,4 @@
-# Gra
+# 🎮 Gra
 
 [← README](../.github/README.md)
 

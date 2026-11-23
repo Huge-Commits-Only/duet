@@ -1,4 +1,4 @@
-# Rozwój
+# 🛠️ Rozwój
 
 [← README](../.github/README.md)
 
@@ -6,10 +6,10 @@
 
 ```mermaid
 flowchart LR
-    P["Projektor<br/>/screen"] <-- "strumień zdarzeń (SSE)" --> S
-    T["Telefony<br/>/play"] <-- "akcje + SSE" --> S
-    S["Serwer Go<br/>jeden plik binarny"] --> D[("/data<br/>historia, lista TAK,<br/>stan gry")]
-    Q["Paczki pytań<br/>JSON"] --> S
+    P["📽️ Projektor<br/>/screen"] <-- "strumień zdarzeń (SSE)" --> S
+    T["📱 Telefony<br/>/play"] <-- "akcje + SSE" --> S
+    S["🎯 Serwer Go<br/>jeden plik binarny"] --> D[("💾 /data<br/>historia, lista TAK,<br/>stan gry")]
+    Q["🗂️ Paczki pytań<br/>JSON"] --> S
 ```
 
 | Technologia | Rola | Szczegóły |
