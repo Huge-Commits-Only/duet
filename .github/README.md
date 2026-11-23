@@ -9,6 +9,9 @@
 [![Docker](https://img.shields.io/badge/Docker-scratch-2496ED?style=flat-square&logo=docker&logoColor=white)](../Dockerfile)
 [![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi-c51a4a?style=flat-square&logo=raspberrypi&logoColor=white)](https://www.raspberrypi.com/)
 
+[![Go Verification](https://img.shields.io/github/actions/workflow/status/Huge-Commits-Only/duet/go-test.yml?branch=main&style=flat-square&label=Go%20Verification)](https://github.com/Huge-Commits-Only/duet/actions/workflows/go-test.yml)
+[![Security Verification](https://img.shields.io/github/actions/workflow/status/Huge-Commits-Only/duet/security-test.yml?branch=main&style=flat-square&label=Security%20Verification)](https://github.com/Huge-Commits-Only/duet/actions/workflows/security-test.yml)
+
 </div>
 
 <br>
