@@ -31,6 +31,12 @@ async function goOn(pages) {
 }
 // Resolves once the phone shows something else than `before`, i.e. the state update arrived.
 const changed = (page, before) => page.waitForFunction(t => document.getElementById('app').innerText !== t, before);
+// Sets a slider to `pct` percent of its range: Skala is 0–100, Szacowanie questions have their own maximum.
+async function slide(page, pct) {
+  const r = page.locator('input[type=range]');
+  const min = Number(await r.getAttribute('min') ?? 0), max = Number(await r.getAttribute('max') ?? 100);
+  await r.fill(String(min + Math.round((max - min) * pct / 100)));
+}
 
 const screen = await open({ viewport: { width: 1280, height: 720 } }, '/screen');
 
@@ -137,9 +143,9 @@ async function step() {
     await b.fill('#word', odd ? 'slonce' : 'deszcz');
     await b.getByRole('button', { name: 'Wyślij' }).click();
   } else if (await has(a, 'input[type=range]') && await has(b, 'input[type=range]')) { // skala
-    await a.locator('input[type=range]').fill('60');
+    await slide(a, 60);
     await a.getByRole('button', { name: 'Zatwierdź' }).click();
-    await b.locator('input[type=range]').fill(odd ? '62' : '10');
+    await slide(b, odd ? 62 : 10);
     await b.getByRole('button', { name: 'Zatwierdź' }).click();
   } else if (await has(a, '.pick') && await has(b, '.pick') && !(await has(a, '.pick[aria-pressed="true"]'))) { // any choice
     await a.locator('.pick').first().click();
