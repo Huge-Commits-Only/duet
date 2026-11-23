@@ -53,6 +53,16 @@ jobs:
               exit 1
           fi
 
+      # Short fuzzing on every run; the corpus of interesting inputs is not kept between runs.
+      - name: 🧪 Go -- Fuzz Tests
+        run: |
+          for target in FuzzRestore FuzzAct; do
+              echo "⚙️ Fuzzing ${target} for 30s..."
+              go test ./internal/game -run='^$' -fuzz="^${target}\$" -fuzztime=30s
+          done
+          echo ""
+          echo "✅ Fuzzing found no crashes."
+
       - name: 📋 Go -- Show Coverage Summary
         run: |
           echo "⚙️ Coverage summary:"

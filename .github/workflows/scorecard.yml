@@ -1,0 +1,42 @@
+# OpenSSF Scorecard: supply-chain security score, published to scorecard.dev and the Security tab.
+name: Scorecard Verification
+
+on:
+  branch_protection_rule:
+  push:
+    branches: ["main"]
+  schedule:
+    # Wednesday 05:00 UTC
+    - cron: "0 5 * * 3"
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      security-events: write # upload the results to code scanning
+      id-token: write # publish the results to scorecard.dev
+      contents: read
+      actions: read
+
+    steps:
+      - name: 📥 Git -- Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 🧪 Scorecard -- Analyze
+        uses: ossf/scorecard-action@23f22cd43608bae7a1f1fa2603d7314dee9538a5 # v2.6.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: 📤 CodeQL -- Upload results
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        with:
+          sarif_file: results.sarif

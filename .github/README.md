@@ -11,6 +11,7 @@
 
 [![Go Verification](https://img.shields.io/github/actions/workflow/status/Huge-Commits-Only/duet/go-test.yml?branch=main&style=flat-square&label=Go%20Verification)](https://github.com/Huge-Commits-Only/duet/actions/workflows/go-test.yml)
 [![Security Verification](https://img.shields.io/github/actions/workflow/status/Huge-Commits-Only/duet/security-test.yml?branch=main&style=flat-square&label=Security%20Verification)](https://github.com/Huge-Commits-Only/duet/actions/workflows/security-test.yml)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/Huge-Commits-Only/duet?style=flat-square&label=OpenSSF%20Scorecard)](https://scorecard.dev/viewer/?uri=github.com/Huge-Commits-Only/duet)
 
 </div>
 
@@ -218,7 +219,7 @@ docker cp moje-pytania.json duet:/data/questions/moje-pytania.json
 | Workflow | Plik | Kiedy | Co robi |
 |---|---|---|---|
 | Go Verification | `go-test.yml` | PR, `main` | `go mod verify`, `go mod tidy -diff`, `gofmt`, kompilacja |
-| Unit Test Verification | `unit-test.yml` | PR, `main` | `go test -race`, podsumowanie pokrycia i próg minimalny (85%) |
+| Unit Test Verification | `unit-test.yml` | PR, `main` | `go test -race`, fuzzing akcji z telefonów i kopii zapasowej (po 30 s), podsumowanie pokrycia i próg minimalny (85%) |
 | Lint Verification | `lint-test.yml` | PR, `main` | `golangci-lint` |
 | Security Verification | `security-test.yml` | PR, `main` | `govulncheck` + Trivy (podatności, sekrety, konfiguracja) |
 | CodeQL Verification | `codeql.yml` | PR, `main`, co tydzień | CodeQL `security-extended` dla Go, JS i workflowów; nowy alert o wadze wysokiej lub krytycznej blokuje merge |
@@ -227,7 +228,14 @@ docker cp moje-pytania.json duet:/data/questions/moje-pytania.json
 | Workflow Verification | `workflow-test.yml` | PR, `main` | `actionlint` dla workflowów |
 | PR Automation | `pr-automation.yml` | nowy PR | Przypisuje autora i reviewera, nadaje etykiety z nazwy brancha, ustawia milestone |
 | Release Draft | `release-draft.yml` | `main` | Aktualizuje szkic notatek wydania |
-| Docker Image Publish | `docker-build.yml` | `main` | Buduje obraz amd64 + arm64 i publikuje do GHCR (`latest` + wersja) |
+| Docker Image Publish | `docker-build.yml` | `main` | Buduje obraz amd64 + arm64, publikuje do GHCR (`latest` + wersja) z podpisaną atestacją pochodzenia i SBOM |
+| Scorecard Verification | `scorecard.yml` | `main`, co tydzień | OpenSSF Scorecard: ocena bezpieczeństwa łańcucha dostaw, wynik na scorecard.dev |
+
+### Weryfikacja obrazu
+Każdy obraz z `main` ma podpisaną atestację pochodzenia: z jakiego commita i workflowu powstał. Sprawdzisz ją przed wdrożeniem:
+```bash
+gh attestation verify oci://ghcr.io/huge-commits-only/duet:latest -R Huge-Commits-Only/duet
+```
 
 ### Po pierwszym merge'u (jednorazowo)
 - **Paczka publiczna** — patrz sekcja wyżej.

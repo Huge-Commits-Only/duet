@@ -25,6 +25,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write # signs the provenance attestation (Sigstore)
+      attestations: write
 
     steps:
       - name: 📥 Git -- Checkout repository
@@ -65,6 +67,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🚀 Docker -- Build and push
+        id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
@@ -74,3 +77,17 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
+
+      - name: 🏷️ Docker -- Image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      # Verify with: gh attestation verify oci://ghcr.io/huge-commits-only/duet:latest -R Huge-Commits-Only/duet
+      - name: 🔏 Docker -- Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ steps.image.outputs.name }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
