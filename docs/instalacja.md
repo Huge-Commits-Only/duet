@@ -17,6 +17,15 @@ Gra słucha na porcie `8080`. Otwórz `http://<adres-ip>:8080/screen`.
 > Kod w adresie z QR (`/play?k=…`) chroni tylko przed przypadkowym zajęciem miejsca — każdy, kto otworzy `/screen` w twojej sieci, go zobaczy. To nie jest hasło.
 > Gdyby gra kiedyś musiała być dostępna z zewnątrz, ustaw w Nginx Proxy Manager **Access List** (login i hasło) dla tego hosta.
 
+## Bez Dockera: plik z wydania
+Każde wydanie ma gotowe binarki dla Linuksa (`amd64` i `arm64` dla Raspberry Pi), sumy `SHA256SUMS` i podpisaną atestację pochodzenia. Sprawdź podpis przed uruchomieniem:
+
+```bash
+gh release download -R Huge-Commits-Only/duet -p 'duet_linux_arm64'
+gh attestation verify duet_linux_arm64 -R Huge-Commits-Only/duet
+chmod +x duet_linux_arm64 && DATA_DIR=$HOME/duet-data ./duet_linux_arm64   # http://<adres>:8080/screen
+```
+
 ## Przeglądarki
 Projektor: Chrome, Edge albo Safari (Firefox od wersji 126 — starszy nie pomniejsza widoku, gdy się nie mieści). Jeśli komputer przy projektorze ma Linuksa, doinstaluj czcionkę emoji (`sudo apt install fonts-noto-color-emoji`) — inaczej 🔇, 📱 i 👀 wyjdą jako puste prostokąty. Telefon: iOS 15 lub nowszy, Android z aktualnym Chrome.
 

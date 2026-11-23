@@ -1,0 +1,61 @@
+name: Release Assets
+run-name: "Release Assets: ${{ github.event.release.tag_name }}"
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  release-assets:
+    name: Signed Binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: write # upload release assets
+      id-token: write # signs the provenance attestation (Sigstore)
+      attestations: write
+
+    steps:
+      - name: 📥 Git -- Checkout release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No build cache for releases: a poisoned cache must not end up in a signed binary.
+      - name: 📘 Go -- Set up
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: "go.mod"
+          cache: false
+
+      - name: 🏗️ Go -- Build binaries
+        run: |
+          mkdir dist
+          for arch in amd64 arm64; do
+              CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath -ldflags="-s -w" -o "dist/duet_linux_${arch}" ./cmd/duet
+          done
+          (cd dist && sha256sum duet_linux_* > SHA256SUMS && cat SHA256SUMS)
+
+      - name: 🔏 Release -- Attest build provenance
+        id: attest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: "dist/duet_linux_*"
+
+      - name: 📤 Release -- Upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          cp "$BUNDLE" dist/duet.intoto.jsonl
+          gh release upload "$TAG" dist/duet_linux_amd64 dist/duet_linux_arm64 dist/SHA256SUMS dist/duet.intoto.jsonl --repo "$GITHUB_REPOSITORY"
+          echo "✅ Binaries, checksums and provenance attached to ${TAG}."

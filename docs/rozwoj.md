@@ -59,6 +59,7 @@ go build -o bin/duet ./cmd/duet && ./e2e/run.sh
 | PR Automation | `pr-automation.yml` | nowy PR | Przypisuje autora i reviewera, nadaje etykiety z nazwy brancha, ustawia milestone |
 | Release Draft | `release-draft.yml` | `main` | Aktualizuje szkic notatek wydania |
 | Docker Image Publish | `docker-build.yml` | `main` | Buduje obraz amd64 + arm64, publikuje do GHCR (`latest` + wersja) z podpisaną atestacją pochodzenia i SBOM |
+| Release Assets | `release-assets.yml` | opublikowanie wydania | Binarki linux amd64 + arm64, `SHA256SUMS` i podpisana atestacja pochodzenia dołączone do wydania |
 | Scorecard Verification | `scorecard.yml` | `main`, co tydzień | OpenSSF Scorecard: ocena bezpieczeństwa łańcucha dostaw, wynik na scorecard.dev |
 
 **Etykiety z nazwy brancha:** `feat/*`, `feature/*` → `enhancement` · `fix/*`, `bug/*` → `bug` · `docs/*` → `documentation` · `chore/*` → `chore` · `deps/*` → `dependencies`
