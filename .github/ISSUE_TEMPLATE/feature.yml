@@ -1,0 +1,43 @@
+name: 🚀 Pomysł
+description: Nowa funkcja albo zmiana
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Masz pomysł? Opisz najpierw **problem**, potem rozwiązanie — łatwiej wtedy znaleźć najprostsze.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Czego brakuje albo co przeszkadza.
+      placeholder: Gdy gramy we czwórkę, nie widać, kto jeszcze nie odpowiedział…
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Propozycja
+      description: Jak to powinno działać.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Inne rozwiązania
+      description: Co jeszcze brałeś pod uwagę i dlaczego nie.
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Jak bardzo tego potrzebujesz
+      options:
+        - Byłoby miło
+        - Przydałoby się
+        - Bez tego nie da się wygodnie korzystać
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Zanim wyślesz
+      options:
+        - label: Sprawdziłem, że nie ma już takiego pomysłu.
+          required: true

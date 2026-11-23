@@ -1,0 +1,66 @@
+name: 💡 Zaproponuj pytanie
+description: Nowe pytanie do gry — po przeglądzie trafi do paczki pytań
+title: "[pytanie] "
+labels: ["pytanie"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Masz dobre pytanie do Duetu? Wybierz tryb i ton, wpisz pytanie — resztę zrobimy my.
+        Format paczek i pola wszystkich trybów: [docs/pytania.md](https://github.com/Huge-Commits-Only/duet/blob/main/docs/pytania.md).
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Tryb
+      options:
+        - Co wolisz (wolisz)
+        - Kto prędzej… (kto)
+        - Nigdy przenigdy (nigdy)
+        - Jak dobrze mnie znasz (znasz)
+        - Skala (skala)
+        - Szacowanie (szacowanie)
+        - Telepatia (telepatia)
+        - Wspólne TAK (tak)
+        - Głębokie rozmowy (rozmowy)
+        - Wyzwania (wyzwania)
+        - Blef (blef)
+        - Rysowanie (rysowanie)
+    validations:
+      required: true
+  - type: dropdown
+    id: tone
+    attributes:
+      label: Ton
+      options:
+        - lekko
+        - romantycznie
+        - pikantnie (18+)
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Pytanie
+      description: |
+        Co wolisz: dwie możliwości w dwóch liniach. Rysowanie: jedno słowo do narysowania.
+        Formy zależne od płci zapisuj jak w paczkach: „zrobiłeś/aś”, „chciał(a)byś”.
+      placeholder: Gdybyś mógł/mogła zjeść jedną potrawę do końca życia, co by to było?
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Dodatkowe pola (jeśli tryb ich wymaga)
+      description: |
+        Jak dobrze mnie znasz: 2–4 odpowiedzi · Szacowanie: maksimum skali (1–100) · Skala: opisy końców (opcjonalnie)
+        Głębokie rozmowy: poziom 1–3 · Wyzwania: prawda albo wyzwanie · Rysowanie: inne słowa uznawane za trafienie
+      placeholder: "Maksimum: 12"
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Zanim wyślesz
+      options:
+        - label: Pytanie nie zawiera danych osobowych ani nie dotyczy konkretnych osób.
+          required: true
+        - label: Sprawdziłem, że podobnego pytania nie ma w paczce trybu (`questions/<tryb>.json`).
+          required: true

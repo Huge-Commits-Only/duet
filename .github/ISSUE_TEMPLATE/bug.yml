@@ -1,0 +1,73 @@
+name: 🐛 Błąd
+description: Coś nie działa tak, jak powinno
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Dzięki za zgłoszenie! Im dokładniej opiszesz problem, tym szybciej go naprawimy.
+        **Podatność bezpieczeństwa?** Nie zgłaszaj jej tutaj — użyj **Security → Report a vulnerability**.
+  - type: textarea
+    id: what
+    attributes:
+      label: Co się stało
+      description: Co zrobiłeś i co zobaczyłeś.
+      placeholder: Po kliknięciu „Start” telefon pokazuje pusty ekran…
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Czego się spodziewałeś
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Jak odtworzyć
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Gdzie występuje
+      options:
+        - Interfejs w przeglądarce
+        - Telefon
+        - Serwer / API
+        - Wdrożenie / Docker
+        - CI / GitHub Actions
+        - Inne
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Wersja
+      description: Tag obrazu (np. `0.1.0`) albo commit.
+      placeholder: 0.1.0
+  - type: textarea
+    id: env
+    attributes:
+      label: Środowisko
+      description: Urządzenie, system, przeglądarka.
+      placeholder: Raspberry Pi 5, Chrome 140 na projektorze, iPhone z iOS 19
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logi
+      description: Fragment `docker compose logs`. Zostanie sformatowany jako kod.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Zanim wyślesz
+      options:
+        - label: Sprawdziłem, że nie ma już takiego zgłoszenia.
+          required: true
+        - label: W zgłoszeniu nie ma adresów, tokenów, haseł ani danych osobowych.
+          required: true
