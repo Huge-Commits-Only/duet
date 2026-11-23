@@ -221,6 +221,7 @@ docker cp moje-pytania.json duet:/data/questions/moje-pytania.json
 | Unit Test Verification | `unit-test.yml` | PR, `main` | `go test -race`, podsumowanie pokrycia i próg minimalny (85%) |
 | Lint Verification | `lint-test.yml` | PR, `main` | `golangci-lint` |
 | Security Verification | `security-test.yml` | PR, `main` | `govulncheck` + Trivy (podatności, sekrety, konfiguracja) |
+| CodeQL Verification | `codeql.yml` | PR, `main`, co tydzień | CodeQL `security-extended` dla Go, JS i workflowów; nowy alert o wadze wysokiej lub krytycznej blokuje merge |
 | Container Verification | `container-test.yml` | PR | Buduje obraz, sprawdza czy kontener startuje, skanuje go Trivy |
 | E2E Verification | `e2e-test.yml` | PR, `main` | Playwright: projektor i dwa telefony rozgrywają każdy tryb w prawdziwej przeglądarce |
 | Workflow Verification | `workflow-test.yml` | PR, `main` | `actionlint` dla workflowów |
