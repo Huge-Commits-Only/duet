@@ -56,6 +56,7 @@ go build -o bin/duet ./cmd/duet && ./e2e/run.sh
 | Container Verification | `container-test.yml` | PR | Buduje obraz, sprawdza czy kontener startuje, skanuje go Trivy |
 | E2E Verification | `e2e-test.yml` | PR, `main` | Playwright: projektor i dwa telefony rozgrywają każdy tryb w prawdziwej przeglądarce |
 | Workflow Verification | `workflow-test.yml` | PR, `main` | `actionlint` dla workflowów |
+| Dependabot Auto-Merge | `dependabot-auto-merge.yml` | PR od Dependabota | Łatki i drobne wersje scalają się same po przejściu wymaganych checków; duże wersje czekają na człowieka. Merge tokenem workflowu nie uruchamia workflowów na `main` — obraz z nową zależnością powstaje przy następnym merge'u |
 | PR Automation | `pr-automation.yml` | nowy PR | Przypisuje autora i reviewera, nadaje etykiety z nazwy brancha, ustawia milestone |
 | Release Draft | `release-draft.yml` | `main` | Aktualizuje szkic notatek wydania |
 | Docker Image Publish | `docker-build.yml` | `main` | Buduje obraz amd64 + arm64, publikuje do GHCR (`latest` + wersja) z podpisaną atestacją pochodzenia i SBOM |

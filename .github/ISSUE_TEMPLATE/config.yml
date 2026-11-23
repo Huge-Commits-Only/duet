@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🛡️ Podatność bezpieczeństwa
+    url: https://github.com/Huge-Commits-Only/.github/blob/main/SECURITY.md
+    about: Zgłaszaj prywatnie przez Security → Report a vulnerability, nie w issue.
+  - name: 🧨 Nowy projekt w organizacji
+    url: https://github.com/Huge-Commits-Only/go-app-template
+    about: Zacznij od szablonu go-app-template → Use this template.
