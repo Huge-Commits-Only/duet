@@ -1,4 +1,18 @@
-# 💞 Duet
+<div align="center">
+
+# 💞 `duet`
+
+**Gry i quizy dla par: projektor pokazuje grę, telefony są pilotami.**
+
+[![License](https://img.shields.io/github/license/Huge-Commits-Only/duet?style=flat-square&color=A3BE8C)](../LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.27-00ADD8?style=flat-square&logo=go&logoColor=white)](../go.mod)
+[![Docker](https://img.shields.io/badge/Docker-scratch-2496ED?style=flat-square&logo=docker&logoColor=white)](../Dockerfile)
+[![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi-c51a4a?style=flat-square&logo=raspberrypi&logoColor=white)](https://www.raspberrypi.com/)
+
+</div>
+
+<br>
+
 Gry i quizy dla par. Projektor (albo telewizor) pokazuje grę, a telefony służą za piloty — dołączacie, skanując kod QR. Gracie we dwoje albo z gośćmi: do czterech par przy jednym ekranie. Całość działa lokalnie w homelabie, bez kont i bez chmury.
 
 
