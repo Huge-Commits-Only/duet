@@ -52,6 +52,15 @@ const link = '/play?k=' + (await screen.locator('#url').textContent()).split('k=
 const a = await open(devices['iPhone 16'], link);
 const b = await open(devices['iPhone 16'], link);
 const phones = [a, b];
+// A failed run shows what every screen had on it: in the log, and as screenshots in $FAIL_DIR (an artifact in CI).
+process.on('uncaughtException', async e => {
+  console.error(e);
+  for (const [name, p] of [['projector', screen], ['natalia', a], ['kuba', b]]) {
+    console.error(`--- ${name} (${p.viewportSize()?.width}x${p.viewportSize()?.height}):\n${await text(p).catch(() => '?')}`);
+    if (process.env.FAIL_DIR) await p.screenshot({ path: `${process.env.FAIL_DIR}/${name}.png` }).catch(() => {});
+  }
+  process.exit(1);
+});
 await a.fill('#name', 'Natalia');
 await a.getByRole('button', { name: 'jak do niej' }).click();
 await a.click('#join .btn');
@@ -65,7 +74,12 @@ check((await screen.locator('.slot.on').count()) === 2, 'both players must show 
 // Returns false once the game is over. Odd rounds agree or hit, even rounds differ or miss.
 async function step() {
   // the projector enlarges what fits; nothing may end up off the screen
-  check(await screen.evaluate(() => { const r = document.getElementById('app').getBoundingClientRect(); return r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1 && r.left >= -1; }),
+  // (measured on what #app holds, after the entrance animations: they scale the content for a moment)
+  check(await screen.evaluate(() => {
+    if (document.getAnimations().some(x => x.playState === 'running')) return true;
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    return [...document.getElementById('app').children].every(c => { const r = c.getBoundingClientRect(); return !r.height || r.bottom <= st.bottom + 1 && r.top >= st.top - 1 && r.right <= st.right + 1 && r.left >= st.left - 1; });
+  }),
     `the projector cut something off:\n${await text(screen)}`);
   for (const p of phones) {
     // a mobile browser widens innerWidth to fit the content, so compare with the screen itself
@@ -145,6 +159,7 @@ async function step() {
   } else if (await has(a, 'input[type=range]') && await has(b, 'input[type=range]')) { // skala
     await slide(a, 60);
     await a.getByRole('button', { name: 'Zatwierdź' }).click();
+    await a.getByText(/Czekamy na|Wysłane/).waitFor(); // the server took the first answer before the second phone moves
     await slide(b, odd ? 62 : 10);
     await b.getByRole('button', { name: 'Zatwierdź' }).click();
   } else if (await has(a, '.pick') && await has(b, '.pick') && !(await has(a, '.pick[aria-pressed="true"]'))) { // any choice

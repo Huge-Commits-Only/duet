@@ -268,6 +268,7 @@ function fit() {
   const z = Math.min(most, stage.clientHeight / app.scrollHeight, stage.clientWidth / app.scrollWidth * most);
   app.style.zoom = z;
   // text re-wraps at the new size: one more pass, in real pixels, takes back whatever overflows
+  // (#app must not have a max-height: capped at the stage, it would hide the overflow from this pass)
   const r = app.getBoundingClientRect();
   if (r.height > stage.clientHeight + 1 || r.width > stage.clientWidth + 1) {
     app.style.zoom = z * Math.min(stage.clientHeight / r.height, stage.clientWidth / r.width);
@@ -275,6 +276,8 @@ function fit() {
 }
 addEventListener('resize', fit);
 $('qr').onload = fit;
+// the title shrinks when a game starts (a .4 s transition): fit again once the stage has its final height
+document.querySelector('.screen h1').addEventListener('transitionend', fit);
 
 // Text size for the room: + and - change it, 0 resets; remembered on this device.
 let zoom = 1;
