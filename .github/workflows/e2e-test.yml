@@ -52,7 +52,10 @@ jobs:
         run: npm ci --no-fund --no-audit && npx playwright install --with-deps chromium webkit
 
       - name: 🧪 Playwright -- Test Every Game Mode -> Projector and Two Phones
+        env:
+          FAIL_DIR: ${{ runner.temp }}/e2e-failure
         run: |
+          mkdir -p "$FAIL_DIR"
           echo "⚙️ Playing every game mode in a real browser:"
           if ./e2e/run.sh; then
               echo ""
@@ -66,7 +69,9 @@ jobs:
       - name: 🧪 Playwright -- Test Every Game Mode -> WebKit (Safari on the iPhones)
         env:
           BROWSER: webkit
+          FAIL_DIR: ${{ runner.temp }}/e2e-failure-webkit
         run: |
+          mkdir -p "$FAIL_DIR"
           echo "⚙️ Playing every game mode in WebKit, the engine of Safari:"
           if ./e2e/run.sh; then
               echo ""
@@ -76,3 +81,11 @@ jobs:
               echo "❌ WebKit browser test failed. Please fix the errors above."
               exit 1
           fi
+
+      - name: 📤 Playwright -- Upload screens of a failed run
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-failure
+          path: ${{ runner.temp }}/e2e-failure*
+          retention-days: 7
