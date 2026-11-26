@@ -17,6 +17,14 @@ const guesser = s => s.subject >= 0 ? s.players[1 - s.subject] : null;
 
 // s.mode is the mode of the current round; s.cfg.mode is the chosen game (they differ in "mix").
 const cardMode = s => s.cfg.mode === 'tak' || s.cfg.mode === 'rozmowy'; // cards instead of rounds
+// a question asked again: when it was before and, in the reveal, what each of the two said then
+const againLine = s => s.before && h('p', { className: 'again' }, s.before.said.some(Boolean)
+  ? [`🔁 ${s.before.when[0].toUpperCase()}${s.before.when.slice(1)}: `, s.players.map((p, i) => s.before.said[i] && [i > 0 && ' · ', h('b', { style: 'color:' + p.color }, p.name), ': ' + s.before.said[i]])]
+  : `🔁 To pytanie już było ${s.before.when}. Ciekawe, czy coś się zmieniło.`);
+
+// letters from the time capsule: the sentence, who wrote it and when
+const letterList = ls => h('div', { className: 'letters' }, ls.map(l => h('figure', {}, h('blockquote', {}, `„${l.text}”`), h('figcaption', {}, `${l.name}, ${l.when}`))));
+
 const modeName = s => (s.menu.mode.find(o => o.id === s.mode) || {}).name || '';
 
 // Headline of a reveal.
@@ -66,8 +74,9 @@ function summary(s) {
   const tak = s.cfg.mode === 'tak';
   // what the headline number counts depends on the game
   const count = { tak: 'Wspólne TAK', wyzwania: 'Zaliczone zadania', blef: 'Wykryte kłamstwa', rysowanie: 'Odgadnięte hasła' }[s.cfg.mode];
+  const together = s.cfg.mode === 'mix' || s.cfg.mode === 'rocznica';
   return [
-    h('p', { className: 'dim' }, count || (s.cfg.mode === 'mix' ? 'Wspólny wynik' : 'Wasza zgodność')),
+    h('p', { className: 'dim' }, count || (together ? 'Wspólny wynik' : 'Wasza zgodność')),
     h('div', { className: 'big' + (count ? ' half' : '') }, tak ? String(s.matches) : count ? `${s.matches} z ${s.rounds}` : percent(s) + '%'),
     !tak && s.found && h('p', { className: 'dim' }, 'Wasze wspólne TAK z tego wieczoru'),
     s.found && chips(s.found),
@@ -76,6 +85,7 @@ function summary(s) {
     (s.stakes || []).map((t, i) => t && h('p', { className: 'stake', style: '--c:' + s.players[i].color }, `Nagroda dla: ${s.players[i].name} · ${t}`)),
     // where the two answers were furthest apart: something to talk about after the game
     s.talk && [h('p', { className: 'dim' }, 'Do pogadania'), h('div', { className: 'talk' }, s.talk.map(q => h('p', {}, q)))],
+    s.letters && [h('p', { className: 'dim' }, '📬 Wasze listy z kapsuły czasu'), letterList(s.letters)],
   ];
 }
 

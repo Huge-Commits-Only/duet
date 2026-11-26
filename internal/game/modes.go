@@ -99,6 +99,12 @@ var modes = []modeDef{
 		valid: func(q question) bool { return q.Q != "" },
 	},
 	{
+		id: "rocznica", name: "Wieczór rocznicowy",
+		rule:   "Pytania z Waszej historii: te, przy których najbardziej się różniliście, i te sprzed miesięcy. Ekran pokaże, co odpowiedzieliście wtedy.",
+		rounds: [3]int{8, 20, 36}, subject: false, multi: "", mix: false,
+		valid: func(q question) bool { return false },
+	},
+	{
 		id: "mix", name: "Wieczór mix",
 		rule:   "Gra sama przeplata tryby po dwie rundy i liczy wspólny wynik.",
 		rounds: [3]int{8, 20, 36}, subject: false, multi: "all", mix: false,
@@ -283,27 +289,34 @@ func (g *Game) score(p *pair) {
 	}
 }
 
-// detail says what a couple answered, for the ranking shown when several couples play.
-func (g *Game) detail(p *pair) string {
-	said := func(seat int) string {
-		a := p.answers[seat]
-		switch g.mode {
-		case "telepatia":
-			return p.texts[seat]
-		case "skala", "szacowanie":
-			return strconv.Itoa(a)
-		case "nigdy":
-			return nigdyOptions[a]
-		case "kto":
-			return p.players[a].Name
-		case "wolisz":
-			return []string{g.cur.A, g.cur.B}[a]
-		case "znasz":
-			return g.cur.Options[a]
-		}
+// said is what one seat of a couple answered, as the screen puts it.
+func (g *Game) said(p *pair, seat int) string {
+	a := p.answers[seat]
+	if a < 0 && g.mode != "telepatia" {
 		return ""
 	}
-	return p.players[0].Name + ": " + said(0) + " · " + p.players[1].Name + ": " + said(1)
+	switch g.mode {
+	case "telepatia":
+		return p.texts[seat]
+	case "skala", "szacowanie":
+		return strconv.Itoa(a)
+	case "nigdy":
+		return nigdyOptions[a]
+	case "kto":
+		return p.players[a].Name
+	case "wolisz":
+		return []string{g.cur.A, g.cur.B}[a]
+	case "znasz":
+		return g.cur.Options[a]
+	case "tak":
+		return []string{"Tak", "Nie"}[a]
+	}
+	return ""
+}
+
+// detail says what a couple answered, for the ranking shown when several couples play.
+func (g *Game) detail(p *pair) string {
+	return p.players[0].Name + ": " + g.said(p, 0) + " · " + p.players[1].Name + ": " + g.said(p, 1)
 }
 
 var diacritics = strings.NewReplacer("ą", "a", "ć", "c", "ę", "e", "ł", "l", "ń", "n", "ó", "o", "ś", "s", "ź", "z", "ż", "z")

@@ -132,6 +132,20 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .medal.on { opacity: 1; border-style: solid; border-color: var(--green); background: var(--panel); }
 .medal b { display: block; font-size: calc(var(--u) * 2.6); }
 .medal small { font-size: calc(var(--u) * 2); color: var(--dim); }
+.again { margin: 0; font-size: calc(var(--u) * 2.8); color: var(--dim); }
+.phone .again { font-size: .95rem; }
+.letters { display: flex; flex-direction: column; gap: calc(var(--u) * 2); max-width: calc(var(--u) * 110); }
+.letters figure { margin: 0; padding: calc(var(--u) * 2) calc(var(--u) * 3); border-radius: calc(var(--u) * 2); background: var(--panel); border-left: calc(var(--u) * 0.6) solid var(--violet); text-align: left; }
+.letters blockquote { margin: 0; font-size: calc(var(--u) * 3.6); }
+.letters figcaption { margin-top: calc(var(--u) * 1); font-size: calc(var(--u) * 2.4); color: var(--dim); }
+.phone .letters figure { padding: .8rem 1rem; border-left-width: 4px; border-radius: .8rem; }
+.phone .letters blockquote { font-size: 1.1rem; }
+.phone .letters figcaption { font-size: .85rem; }
+.capsule { width: 100%; text-align: left; }
+.capsule p { margin: .4rem 0; }
+.capsule textarea { font-family: inherit; resize: none; }
+.phone .letters { max-width: 100%; width: 100%; }
+.talk small { display: block; margin-top: calc(var(--u) * 0.6); font-size: calc(var(--u) * 2.2); color: var(--dim); }
 .list .done { opacity: .5; text-decoration: line-through; border-color: var(--line); }
 .list span { padding: calc(var(--u) * 1) calc(var(--u) * 3.56); border-radius: calc(var(--u) * 5); background: var(--panel); border: calc(var(--u) * 0.3) solid var(--green); font-size: calc(var(--u) * 3.2); }
 .stake { padding: calc(var(--u) * 1) calc(var(--u) * 3.56); border-radius: calc(var(--u) * 2); border: calc(var(--u) * 0.4) solid var(--c); background: var(--panel); }

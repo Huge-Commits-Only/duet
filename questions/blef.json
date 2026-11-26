@@ -53,7 +53,7 @@
     {"tone": "lekko", "q": "O swoich noworocznych postanowieniach"},
 
     {"tone": "romantycznie", "q": "O swoich pierwszych miłościach"},
-    {"tone": "romantycznie", "q": "O naszej pierwszej randce — co wtedy myślałeś/aś"},
+    {"tone": "romantycznie", "prev": ["818d87b0b5723f13"], "q": "O naszej pierwszej randce: co wtedy myślałeś/aś"},
     {"tone": "romantycznie", "q": "O tym, co w nas lubisz"},
     {"tone": "romantycznie", "q": "O swoich marzeniach na przyszłość"},
     {"tone": "romantycznie", "q": "O prezentach, które dostałeś/aś"},

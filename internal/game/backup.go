@@ -12,6 +12,7 @@ type backup struct {
 	History []record   `json:"history"` // finished games
 	Banned  []string   `json:"banned"`  // questions never to show again; missing in older backups
 	Rounds  []roundRec `json:"rounds"`  // answered rounds for the profile; missing in older backups
+	Letters []letter   `json:"letters"` // the time capsule; missing in older backups
 }
 
 var errNotBackup = errors.New("to nie jest plik kopii zapasowej Duet")
@@ -23,7 +24,7 @@ func (g *Game) Backup(id string) ([]byte, error) {
 	if p, _ := g.find(id); p != g.pairs[0] || !g.home() { // household data, not for guests
 		return nil, ErrBad
 	}
-	b := backup{Asked: sorted(g.store.asked), Yes: g.store.yes, History: g.store.history, Banned: sorted(g.store.banned), Rounds: g.store.rounds}
+	b := backup{Asked: sorted(g.store.asked), Yes: g.store.yes, History: g.store.history, Banned: sorted(g.store.banned), Rounds: g.store.rounds, Letters: g.store.letters}
 	return json.MarshalIndent(b, "", "  ")
 }
 
@@ -52,6 +53,10 @@ func (g *Game) Restore(id string, data []byte) error {
 			s.banned[q] = true
 		}
 		s.write("banned.json", sorted(s.banned))
+	}
+	if raw["letters"] != nil {
+		s.letters = b.Letters
+		s.write("letters.json", s.letters)
 	}
 	if raw["rounds"] != nil { // an older backup keeps today's profile
 		s.rounds = b.Rounds

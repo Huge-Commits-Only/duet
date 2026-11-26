@@ -19,7 +19,7 @@ func TestBuiltinPacks(t *testing.T) {
 		}
 	}
 	for _, mode := range menu["mode"] {
-		if mode.ID == "mix" {
+		if mode.ID == "mix" || mode.ID == "rocznica" {
 			continue // draws from the other modes' packs
 		}
 		for _, tone := range menu["tone"] {

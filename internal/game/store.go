@@ -17,6 +17,8 @@ type store struct {
 	history []record        // finished games, oldest first (history.json)
 	banned  map[string]bool // ids of questions the couple never wants to see again (banned.json)
 	rounds  []roundRec      // answered rounds of the household, oldest first, for the profile (rounds.json)
+	letters []letter        // the time capsule (letters.json)
+	meta    meta            // small flags (meta.json)
 }
 
 // yesItem is one idea from "Wspólne TAK" on the couple's saved list.
@@ -38,6 +40,8 @@ func openStore(dir string) *store {
 	}
 	s.read("history.json", &s.history)
 	s.read("rounds.json", &s.rounds)
+	s.read("letters.json", &s.letters)
+	s.read("meta.json", &s.meta)
 	ids = nil
 	s.read("banned.json", &ids)
 	for _, id := range ids {
@@ -91,6 +95,16 @@ func (s *store) removeYes(text string) bool {
 		s.write("yes.json", s.yes)
 	}
 	return i >= 0
+}
+
+// meta holds what does not fit elsewhere.
+type meta struct {
+	MonthShown string `json:"monthShown,omitempty"` // the month whose summary was already seen
+}
+
+func (s *store) markMonth(key string) {
+	s.meta.MonthShown = key
+	s.write("meta.json", s.meta)
 }
 
 func (s *store) saveAsked() { s.write("asked.json", sorted(s.asked)) }

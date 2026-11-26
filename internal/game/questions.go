@@ -36,6 +36,7 @@ type question struct {
 	Kind    string   `json:"kind,omitempty"`
 	Alt     []string `json:"alt,omitempty"`
 	Max     int      `json:"max,omitempty"`
+	Prev    []string `json:"prev,omitempty"`  // ids the question had before its text was corrected (see migrate)
 	Topic   string   `json:"topic,omitempty"` // for the couple's profile; not part of the id, so tagging keeps bans and history
 }
 

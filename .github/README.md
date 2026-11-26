@@ -18,9 +18,10 @@ Projektor albo telewizor pokazuje grę, a telefony są pilotami: dołączacie, s
 
 ## ✨ Funkcje
 - Telefon jest pilotem. Skanujesz kod QR i grasz, bez aplikacji, kont i logowania.
-- 13 trybów w trzech tonach, od „Co wolisz” przez Blef po rysowanie palcem: lekko, romantycznie albo pikantnie (18+).
+- 14 trybów w trzech tonach, od „Co wolisz” przez Blef po rysowanie palcem: lekko, romantycznie albo pikantnie (18+).
 - Do czterech par przy jednym ekranie, z rankingiem najbardziej zgranej pary i botami do testów w pojedynkę.
 - Profil pary: zgodność w ośmiu tematach, pytania do pogadania po grze i odznaki.
+- Pamięć pary: pytania wracają po miesiącach, żeby sprawdzić, kto zmienił zdanie, a listy z kapsuły czasu otwieracie po roku.
 - Statystyki wieczorów, lista wspólnych TAK i tajne stawki dla przegranych.
 - Jeden plik binarny w Go, obraz `scratch`, około 25 MB RAM na Raspberry Pi.
 - Testy w prawdziwej przeglądarce, fuzzing, CodeQL oraz podpisane obrazy i binarki.
@@ -50,6 +51,7 @@ Otwórz `http://<adres-pi>:8080/screen` na projektorze i zeskanujcie kod QR tele
 | 🃏 Blef | Dwie prawdy i jedno kłamstwo; druga osoba szuka kłamstwa |
 | 🎨 Rysowanie | Jedno rysuje palcem na telefonie, drugie zgaduje hasło w 60 sekund |
 | 🎲 Wieczór mix | Gra sama przeplata tryby i liczy wspólny wynik |
+| 🎂 Wieczór rocznicowy | Pytania z Waszej historii, z odpowiedziami sprzed miesięcy i listami z kapsuły czasu |
 
 Masz pomysł na pytanie? [Zaproponuj je przez formularz](https://github.com/Huge-Commits-Only/duet/issues/new?template=pytanie.yml).
 

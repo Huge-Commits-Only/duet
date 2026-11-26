@@ -9,9 +9,10 @@ import (
 
 // card is one round of a game: a question and the mode it is played in.
 type card struct {
-	mode string
-	q    question
-	dare *question // "wyzwania": q is the truth, dare the task; the player picks one
+	mode   string
+	q      question
+	dare   *question // "wyzwania": q is the truth, dare the task; the player picks one
+	before *roundRec // a question asked again: the round when it was asked before
 }
 
 // pick takes up to want questions from pool, not-yet-asked ones first;
@@ -71,7 +72,7 @@ func (g *Game) cards(mode string, all map[string][]question, want int) []card {
 				ts, ds := g.pick(mode, truths, n), g.pick(mode, dares, n)
 				out := make([]card, n)
 				for i := range out {
-					out[i] = card{mode, ts[i], &ds[i]}
+					out[i] = card{mode: mode, q: ts[i], dare: &ds[i]}
 				}
 				return out
 			}
@@ -113,7 +114,8 @@ func (g *Game) start() error {
 	all, length := loadQuestions(g.store.dir), g.cfg["length"]
 	var deck []card
 	g.playing = playing // cards() sizes the deck by it
-	if g.cfg["mode"] == "mix" {
+	switch g.cfg["mode"] {
+	case "mix":
 		// Shuffled modes take turns, two rounds each, until the evening is full.
 		modes := slices.Clone(mixModes)
 		if len(playing) > 1 {
@@ -136,8 +138,16 @@ func (g *Game) start() error {
 				more = more || n > 0
 			}
 		}
-	} else {
+	case "rocznica":
+		var err error
+		if deck, err = g.anniversary(all, roundsFor[length]); err != nil {
+			return err
+		}
+	default:
 		deck = g.cards(g.cfg["mode"], all, roundsOf(g.cfg["mode"], length))
+	}
+	if g.cfg["mode"] != "rocznica" {
+		deck = g.withRepeat(deck, all)
 	}
 	if len(deck) == 0 {
 		return errNoQuestions
@@ -146,7 +156,10 @@ func (g *Game) start() error {
 	for _, p := range playing {
 		p.matches, p.score, p.points, p.found = 0, 0, [2]int{}, nil
 	}
-	g.deck, g.rounds, g.round, g.showList, g.showStats, g.showProfile, g.turn, g.talk = deck, len(deck), 0, false, false, false, 0, nil
+	g.deck, g.rounds, g.round, g.showList, g.showStats, g.showProfile, g.showLetters, g.turn, g.talk = deck, len(deck), 0, false, false, false, false, 0, nil
+	if m := g.store.month(); m != nil && g.home() { // the summary was there to see before the game
+		g.store.markMonth(m.Key)
+	}
 	g.phase = "question" // before lead(): from here on the first couple playing is the leading one
 	g.lead()
 	g.seen = map[string]bool{}
@@ -182,6 +195,12 @@ func (g *Game) next() {
 	} else if subjectModes[g.mode] {
 		g.subj = g.turn % 2
 		g.turn++
+	}
+	// a question asked again is about the same person as before, so the answers can be compared
+	if g.before = g.deck[g.round-1].before; g.before != nil && g.subj >= 0 && g.before.Subj >= 0 {
+		if seat := slices.IndexFunc(g.players, func(pl *player) bool { return pl.Name == g.before.Names[g.before.Subj] }); seat >= 0 {
+			g.subj = seat
+		}
 	}
 	if g.mode == "rysowanie" {
 		g.deadline = time.Now().Add(drawTime)
