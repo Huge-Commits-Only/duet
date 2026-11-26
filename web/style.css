@@ -53,7 +53,6 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .stage #app { gap: calc(var(--u) * 2.5); max-width: 100%; }
 .phones { margin: 0; font-size: calc(var(--u) * 3); color: var(--dim); }
 .count { font-size: calc(var(--u) * 30); font-weight: 800; line-height: 1; color: var(--pink); text-shadow: 0 0 calc(var(--u) * 6) var(--pink); }
-#lost { max-width: calc(var(--u) * 40); margin: 0; font-size: calc(var(--u) * 2.6); font-weight: 700; color: var(--pink); }
 #joinbox { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 1.5); flex: none; }
 .screen h2 { font-size: calc(var(--u) * 7); }
 .screen h2.long { font-size: calc(var(--u) * 5); }
@@ -444,12 +443,8 @@ details small { display: block; margin-top: 1.1rem; }
 .slots.lobby small { font-size: calc(var(--u) * 2.6); }
 .heart { font-size: calc(var(--u) * 6); filter: drop-shadow(0 0 calc(var(--u) * 2) var(--pink)); }
 .slots.lobby:has(.off, .empty) .heart { filter: grayscale(1); opacity: .35; }
-.alert { padding: calc(var(--u) * 2) calc(var(--u) * 4); border-radius: calc(var(--u) * 2); border: calc(var(--u) * .4) solid var(--pink); background: rgba(255, 61, 154, .12); box-shadow: 0 0 calc(var(--u) * 5) calc(var(--u) * -1) var(--pink); }
-.alert b { font-size: calc(var(--u) * 4); color: var(--pink); }
-.screen .alert p { margin-top: calc(var(--u) * .6); font-size: calc(var(--u) * 2.8); color: var(--dim); }
-#lost { padding: calc(var(--u) * 1.2) calc(var(--u) * 2); border-radius: calc(var(--u) * 1.6); border: calc(var(--u) * .3) solid var(--pink); background: rgba(255, 61, 154, .12); }
 @media (prefers-reduced-motion: no-preference) {
-  .slot.off, .alert, #lost { animation: lost 1.6s ease-in-out infinite; }
+  .slot.off { animation: lost 1.6s ease-in-out infinite; }
   @keyframes lost { 50% { box-shadow: 0 0 calc(var(--u) * 5) var(--pink); } }
 }
 /* names on the answers and the words of Telepatia: gentle corners too */
@@ -479,10 +474,6 @@ details small { display: block; margin-top: 1.1rem; }
 .verdicts .btn { min-height: 7rem; font-size: 1.3rem; }
 .verdicts .btn.yes { background: linear-gradient(150deg, var(--green), #1fb87a); color: #0d0717; box-shadow: 0 .4rem 1.6rem -.4rem var(--green); }
 .verdicts .btn.no { background: var(--panel); border: 3px solid var(--pink); color: var(--text); box-shadow: 0 .4rem 1.6rem -.6rem var(--pink); }
-/* the partner dropped out: hard to miss */
-.lost { display: flex; flex-direction: column; align-items: center; gap: .5rem; width: 100%; padding: 1.2rem; border-radius: 1.2rem; border: 2px solid var(--pink); background: rgba(255, 61, 154, .1); box-shadow: 0 0 2rem -.4rem var(--pink); }
-.lost b { font-size: 1.3rem; }
-.lost p { color: var(--dim); font-size: .95rem; }
 /* the code in the corner: the menu above it, never under it */
 .screen:has(#joinbox:not([hidden]) #qr.small) .stage { padding-bottom: calc(var(--u) * 16); }
 /* the rare actions in one row: icon above a short label */
@@ -497,3 +488,33 @@ details small { display: block; margin-top: 1.1rem; }
 .stmt [name=st] { padding: .55rem .8rem; }
 /* four tones in one row */
 .picker.tone { grid-template-columns: repeat(4, 1fr); }
+
+/* ---- round four ---- */
+/* the sound switch on the projector: just the icon */
+#snd { font-size: calc(var(--u) * 3.2); opacity: .55; }
+/* Dalej waits while the result is read */
+.btn.later:disabled { opacity: .4; filter: saturate(.3); box-shadow: none; cursor: default; }
+/* the players as cards, under Start */
+.players { display: flex; flex-direction: column; gap: .5rem; width: 100%; text-align: left; }
+.players > small { color: var(--dim); font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; }
+.player { display: flex; align-items: center; gap: .8rem; padding: .55rem .6rem .55rem .7rem; border-radius: .9rem; border: 2px solid color-mix(in srgb, var(--c) 55%, var(--line));
+  background: linear-gradient(100deg, color-mix(in srgb, var(--c) 18%, var(--panel)), var(--panel) 60%); }
+.player .ini { flex: none; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: .7rem; background: var(--c); color: #160b25; font-style: normal; font-weight: 700; font-size: 1.15rem; box-shadow: 0 0 .9rem -.1rem var(--c); }
+.player > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.player b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player small { color: var(--dim); font-size: .85rem; }
+.player button { flex: none; width: 2.75rem; height: 2.75rem; border-radius: .7rem; border: 2px solid var(--line); background: var(--panel); }
+.player.off { border-style: dashed; border-color: var(--pink); background: var(--panel); }
+.player.off .ini { filter: grayscale(1); opacity: .45; box-shadow: none; }
+.player.off small { color: var(--pink); font-weight: 700; }
+.players .row { gap: .5rem; }
+/* the add-to-home-screen hint: one line */
+.hint { flex-direction: row; align-items: center; gap: .6rem; padding: .55rem .6rem .55rem .9rem; border-width: 1.5px; border-radius: .9rem; }
+.hint p { flex: 1; font-size: .88rem; }
+.hint button { flex: none; width: 2.2rem; height: 2.2rem; border-radius: .6rem; border: 0; background: rgba(155, 92, 255, .2); color: var(--text); }
+/* the end of a game on the phone: the result in a card, then what next */
+.endcard { display: flex; flex-direction: column; align-items: center; gap: .5rem; width: 100%; padding: 1.4rem 1rem; border-radius: 1.2rem; background: linear-gradient(160deg, #2b1650, var(--panel)); border: 2px solid var(--violet); box-shadow: 0 0 2rem -.4rem var(--violet); }
+.endcard .big { font-size: 4.5rem; line-height: 1; }
+.endcard .big.half { font-size: 3rem; }
+.endcard h2 { font-size: 1.6rem; }
+.endcard .stake { font-size: .95rem; }

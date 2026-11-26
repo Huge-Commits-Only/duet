@@ -5,7 +5,8 @@ set -eu
 cd "$(dirname "$0")/.."
 tmp=$(mktemp -d)
 trap 'kill $pid 2>/dev/null || true; rm -rf "$tmp"' EXIT
-DATA_DIR="$tmp" PORT=18080 ./bin/duet >"$tmp/duet.log" 2>&1 &
+port=${PORT:-18080} # another port lets several runs go side by side
+DATA_DIR="$tmp" PORT=$port ./bin/duet >"$tmp/duet.log" 2>&1 &
 pid=$!
-for _ in $(seq 50); do curl -fs -o /dev/null http://127.0.0.1:18080/screen && break; sleep 0.2; done
-node e2e/play.mjs http://127.0.0.1:18080 || { cat "$tmp/duet.log"; exit 1; }
+for _ in $(seq 50); do curl -fs -o /dev/null http://127.0.0.1:$port/screen && break; sleep 0.2; done
+node e2e/play.mjs http://127.0.0.1:$port || { cat "$tmp/duet.log"; exit 1; }

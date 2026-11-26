@@ -22,10 +22,19 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Chromium and WebKit (Safari on the iPhones) run side by side; the Chromium job keeps the name the ruleset requires
   e2e-ci-test:
-    name: Playwright Game Run
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Playwright Game Run
+            browser: chromium
+          - name: Playwright Game Run (WebKit)
+            browser: webkit
 
     steps:
       - name: 📥 Git -- Checkout repository
@@ -47,38 +56,25 @@ jobs:
       - name: 📦 Go -- Build server
         run: go build -o bin/duet ./cmd/duet
 
-      - name: 📦 Playwright -- Install with Chromium and WebKit
+      - name: 📦 Playwright -- Install with ${{ matrix.browser }}
         working-directory: e2e
-        run: npm ci --no-fund --no-audit && npx playwright install --with-deps chromium webkit
+        env:
+          BROWSER: ${{ matrix.browser }}
+        run: npm ci --no-fund --no-audit && npx playwright install --with-deps "$BROWSER"
 
       - name: 🧪 Playwright -- Test Every Game Mode -> Projector and Two Phones
         env:
+          BROWSER: ${{ matrix.browser }}
           FAIL_DIR: ${{ runner.temp }}/e2e-failure
         run: |
           mkdir -p "$FAIL_DIR"
-          echo "⚙️ Playing every game mode in a real browser:"
+          echo "⚙️ Playing every game mode in $BROWSER:"
           if ./e2e/run.sh; then
               echo ""
-              echo "✅ All game modes played through without browser errors."
+              echo "✅ All game modes played through in $BROWSER without browser errors."
           else
               echo ""
-              echo "❌ Browser test failed. Please fix the errors above."
-              exit 1
-          fi
-
-      - name: 🧪 Playwright -- Test Every Game Mode -> WebKit (Safari on the iPhones)
-        env:
-          BROWSER: webkit
-          FAIL_DIR: ${{ runner.temp }}/e2e-failure-webkit
-        run: |
-          mkdir -p "$FAIL_DIR"
-          echo "⚙️ Playing every game mode in WebKit, the engine of Safari:"
-          if ./e2e/run.sh; then
-              echo ""
-              echo "✅ All game modes played through in WebKit without browser errors."
-          else
-              echo ""
-              echo "❌ WebKit browser test failed. Please fix the errors above."
+              echo "❌ Browser test in $BROWSER failed. Please fix the errors above."
               exit 1
           fi
 
@@ -86,6 +82,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: e2e-failure
-          path: ${{ runner.temp }}/e2e-failure*
+          name: e2e-failure-${{ matrix.browser }}
+          path: ${{ runner.temp }}/e2e-failure
           retention-days: 7

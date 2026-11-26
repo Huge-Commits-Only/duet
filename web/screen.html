@@ -17,7 +17,6 @@
   <!-- the stage takes whatever height is left; fit() shrinks #app when it would not fit -->
   <div class="stage">
     <aside id="joinbox">
-      <p id="lost" hidden>Ktoś się rozłączył. Zeskanuj kod, żeby wrócić do gry</p>
       <img id="qr" src="/qr.png" alt="Kod QR do dołączenia">
       <p id="url" class="dim"></p>
     </aside>
@@ -160,8 +159,8 @@ const unlock = e => audio && e.target.id !== 'snd' && e.key !== 'm' && audio.res
 addEventListener('pointerdown', unlock);
 addEventListener('keydown', unlock);
 function soundButton() {
-  $('snd').textContent = !audio ? '' : audible() ? '🔊' : muted ? '🔇' : '🔇 Kliknij, aby włączyć dźwięk';
-  $('snd').ariaLabel = audible() ? 'Wycisz dźwięk' : 'Włącz dźwięk';
+  $('snd').textContent = !audio ? '' : audible() ? '🔊' : '🔇';
+  $('snd').ariaLabel = $('snd').title = audible() ? 'Wycisz dźwięk (M)' : 'Włącz dźwięk (M)';
 }
 $('snd').onclick = async () => {
   if (!audio) return;
@@ -206,9 +205,6 @@ function render(s) {
   // the code stays up in the menu, so another couple can still join; it only shrinks once someone is ready
   // in a game the code comes back when someone drops out, so a phone that lost its seat can take it again
   $('joinbox').hidden = s.phase !== 'lobby' && both || !!s.list || !!s.stats || !!s.profile || !!s.month || !!s.letters;
-  const gone = s.pairs.flatMap(p => p.players).filter(x => !x.online).map(x => x.name);
-  $('lost').hidden = s.phase === 'lobby' || both; // the menu says it in the middle
-  $('lost').textContent = `📵 Brak połączenia: ${gone.join(', ')}. Otwórz link albo zeskanuj kod, żeby wrócić do gry`;
   $('qr').classList.toggle('small', both);
   document.querySelector('main').classList.toggle('ingame', s.phase !== 'lobby'); // small title: the game gets the room
   $('url').textContent = link || `${location.host}/play?k=${s.key}`; // for a phone that cannot scan the code
@@ -247,9 +243,7 @@ function render(s) {
              h('div', {}, h('h2', {}, optName(s, 'mode')), h('p', { className: 'rule' }, s.rule),
                h('p', { className: 'chips' }, h('span', {}, optName(s, 'tone')), h('span', {}, optName(s, 'length'))))),
            h('p', { className: 'dim' }, 'Ustawcie grę na telefonie i naciśnijcie Start')]
-        : gone.length
-        ? h('div', { className: 'alert' }, h('b', {}, `📵 ${gone.join(', ')}: brak połączenia`), h('p', {}, 'Gra czeka. Otwórz link na telefonie albo zeskanuj kod'))
-        : h('p', { className: 'dim' }, 'Zeskanujcie kod telefonami'),
+        : s.players.length < 2 && h('p', { className: 'dim' }, 'Zeskanujcie kod telefonami'), // someone who dropped out shows on their card
     ];
   } else if (s.phase === 'question') {
     kids = [

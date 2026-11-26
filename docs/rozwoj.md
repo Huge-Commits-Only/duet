@@ -43,6 +43,7 @@ DATA_DIR=./data PORT=18080 go run ./cmd/duet   # http://localhost:18080/screen
 # test w przeglądarce: wszystkie tryby, projektor + dwa telefony
 (cd e2e && npm ci && npx playwright install chromium)
 go build -o bin/duet ./cmd/duet && ./e2e/run.sh
+BROWSER=webkit PORT=18081 ./e2e/run.sh   # Safari (WebKit), obok na innym porcie
 ```
 
 ## CI/CD

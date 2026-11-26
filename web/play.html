@@ -48,7 +48,8 @@ let hintSeen = standalone;
 try { hintSeen ||= localStorage.getItem('duet-a2hs') === '1'; } catch {}
 
 
-const COLORS = ['#ff3d9a', '#9b5cff', '#3db8ff', '#3dffa8', '#ffd23d', '#ff7a3d', '#2ee6d6', '#b6ff3d'];
+// the neon of the theme: pinks, violets and blues, nothing yellow or lime
+const COLORS = ['#ff3d9a', '#ff6f91', '#e85cff', '#9b5cff', '#c4a1ff', '#5b7cff', '#3db8ff', '#2ee6d6'];
 
 // Profile lives on the phone so a rescan (or a dropped connection) puts you straight back in.
 let me = {};
@@ -57,7 +58,7 @@ if (!me.id) {
   // not crypto.randomUUID: it is unavailable on plain http
   me.id = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
 }
-me.color ||= COLORS[Math.floor(Math.random() * COLORS.length)];
+if (!COLORS.includes(me.color)) me.color = COLORS[Math.floor(Math.random() * COLORS.length)]; // also a color from the old palette
 
 $('name').value = me.name || '';
 function drawColors() {
@@ -141,16 +142,16 @@ function modeCards(s) {
 
 // how to get the game on the home screen, once
 const homeHint = () => !hintSeen && h('div', { className: 'hint' },
-  h('b', {}, '📲 Duet jak aplikacja'),
-  h('p', {}, 'W Safari stuknij Udostępnij (kwadrat ze strzałką) i wybierz „Do ekranu początkowego”. Gra otworzy się na pełnym ekranie, bez paska Safari.'),
-  btn('OK, rozumiem', () => { hintSeen = true; try { localStorage.setItem('duet-a2hs', '1'); } catch {} lastKey = ''; show(last); }, 'ghost'));
+  h('p', {}, '📲 Pełny ekran: w Safari Udostępnij, potem „Do ekranu początkowego”'),
+  h('button', { type: 'button', ariaLabel: 'Zamknij podpowiedź', onclick: () => { hintSeen = true; try { localStorage.setItem('duet-a2hs', '1'); } catch {} lastKey = ''; show(last); } }, '✕'));
 
 // The drawing pad of "rysowanie": one canvas per round, kept across re-renders.
 // Points are queued and sent in order, a batch at a time, so strokes arrive as drawn.
-let padEl, padRound = 0, queue = [], sending = false, ink = [], inkColors = [], penColor = 0; // ink: own strokes, to repaint after an undo
+let padEl, padKey = '', queue = [], sending = false, ink = [], inkColors = [], penColor = 0; // ink: own strokes, to repaint after an undo
 function pad(s) {
-  if (padEl && padRound === s.round) return padEl;
-  padRound = s.round;
+  // the round and its word: round 1 of the next game is a new pad, even on a phone that missed the end of the last one
+  if (padEl && padKey === s.round + '|' + s.q.text) return padEl;
+  padKey = s.round + '|' + s.q.text;
   queue = [];
   ink = [];
   inkColors = [];
@@ -233,16 +234,14 @@ function lobbyScreen(s, { p, other, menu, home }) {
     s.month && btn('Zamknij podsumowanie miesiąca', () => act('month'), 'ghost'),
     homeHint(),
     menu
-      ? [modeCards(s), h('p', { className: 'dim rulebox' }, s.rule),
+      ? [modeCards(s),
          picker(s, 'tone', 'Ton'), picker(s, 'length', 'Długość'),
          btn('Start', async () => { await saveStake(); beep('next'); act('start'); }, 'after start')]
       : other
-      ? h('div', { className: 'lost' }, h('div', { className: 'vote-icon', ariaHidden: true }, '📵'),
-          h('b', {}, `${other.name} ${other.form === 'f' ? 'straciła' : other.form === 'm' ? 'stracił' : 'traci'} połączenie`),
-          h('p', {}, 'Gra czeka. Wystarczy znów otworzyć link albo zeskanować kod z projektora.'),
-          h('span', { className: 'dots', ariaHidden: true }, h('i'), h('i'), h('i')))
+      ? h('p', { className: 'dim' }, `Czekamy, aż ${other.name} wróci…`)
       : [h('p', { className: 'dim' }, 'Czekamy na drugą osobę…'),
          btn('Zagraj z botem (test w pojedynkę)', () => act('bot'), 'ghost')],
+    playersBox(s, other, menu),
     // everything not needed every evening, folded away; stays open across re-renders,
     // or any update would fold it away under your finger
     h('details', { className: 'after', open: infoOpen, ontoggle: e => { infoOpen = e.target.open; } }, h('summary', {}, 'Więcej'),
@@ -254,21 +253,11 @@ function lobbyScreen(s, { p, other, menu, home }) {
         h('span', { className: it.done ? 'done' : '' }, it.text),
         h('button', { type: 'button', ariaLabel: it.done ? 'Oznacz jako niezrobione' : 'Oznacz jako zrobione', ariaPressed: it.done, onclick: () => act('yesdone', '', it.text) }, '✓'),
         h('button', { type: 'button', ariaLabel: 'Usuń z listy', onclick: () => confirm(`Usunąć „${it.text}” z listy?`) && act('yesdel', '', it.text) }, '✕')))),
-      // trying things out alone: the bot partner can go, and a couple of bots can join for the ranking
-      menu && other.bot && [
-        btn('Usuń bota', () => act('bot'), 'ghost'),
-        btn(s.pairs.some(x => x.players.every(o => o.bot)) ? 'Usuń parę botów' : 'Dodaj parę botów', () => act('botpair'), 'ghost')],
       btn(muted ? '🔊 Włącz dźwięki na telefonie' : '🔇 Wycisz dźwięki na telefonie', () => {
         muted = !muted;
         try { localStorage.setItem('duet-mute', muted ? '1' : ''); } catch {}
         lastKey = ''; show(last);
       }, 'ghost'),
-      btn('Zmień imię lub kolor', () => { editing = true; lastKey = ''; show(last); }, 'ghost'),
-      h('small', {}, 'Gracze'),
-      s.pairs.flatMap(x => x.players.map((o, seat) => h('div', { className: 'row' },
-        h('span', {}, `${o.name} · para ${x.n}` + (o.online ? '' : ' · rozłączony')),
-        !(x.n === s.pair && seat === s.me) && h('button', { type: 'button', ariaLabel: `Usuń gracza ${o.name}`,
-          onclick: () => confirm(`Usunąć gracza ${o.name}? Zwolni się jego miejsce.`) && act('kick', String(x.n), String(seat)) }, '✕')))),
       home && h('small', {}, 'Kopia zapasowa'),
       home && h('a', { className: 'btn ghost', href: '/api/backup?id=' + me.id, download: '' }, 'Pobierz kopię zapasową'),
       home && h('label', { className: 'btn ghost' }, 'Wczytaj kopię zapasową',
@@ -280,6 +269,27 @@ function lobbyScreen(s, { p, other, menu, home }) {
           $('err').textContent = !r ? 'Brak połączenia z grą' : r.ok ? 'Kopia wczytana.' : await r.text();
         } }))),
   ];
+}
+
+// Everyone at the table as a card: color, initial, name and state. Your own card edits your name and color,
+// the others can be removed (their seat is freed); bots come and go here too.
+function playersBox(s, other, menu) {
+  return h('section', { className: 'players after' }, h('small', {}, '👥 Gracze'),
+    s.pairs.flatMap(x => x.players.map((o, seat) => {
+      const mine = x.n === s.pair && seat === s.me;
+      return h('div', { className: 'player' + (o.online ? '' : ' off'), style: '--c:' + o.color },
+        h('i', { className: 'ini', ariaHidden: true }, o.name[0].toUpperCase()),
+        h('span', {}, h('b', {}, mine ? `${o.name} (Ty)` : o.name),
+          h('small', {}, [o.bot ? '🤖 bot' : o.online ? 'w grze' : '📵 brak połączenia', s.multi && `para ${x.n}`].filter(Boolean).join(' · '))),
+        mine
+          ? h('button', { type: 'button', ariaLabel: 'Zmień imię lub kolor', onclick: () => { editing = true; lastKey = ''; show(last); } }, '✏️')
+          : h('button', { type: 'button', ariaLabel: `Usuń gracza ${o.name}`,
+              onclick: () => confirm(`Usunąć gracza ${o.name}? Zwolni się jego miejsce.`) && act('kick', String(x.n), String(seat)) }, '✕'));
+    })),
+    // trying things out alone: the bot partner can go, and a couple of bots can join for the ranking
+    menu && other.bot && h('div', { className: 'row' },
+      btn('Usuń bota', () => act('bot'), 'ghost'),
+      btn(s.pairs.some(x => x.players.every(o => o.bot)) ? 'Usuń parę botów' : 'Dodaj parę botów', () => act('botpair'), 'ghost')));
 }
 
 // What the phone asks you to do, per kind of question; q = c plus { about, mineQ, mine }.
@@ -396,8 +406,17 @@ function questionScreen(s, c) {
 
 // The result belongs to the projector: the phone does not spoil it. It counts 3-2-1 with the projector
 // (700 ms a number, as in screen.html), then says to look up. Everyone taps Dalej to go on.
-const COUNT = 2100, revealAt = {};
-const countLeft = s => s.mode === 'rysowanie' ? 0 : COUNT - (Date.now() - (revealAt[s.round] ||= Date.now()));
+// Dalej then stays locked for WAIT more, so nobody skips the result before it was read
+// (the browser test shortens it in localStorage, or it would wait minutes in total).
+const COUNT = 2100;
+let WAIT = 5000, revealAt = {};
+try { WAIT = +(localStorage.getItem('duet-wait') ?? WAIT); } catch {}
+const since = s => Date.now() - (revealAt[s.round] ||= Date.now());
+const countLeft = s => s.mode === 'rysowanie' ? 0 : COUNT - since(s);
+const lockLeft = s => (s.mode === 'rysowanie' ? 0 : COUNT) + WAIT - since(s);
+// there from the start, so the layout does not jump; it fades in when the count ends and unlocks after WAIT
+const nextBtn = s => h('button', { className: 'btn later', type: 'button', disabled: lockLeft(s) > 0, style: `animation-delay:${Math.max(0, countLeft(s))}ms`,
+  onclick: () => act('next') }, s.round === s.rounds ? 'Zobacz wynik' : 'Dalej');
 function revealScreen(s, { p }) {
   const notYet = s.pairs.flatMap(x => x.players).filter(o => o.online && !o.bot && !o.ready).map(o => o.name);
   if (p.ready) return [look('Czekamy na: ' + (s.multi ? 'pozostałych' : notYet.join(', '))), minor(banBtn(s), quitBtn())];
@@ -405,14 +424,17 @@ function revealScreen(s, { p }) {
   return [
     left > 0 ? h('div', { className: 'count', id: 'count', ariaLive: 'polite' }, String(Math.ceil(left / 700)))
       : h('div', { className: 'look up' }, h('div', { className: 'eye', ariaHidden: true }, '👀'), h('b', {}, 'Podnieś wzrok'), h('p', { className: 'dim' }, 'Wynik jest na projektorze')),
-    // there from the start, so the layout does not jump; it fades in and unlocks when the count ends
-    h('button', { className: 'btn later', type: 'button', disabled: left > 0, style: `animation-delay:${Math.max(0, left)}ms`, onclick: () => act('next') }, s.round === s.rounds ? 'Zobacz wynik' : 'Dalej'),
+    nextBtn(s),
     minor(banBtn(s), quitBtn()),
   ];
 }
 setInterval(() => {
+  if (last.phase !== 'reveal') return;
   const el = $('count');
-  if (!el || last.phase !== 'reveal') return;
+  if (!el) { // the count is over: unlock Dalej once the result had its time
+    if (document.querySelector('.btn.later:disabled') && lockLeft(last) <= 0) { lastKey = ''; show(last); }
+    return;
+  }
   const left = countLeft(last), n = String(Math.ceil(left / 700));
   if (left <= 0) { lastKey = ''; show(last); beep('join'); } else if (el.textContent !== n) { el.textContent = n; beep('tick'); }
 }, 100);
@@ -423,7 +445,7 @@ const capsule = s => s.canWrite && h('form', { className: 'capsule', onsubmit: e
   h('textarea', { name: 'letter', rows: 3, maxLength: 200, required: true, value: s.myLetter || '', placeholder: 'Jedno zdanie, które przeczytacie za rok', ariaLabel: 'List do Was za rok' }),
   h('button', { className: 'btn ghost' }, s.myLetter ? 'Popraw list' : 'Schowaj do kapsuły'),
   s.myLetter && h('p', { className: 'dim' }, '✓ List czeka w kapsule. Otworzycie go za rok.'));
-const endScreen = s => [summary(s), capsule(s), btn('Jeszcze raz', () => act('again')), btn('Menu', () => act('quit'), 'ghost')];
+const endScreen = s => [h('div', { className: 'endcard' }, summary(s, true)), btn('Jeszcze raz', () => act('again')), btn('Menu', () => act('quit'), 'ghost'), capsule(s)];
 
 const SCREENS = { lobby: lobbyScreen, question: questionScreen, reveal: revealScreen, end: endScreen };
 
@@ -460,7 +482,7 @@ function show(s) {
   $('stakeBox').hidden = !(menu && s.scored); // a reward needs a winner, so only in games with points
   if (document.activeElement !== $('stake')) $('stake').value = s.myStake || '';
   if (!inGame) { lastKey = ''; return $('app').replaceChildren(); }
-  if (s.phase === 'lobby' || s.phase === 'end') padEl = null; // the next game's round 1 is a new pad, not the old drawing
+  if (s.phase === 'lobby' || s.phase === 'end') revealAt = {}; // the next game counts its rounds from 1 again
 
   // Who has answered changes while you are still choosing: update that line only,
   // so a re-render never interrupts dragging the slider.
@@ -497,7 +519,7 @@ function show(s) {
       roundLine(s),
       h('h2', {}, `Teraz gra: ${pairName(activePair(s))}`),
       h('p', { className: 'dim' }, 'Patrzcie na ekran. Wasza kolej zaraz przyjdzie.'),
-      s.phase === 'reveal' && btn(s.round === s.rounds ? 'Zobacz wynik' : 'Dalej', () => act('next')));
+      s.phase === 'reveal' && nextBtn(s));
   }
 
   // one function per screen; a vote to skip or end shows above whatever screen it is

@@ -93,7 +93,8 @@ function ranking(s, round) {
 }
 
 // End of game: compatibility (or the mutual yeses), points and the revealed rewards.
-function summary(s) {
+// short: the phone's version, without what is read together on the projector (talk, letters)
+function summary(s, short = false) {
   if (s.multi) {
     const top = Math.max(...s.pairs.map(p => p.score)), best = s.pairs.filter(p => p.score === top);
     return [
@@ -118,8 +119,8 @@ function summary(s) {
     s.scored && h('p', {}, score(s)),
     (s.stakes || []).map((t, i) => t && h('p', { className: 'stake', style: '--c:' + s.players[i].color }, `Nagroda dla: ${s.players[i].name} · ${t}`)),
     // where the two answers were furthest apart: something to talk about after the game
-    s.talk && [h('p', { className: 'dim' }, 'Do pogadania'), h('div', { className: 'talk' }, s.talk.map(q => h('p', {}, q)))],
-    s.letters && [h('p', { className: 'dim' }, '📬 Wasze listy z kapsuły czasu'), letterList(s.letters)],
+    !short && s.talk && [h('p', { className: 'dim' }, 'Do pogadania'), h('div', { className: 'talk' }, s.talk.map(q => h('p', {}, q)))],
+    !short && s.letters && [h('p', { className: 'dim' }, '📬 Wasze listy z kapsuły czasu'), letterList(s.letters)],
   ];
 }
 
@@ -219,7 +220,7 @@ function play(name, delay = 0, volume = 1) {
 // Answers have a shape and a color, the same on the projector and on the phones, so a phone
 // works like a game pad: find the color, tap. In "Kto prędzej" the answers are the players: their colors.
 const SHAPES = ['▲', '◆', '●', '■'];
-const SHAPE_COLORS = ['#ff3d9a', '#3db8ff', '#ffd23d', '#3dffa8'];
+const SHAPE_COLORS = ['#ff3d9a', '#3db8ff', '#b98cff', '#2ee6d6']; // the neon of the theme
 const optColor = (s, i) => s.mode === 'kto' && s.players[i] ? s.players[i].color : SHAPE_COLORS[i % SHAPE_COLORS.length];
 
 // A short burst of confetti for a match; purely decorative, and skipped when motion is reduced.

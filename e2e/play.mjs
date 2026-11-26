@@ -7,7 +7,10 @@ const base = process.argv[2];
 const browser = await (process.env.BROWSER === 'webkit' ? webkit : chromium).launch(); // webkit = the engine of the players' iPhones
 const errors = [];
 async function open(options, path, refused = false) {
-  const page = await (await browser.newContext(options)).newPage();
+  const ctx = await browser.newContext(options);
+  // Dalej stays locked 5 s after each result; 0.3 s here, or the waiting alone would take minutes
+  await ctx.addInitScript(() => localStorage.setItem('duet-wait', '300'));
+  const page = await ctx.newPage();
   page.on('pageerror', e => errors.push(`${path}: ${e.message}`));
   // a refused request is logged by the browser as an error; expected only where the test provokes one (and while offline)
   page.on('console', m => m.type() === 'error' && !refused && !/ERR_INTERNET_DISCONNECTED|WebKit encountered an internal error/.test(m.text()) && errors.push(`${path}: ${m.text()}`));
@@ -72,6 +75,7 @@ check((await screen.locator('.slot.on').count()) === 2, 'both players must show 
 
 // ---- one step of a game: do whatever a phone is waiting for ----
 // Returns false once the game is over. Odd rounds agree or hit, even rounds differ or miss.
+let locked = false; // seen Dalej locked while the result shows
 async function step() {
   // the projector enlarges what fits; nothing may end up off the screen
   // (measured on what #app holds, after the entrance animations: they scale the content for a moment)
@@ -92,11 +96,14 @@ async function step() {
     check(!double, `unresolved form on a phone: ${double}`);
     const other = p === a ? b : a;
     if (await has(p, 'button:text-is("Menu")')) return false;
-    const next = p.locator('button:text-is("Dalej"), button:text-is("Zobacz wynik"), button:text-is("Zakończ rozmowę")');
+    const next = p.getByRole('button', { name: /^(Dalej|Zobacz wynik|Zakończ rozmowę)$/ });
     if (await next.count()) {
+      locked ||= await next.first().isDisabled();
       const before = await text(p);
       check(!/Zgodni|Pudło|Trafione|Różnica|Tym razem|Telepatia!|wykryte|Blef się udał|Zgadnięte/.test(before), `the result belongs to the projector, the phone says:\n${before}`);
-      await next.first().click();
+      // the tap can land while the screen re-renders: Playwright then waits for a button that is already
+      // gone, though the game took the tap. A changed screen means it went through (issue #19).
+      await next.first().click({ timeout: 10000 }).catch(async e => { if (await text(p) === before) throw e; });
       await changed(p, before);
       return true;
     }
@@ -239,6 +246,7 @@ await play('Wieczór rocznicowy', /Wspólny wynik/, async () => {
   check(!(await text(b)).includes('Za rok gramy') && !(await text(screen)).includes('Za rok gramy'), 'a letter must stay secret until it opens');
 });
 for (const p of phones) await p.setViewportSize(devices['iPhone 16'].viewport);
+check(locked, 'Dalej must be locked while the result is shown');
 
 // ---- the saved list of mutual yeses: show, tick off, remove ----
 await more(a);
@@ -271,11 +279,12 @@ await a.getByText('Runda 2 z 8').waitFor(); // straight back in, no name form
 await a.context().setOffline(true);
 await a.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
 await a.locator('body.offline').waitFor({ state: 'attached' });
-await screen.locator('#lost').waitFor(); // the projector brings the QR code back for whoever dropped out
+await screen.locator('.slot.off').waitFor(); // the projector marks who dropped out...
+await screen.locator('#joinbox').waitFor(); // ...and brings the QR code back for them
 await a.context().setOffline(false);
 await a.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
 await a.locator('body:not(.offline)').waitFor({ state: 'attached' });
-await screen.locator('#lost').waitFor({ state: 'hidden' });
+await screen.locator('.slot.off').waitFor({ state: 'detached' });
 await a.getByText('Runda 2 z 8').waitFor();
 await a.getByRole('button', { name: 'Zakończ grę' }).click();
 await b.getByRole('button', { name: 'Zgoda' }).click(); // ending the game too
