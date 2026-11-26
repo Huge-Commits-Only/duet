@@ -319,7 +319,8 @@ for (const [name, n] of [['Ewa', '3'], ['Piotr', '3'], ['Zosia', '4'], ['Adam', 
   guests.push(page);
 }
 await screen.getByText('Para 4').waitFor();
-const colors = await Promise.all([a, b, c, d, ...guests].map(p => p.evaluate(() => JSON.parse(localStorage.getItem('duet')).color)));
+// the projector may show a player before that phone has saved its profile: wait for the save
+const colors = await Promise.all([a, b, c, d, ...guests].map(async p => (await p.waitForFunction(() => JSON.parse(localStorage.getItem('duet') || '{}').color)).jsonValue()));
 check(new Set(colors).size === 8, 'eight players need eight colors: ' + colors);
 await more(a);
 for (const name of ['Ewa', 'Piotr', 'Zosia', 'Adam']) {
