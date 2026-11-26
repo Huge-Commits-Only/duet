@@ -114,7 +114,8 @@ func (g *Game) start() error {
 	all, length := loadQuestions(g.store.dir), g.cfg["length"]
 	var deck []card
 	g.playing = playing // cards() sizes the deck by it
-	if g.cfg["mode"] == "mix" {
+	switch g.cfg["mode"] {
+	case "mix":
 		// Shuffled modes take turns, two rounds each, until the evening is full.
 		modes := slices.Clone(mixModes)
 		if len(playing) > 1 {
@@ -137,12 +138,12 @@ func (g *Game) start() error {
 				more = more || n > 0
 			}
 		}
-	} else if g.cfg["mode"] == "rocznica" {
+	case "rocznica":
 		var err error
 		if deck, err = g.anniversary(all, roundsFor[length]); err != nil {
 			return err
 		}
-	} else {
+	default:
 		deck = g.cards(g.cfg["mode"], all, roundsOf(g.cfg["mode"], length))
 	}
 	if g.cfg["mode"] != "rocznica" {
@@ -197,7 +198,7 @@ func (g *Game) next() {
 	}
 	// a question asked again is about the same person as before, so the answers can be compared
 	if g.before = g.deck[g.round-1].before; g.before != nil && g.subj >= 0 && g.before.Subj >= 0 {
-		if seat := slices.IndexFunc(g.pair.players, func(pl *player) bool { return pl.Name == g.before.Names[g.before.Subj] }); seat >= 0 {
+		if seat := slices.IndexFunc(g.players, func(pl *player) bool { return pl.Name == g.before.Names[g.before.Subj] }); seat >= 0 {
 			g.subj = seat
 		}
 	}
