@@ -74,6 +74,8 @@ function summary(s) {
     s.scored && h('h2', {}, s.winner < 0 ? 'Remis!' : `Wygrywa ${s.players[s.winner].name}!`),
     s.scored && h('p', {}, score(s)),
     (s.stakes || []).map((t, i) => t && h('p', { className: 'stake', style: '--c:' + s.players[i].color }, `Nagroda dla: ${s.players[i].name} · ${t}`)),
+    // where the two answers were furthest apart: something to talk about after the game
+    s.talk && [h('p', { className: 'dim' }, 'Do pogadania'), h('div', { className: 'talk' }, s.talk.map(q => h('p', {}, q)))],
   ];
 }
 

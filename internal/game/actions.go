@@ -48,7 +48,7 @@ func (g *Game) do(id, act, key, value string) error {
 		return ErrBad
 	}
 	// the saved list, statistics and backup belong to the household (couple 1), and only with no guests around
-	if (p != g.pairs[0] || !g.home()) && slices.Contains([]string{"list", "stats", "yesdone", "yesdel"}, act) {
+	if (p != g.pairs[0] || !g.home()) && slices.Contains([]string{"list", "stats", "profile", "yesdone", "yesdel"}, act) {
 		return ErrBad
 	}
 	switch {
@@ -92,9 +92,11 @@ func (g *Game) do(id, act, key, value string) error {
 		kp.stakes = [2]string{}
 		g.lead()
 	case act == "list" && g.phase == "lobby":
-		g.showList, g.showStats = !g.showList, false
+		g.showList, g.showStats, g.showProfile = !g.showList, false, false
 	case act == "stats" && g.phase == "lobby":
-		g.showStats, g.showList = !g.showStats, false
+		g.showStats, g.showList, g.showProfile = !g.showStats, false, false
+	case act == "profile" && g.phase == "lobby":
+		g.showProfile, g.showList, g.showStats = !g.showProfile, false, false
 	case act == "yesdone" && g.phase == "lobby":
 		if !g.store.toggleYes(value) {
 			return ErrBad
@@ -295,6 +297,7 @@ func (g *Game) settle() {
 	}
 	for _, p := range pairs {
 		g.score(p)
+		g.note(p)
 	}
 	g.store.mark(g.cur.id(g.mode))
 	if g.mode == "tak" {

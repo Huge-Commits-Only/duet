@@ -146,7 +146,7 @@ func (g *Game) start() error {
 	for _, p := range playing {
 		p.matches, p.score, p.points, p.found = 0, 0, [2]int{}, nil
 	}
-	g.deck, g.rounds, g.round, g.showList, g.showStats, g.turn = deck, len(deck), 0, false, false, 0
+	g.deck, g.rounds, g.round, g.showList, g.showStats, g.showProfile, g.turn, g.talk = deck, len(deck), 0, false, false, false, 0, nil
 	g.phase = "question" // before lead(): from here on the first couple playing is the leading one
 	g.lead()
 	g.seen = map[string]bool{}

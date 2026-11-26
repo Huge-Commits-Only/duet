@@ -20,6 +20,7 @@ Projektor albo telewizor pokazuje grę, a telefony są pilotami: dołączacie, s
 - Telefon jest pilotem. Skanujesz kod QR i grasz, bez aplikacji, kont i logowania.
 - 13 trybów w trzech tonach, od „Co wolisz” przez Blef po rysowanie palcem: lekko, romantycznie albo pikantnie (18+).
 - Do czterech par przy jednym ekranie, z rankingiem najbardziej zgranej pary i botami do testów w pojedynkę.
+- Profil pary: zgodność w ośmiu tematach, pytania do pogadania po grze i odznaki.
 - Statystyki wieczorów, lista wspólnych TAK i tajne stawki dla przegranych.
 - Jeden plik binarny w Go, obraz `scratch`, około 25 MB RAM na Raspberry Pi.
 - Testy w prawdziwej przeglądarce, fuzzing, CodeQL oraz podpisane obrazy i binarki.

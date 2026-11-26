@@ -9,26 +9,27 @@ import (
 // saved is the game as written to game.json after every change, so a restarted
 // container picks the evening up where it was. Phones reconnect by their id.
 type saved struct {
-	Key       string // join code in the QR link
-	Pairs     []savedPair
-	Playing   []int // indices into Pairs
-	Active    int   // index of the couple whose turn it is
-	Cfg       map[string]string
-	Phase     string
-	Deck      []savedCard
-	Mode      string
-	Cur       question
-	Round     int
-	Rounds    int
-	Subj      int
-	Turn      int
-	Intro     bool
-	ShowList  bool
-	ShowStats bool
-	Pending   bool
-	Stmts     []string
-	Guesses   []string
-	Seen      map[string]bool
+	Key         string // join code in the QR link
+	Pairs       []savedPair
+	Playing     []int // indices into Pairs
+	Active      int   // index of the couple whose turn it is
+	Cfg         map[string]string
+	Phase       string
+	Deck        []savedCard
+	Mode        string
+	Cur         question
+	Round       int
+	Rounds      int
+	Subj        int
+	Turn        int
+	Intro       bool
+	ShowList    bool
+	ShowStats   bool
+	ShowProfile bool
+	Pending     bool
+	Stmts       []string
+	Guesses     []string
+	Seen        map[string]bool
 }
 
 type savedPair struct {
@@ -60,7 +61,7 @@ type savedCard struct {
 func (g *Game) save() {
 	s := saved{
 		Key: g.key, Cfg: g.cfg, Phase: g.phase, Mode: g.mode, Cur: g.cur, Round: g.round, Rounds: g.rounds,
-		Subj: g.subj, Turn: g.turn, Intro: g.intro, ShowList: g.showList, ShowStats: g.showStats,
+		Subj: g.subj, Turn: g.turn, Intro: g.intro, ShowList: g.showList, ShowStats: g.showStats, ShowProfile: g.showProfile,
 		Pending: g.pending != nil, Stmts: g.stmts, Guesses: g.guesses, Seen: g.seen,
 	}
 	for _, p := range g.pairs {
@@ -119,6 +120,7 @@ func (g *Game) load() {
 		s.Round < 1 || s.Round > len(s.Deck) || s.Rounds != len(s.Deck) {
 		g.showList = s.Phase == "lobby" && s.ShowList
 		g.showStats = s.Phase == "lobby" && s.ShowStats
+		g.showProfile = s.Phase == "lobby" && s.ShowProfile
 		return
 	}
 	for i, sp := range s.Pairs[:min(maxPairs, len(s.Pairs))] {
