@@ -202,6 +202,7 @@ function lobbyScreen(s, { p, other, menu, home }) {
     h('details', { className: 'after', open: infoOpen, ontoggle: e => { infoOpen = e.target.open; } }, h('summary', {}, 'Więcej'),
       menu && home && s.listLen > 0 && btn(s.list ? 'Ukryj naszą listę' : `Pokaż na ekranie naszą listę (${s.listLen})`, () => act('list'), 'ghost'),
       menu && home && s.hasStats && btn(s.stats ? 'Ukryj statystyki' : 'Pokaż statystyki na ekranie', () => act('stats'), 'ghost'),
+      menu && home && s.hasProfile && btn(s.profile ? 'Ukryj profil pary' : 'Pokaż profil pary na ekranie', () => act('profile'), 'ghost'),
       // the saved list is managed here while the projector shows it
       s.list && h('div', { className: 'yes' }, s.list.map(it => h('div', { className: 'row' },
         h('span', { className: it.done ? 'done' : '' }, it.text),

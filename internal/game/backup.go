@@ -7,10 +7,11 @@ import (
 
 // backup is everything Duet remembers between evenings, as one file to keep somewhere safe.
 type backup struct {
-	Asked   []string  `json:"asked"`   // questions already asked
-	Yes     []yesItem `json:"yes"`     // the saved list of mutual yeses
-	History []record  `json:"history"` // finished games
-	Banned  []string  `json:"banned"`  // questions never to show again; missing in older backups
+	Asked   []string   `json:"asked"`   // questions already asked
+	Yes     []yesItem  `json:"yes"`     // the saved list of mutual yeses
+	History []record   `json:"history"` // finished games
+	Banned  []string   `json:"banned"`  // questions never to show again; missing in older backups
+	Rounds  []roundRec `json:"rounds"`  // answered rounds for the profile; missing in older backups
 }
 
 var errNotBackup = errors.New("to nie jest plik kopii zapasowej Duet")
@@ -22,7 +23,7 @@ func (g *Game) Backup(id string) ([]byte, error) {
 	if p, _ := g.find(id); p != g.pairs[0] || !g.home() { // household data, not for guests
 		return nil, ErrBad
 	}
-	b := backup{Asked: sorted(g.store.asked), Yes: g.store.yes, History: g.store.history, Banned: sorted(g.store.banned)}
+	b := backup{Asked: sorted(g.store.asked), Yes: g.store.yes, History: g.store.history, Banned: sorted(g.store.banned), Rounds: g.store.rounds}
 	return json.MarshalIndent(b, "", "  ")
 }
 
@@ -51,6 +52,10 @@ func (g *Game) Restore(id string, data []byte) error {
 			s.banned[q] = true
 		}
 		s.write("banned.json", sorted(s.banned))
+	}
+	if raw["rounds"] != nil { // an older backup keeps today's profile
+		s.rounds = b.Rounds
+		s.write("rounds.json", s.rounds)
 	}
 	s.saveAsked()
 	s.write("yes.json", s.yes)

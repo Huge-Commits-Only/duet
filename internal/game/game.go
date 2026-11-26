@@ -63,30 +63,32 @@ type Game struct {
 	pairs   [maxPairs]*pair
 	playing []*pair // the couples in the current game: every complete one at the time it started
 
-	phase     string // lobby | question | reveal | end
-	cfg       map[string]string
-	deck      []card
-	mode      string // mode of the current round; differs from cfg["mode"] only in "mix"
-	cur       question
-	subj      int      // seat in the spotlight this round (in every couple), -1 = none
-	turn      int      // subject rounds played so far, to alternate the spotlight
-	stmts     []string // "blef": the three statements, once the subject wrote them
-	pending   *card    // "wyzwania": truth or dare not chosen yet
-	strokes   [][]int  // "rysowanie": the drawing, each stroke as x,y,x,y… on a 0-1000 square
-	ink       int      // numbers in strokes
-	colors    []int    // "rysowanie": color of each stroke, an index into PALETTE in common.js
-	guesses   []string // "rysowanie": the latest wrong guesses
-	deadline  time.Time
-	seen      map[string]bool // modes already played in this game
-	intro     bool            // the current round is the first of its mode: explain the rules
-	epoch     int             // bumped on every start, so a timer from an abandoned game does nothing
-	round     int             // 1-based number of the current question
-	rounds    int
-	showList  bool              // lobby: the projector shows the saved list of mutual yeses
-	showStats bool              // lobby: the projector shows the statistics
-	botStage  map[string]string // per bot: the situation its pending move was scheduled for
-	ready     map[string]bool   // reveal: ids of the players who tapped "Dalej"
-	vote      *vote
+	phase       string // lobby | question | reveal | end
+	cfg         map[string]string
+	deck        []card
+	mode        string // mode of the current round; differs from cfg["mode"] only in "mix"
+	cur         question
+	subj        int      // seat in the spotlight this round (in every couple), -1 = none
+	turn        int      // subject rounds played so far, to alternate the spotlight
+	stmts       []string // "blef": the three statements, once the subject wrote them
+	pending     *card    // "wyzwania": truth or dare not chosen yet
+	strokes     [][]int  // "rysowanie": the drawing, each stroke as x,y,x,y… on a 0-1000 square
+	ink         int      // numbers in strokes
+	colors      []int    // "rysowanie": color of each stroke, an index into PALETTE in common.js
+	guesses     []string // "rysowanie": the latest wrong guesses
+	deadline    time.Time
+	seen        map[string]bool // modes already played in this game
+	intro       bool            // the current round is the first of its mode: explain the rules
+	epoch       int             // bumped on every start, so a timer from an abandoned game does nothing
+	round       int             // 1-based number of the current question
+	rounds      int
+	showList    bool              // lobby: the projector shows the saved list of mutual yeses
+	showStats   bool              // lobby: the projector shows the statistics
+	showProfile bool              // lobby: the projector shows the couple's profile
+	talk        []roundRec        // scored rounds of this game, for "Do pogadania" at its end
+	botStage    map[string]string // per bot: the situation its pending move was scheduled for
+	ready       map[string]bool   // reveal: ids of the players who tapped "Dalej"
+	vote        *vote
 }
 
 func New(dataDir string) *Game {
@@ -221,49 +223,52 @@ func (g *Game) viewPlayers(p *pair) []player {
 
 // snapshot is everything one viewer gets in each update.
 type snapshot struct {
-	Phase    string            `json:"phase"`
-	Players  []player          `json:"players"`
-	Me       int               `json:"me"`
-	Pair     int               `json:"pair"`             // number of the viewer's couple, 1-based
-	Pairs    []viewPair        `json:"pairs"`            // every couple seated (lobby) or playing
-	Multi    bool              `json:"multi"`            // several couples
-	Active   int               `json:"active,omitempty"` // several couples taking turns: the number of the one playing now
-	Solo     []string          `json:"solo,omitempty"`
-	Cfg      map[string]string `json:"cfg"`
-	Menu     map[string][]opt  `json:"menu"`
-	Round    int               `json:"round"`
-	Step     string            `json:"step"` // echoed back with every action, so a late tap cannot land on the next screen
-	Rounds   int               `json:"rounds"`
-	Matches  int               `json:"matches"`
-	Mode     string            `json:"mode"` // mode of the current round
-	Rule     string            `json:"rule,omitempty"`
-	Key      string            `json:"key,omitempty"` // join code, only for the projector
-	Scored   bool              `json:"scored"`        // this game gives individual points and rewards
-	Subject  int               `json:"subject"`       // seat the question is about, -1 = both
-	Points   [2]int            `json:"points"`
-	Gain     int               `json:"gain"`
-	Hit      bool              `json:"hit"`
-	ListLen  int               `json:"listLen"`           // saved mutual yeses
-	List     []yesItem         `json:"list,omitempty"`    // only while shown on the projector
-	HasStats bool              `json:"hasStats"`          // at least one game was recorded
-	Stats    *stats            `json:"stats,omitempty"`   // only while shown on the projector
-	MyText   string            `json:"myText,omitempty"`  // own word in "telepatia"
-	Texts    *[2]string        `json:"texts,omitempty"`   // both words, in the reveal
-	Strokes  [][]int           `json:"strokes,omitempty"` // "rysowanie": only sent to the projector
-	Colors   []int             `json:"colors,omitempty"`
-	Guesses  []string          `json:"guesses,omitempty"`
-	Left     int64             `json:"left,omitempty"`  // ms until the round times out
-	Found    []string          `json:"found,omitempty"` // "tak": mutual yeses of this game (never the non-matches)
-	StakeSet [2]bool           `json:"stakeSet"`
-	MyStake  string            `json:"myStake"`
-	Vote     *viewVote         `json:"vote,omitempty"`   // a proposal to skip the round or end the game
-	Banned   bool              `json:"banned,omitempty"` // the current question will not come back
-	Q        *viewQ            `json:"q,omitempty"`
-	Answered *[2]bool          `json:"answered,omitempty"`
-	MyAnswer *int              `json:"myAnswer,omitempty"`
-	Answers  *[2]int           `json:"answers,omitempty"`
-	Winner   *int              `json:"winner,omitempty"` // at the end; -1 = draw
-	Stakes   *[2]string        `json:"stakes,omitempty"` // at the end; only the revealed ones
+	Phase      string            `json:"phase"`
+	Players    []player          `json:"players"`
+	Me         int               `json:"me"`
+	Pair       int               `json:"pair"`             // number of the viewer's couple, 1-based
+	Pairs      []viewPair        `json:"pairs"`            // every couple seated (lobby) or playing
+	Multi      bool              `json:"multi"`            // several couples
+	Active     int               `json:"active,omitempty"` // several couples taking turns: the number of the one playing now
+	Solo       []string          `json:"solo,omitempty"`
+	Cfg        map[string]string `json:"cfg"`
+	Menu       map[string][]opt  `json:"menu"`
+	Round      int               `json:"round"`
+	Step       string            `json:"step"` // echoed back with every action, so a late tap cannot land on the next screen
+	Rounds     int               `json:"rounds"`
+	Matches    int               `json:"matches"`
+	Mode       string            `json:"mode"` // mode of the current round
+	Rule       string            `json:"rule,omitempty"`
+	Key        string            `json:"key,omitempty"` // join code, only for the projector
+	Scored     bool              `json:"scored"`        // this game gives individual points and rewards
+	Subject    int               `json:"subject"`       // seat the question is about, -1 = both
+	Points     [2]int            `json:"points"`
+	Gain       int               `json:"gain"`
+	Hit        bool              `json:"hit"`
+	ListLen    int               `json:"listLen"`           // saved mutual yeses
+	List       []yesItem         `json:"list,omitempty"`    // only while shown on the projector
+	HasStats   bool              `json:"hasStats"`          // at least one game was recorded
+	Stats      *stats            `json:"stats,omitempty"`   // only while shown on the projector
+	HasProfile bool              `json:"hasProfile"`        // at least one round was counted
+	Profile    *profile          `json:"profile,omitempty"` // only while shown on the projector
+	Talk       []string          `json:"talk,omitempty"`    // at the end: questions to talk about, where the answers differed most
+	MyText     string            `json:"myText,omitempty"`  // own word in "telepatia"
+	Texts      *[2]string        `json:"texts,omitempty"`   // both words, in the reveal
+	Strokes    [][]int           `json:"strokes,omitempty"` // "rysowanie": only sent to the projector
+	Colors     []int             `json:"colors,omitempty"`
+	Guesses    []string          `json:"guesses,omitempty"`
+	Left       int64             `json:"left,omitempty"`  // ms until the round times out
+	Found      []string          `json:"found,omitempty"` // "tak": mutual yeses of this game (never the non-matches)
+	StakeSet   [2]bool           `json:"stakeSet"`
+	MyStake    string            `json:"myStake"`
+	Vote       *viewVote         `json:"vote,omitempty"`   // a proposal to skip the round or end the game
+	Banned     bool              `json:"banned,omitempty"` // the current question will not come back
+	Q          *viewQ            `json:"q,omitempty"`
+	Answered   *[2]bool          `json:"answered,omitempty"`
+	MyAnswer   *int              `json:"myAnswer,omitempty"`
+	Answers    *[2]int           `json:"answers,omitempty"`
+	Winner     *int              `json:"winner,omitempty"` // at the end; -1 = draw
+	Stakes     *[2]string        `json:"stakes,omitempty"` // at the end; only the revealed ones
 }
 
 // view renders the state as seen by one viewer, so secrets (a partner's answer
@@ -281,7 +286,7 @@ func (g *Game) view(id string) []byte {
 		// rewards are between the two of a couple, so only when one couple plays
 		Scored:  (subjectModes[g.cfg["mode"]] || g.cfg["mode"] == "mix") && !multi,
 		Subject: -1, Mode: g.cfg["mode"], Points: p.points, StakeSet: [2]bool{p.stakes[0] != "", p.stakes[1] != ""},
-		ListLen: len(g.store.yes), HasStats: len(g.store.history) > 0}
+		ListLen: len(g.store.yes), HasStats: len(g.store.history) > 0, HasProfile: len(g.store.rounds) > 0}
 	v.Pairs, v.Pair, v.Solo, v.Vote = g.pairsView(), slices.Index(g.pairs[:], p)+1, g.soloModes(multi), g.voteView(id)
 	if me >= 0 {
 		v.MyStake = p.stakes[me]
@@ -368,6 +373,9 @@ func (g *Game) phaseView(v *snapshot, p *pair, me int, own bool) {
 		if g.showStats && g.home() {
 			v.Stats = g.store.stats()
 		}
+		if g.showProfile && g.home() {
+			v.Profile = g.store.profile(time.Now())
+		}
 	case "question":
 		v.Q, v.Subject, v.Guesses = g.viewQ(p, me), g.subject(), g.guesses
 		if g.intro {
@@ -389,6 +397,9 @@ func (g *Game) phaseView(v *snapshot, p *pair, me int, own bool) {
 			}
 		}
 	case "end":
+		if len(g.playing) == 1 {
+			v.Talk = widest(g.talk, 3)
+		}
 		if v.Scored { // nobody wins a game without points, so there is nothing to reward
 			v.Winner, v.Stakes = rewards(p)
 		}

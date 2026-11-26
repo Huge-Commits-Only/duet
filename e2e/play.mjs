@@ -211,12 +211,13 @@ await screen.locator('.slot small', { hasText: '✓ stawka wpisana' }).nth(1).wa
 await b.locator('.picker button', { hasText: 'Lekko' }).click();
 
 // ---- every mode ----
-await play('Co wolisz', /Wasza zgodność \| 50%$/); // no points, so no reward either
+// no points, so no reward either; the rounds where the two chose differently are left to talk about
+await play('Co wolisz', /Wasza zgodność \| 50% \| Do pogadania \| .+\?$/);
 await play('Kto prędzej', /Wasza zgodność \| 50%/);
 await play('Nigdy przenigdy', /Wasza zgodność \| 50%/);
 await play('Jak dobrze mnie znasz', /Wygrywa|Remis/);
 // Kuba guesses in the odd rounds, which are the close ones: only the winner's reward is revealed
-await play('Skala', /Wygrywa Kuba! \| Natalia 0 : 12 Kuba \| Nagroda dla: Kuba · tydzień zmywania$/);
+await play('Skala', /Wygrywa Kuba! \| Natalia 0 : 12 Kuba \| Nagroda dla: Kuba · tydzień zmywania \| Do pogadania \| /);
 await play('Szacowanie', /Wygrywa|Remis/);
 await play('Telepatia', /Wasza zgodność \| 50%/);
 await play('Wspólne TAK', /Wspólne TAK \| 4/);
@@ -276,6 +277,16 @@ check(Number(await screen.locator('.tile b').nth(1).textContent()) === 13, 'ever
 check((await screen.locator('.chart polyline').count()) === 1, 'compatibility over time must be drawn');
 await shot('stats', screen);
 await a.getByRole('button', { name: 'Ukryj statystyki' }).click();
+await screen.getByText('Ustawcie grę').waitFor();
+
+// ---- the couple's profile: agreement per topic, what to talk about, badges ----
+await a.getByRole('button', { name: 'Pokaż profil pary na ekranie' }).click();
+await screen.getByText('Profil pary').waitFor();
+check((await screen.locator('.bars i').count()) >= 2, 'agreement must be shown for the topics played');
+check((await screen.locator('.talk p').count()) > 0, 'the widest differences of the evening must be listed');
+check((await screen.locator('.medal').count()) === 6 && (await screen.locator('.medal.on').count()) > 0, 'every badge must be listed, the earned ones lit');
+await shot('profile', screen);
+await a.getByRole('button', { name: 'Ukryj profil pary' }).click();
 await screen.getByText('Ustawcie grę').waitFor();
 
 // ---- a second couple sits down: everyone answers at once, couples are ranked ----

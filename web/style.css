@@ -117,6 +117,21 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .statlists { display: flex; align-items: flex-start; justify-content: center; gap: calc(var(--u) * 5.34); width: 100%; }
 .statlist { flex: 1; max-width: calc(var(--u) * 53.4); text-align: left; }
 .statlist p { display: flex; justify-content: space-between; gap: calc(var(--u) * 1.78); padding: calc(var(--u) * 0.6) 0; border-bottom: calc(var(--u) * 0.2) solid var(--line); font-size: calc(var(--u) * 2.6) !important; }
+.statlist.wide { max-width: calc(var(--u) * 80); }
+.bars { display: grid; grid-template-columns: auto 1fr auto calc(var(--u) * 7); align-items: center; gap: calc(var(--u) * 1.2) calc(var(--u) * 1.78); margin-top: calc(var(--u) * 1); font-size: calc(var(--u) * 2.8); }
+.bars i { height: calc(var(--u) * 2.2); min-width: calc(var(--u) * 20); border-radius: calc(var(--u) * 2); background: linear-gradient(90deg, var(--violet), var(--pink)) left / var(--v) 100% no-repeat, var(--panel); }
+.bars small { font-size: calc(var(--u) * 2.2); }
+.bars .up { color: var(--green); }
+.bars .down { color: var(--pink); }
+.talk { display: flex; flex-direction: column; gap: calc(var(--u) * 1); margin: calc(var(--u) * 1) 0 calc(var(--u) * 2.5); }
+.talk p { margin: 0; padding: calc(var(--u) * 1) calc(var(--u) * 2); border-left: calc(var(--u) * 0.5) solid var(--pink); border-radius: calc(var(--u) * 1); background: var(--panel); text-align: left; font-size: calc(var(--u) * 2.6); }
+.statlist .talk p, .statlist p.dim { display: block; border-bottom: 0; }
+.phone .talk p { padding: .6rem .9rem; border-left-width: 4px; border-radius: .6rem; font-size: 1rem; }
+.medals { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 1.2); margin-top: calc(var(--u) * 1); }
+.medal { padding: calc(var(--u) * 1) calc(var(--u) * 1.5); border-radius: calc(var(--u) * 1.5); border: calc(var(--u) * 0.3) dashed var(--line); opacity: .45; }
+.medal.on { opacity: 1; border-style: solid; border-color: var(--green); background: var(--panel); }
+.medal b { display: block; font-size: calc(var(--u) * 2.6); }
+.medal small { font-size: calc(var(--u) * 2); color: var(--dim); }
 .list .done { opacity: .5; text-decoration: line-through; border-color: var(--line); }
 .list span { padding: calc(var(--u) * 1) calc(var(--u) * 3.56); border-radius: calc(var(--u) * 5); background: var(--panel); border: calc(var(--u) * 0.3) solid var(--green); font-size: calc(var(--u) * 3.2); }
 .stake { padding: calc(var(--u) * 1) calc(var(--u) * 3.56); border-radius: calc(var(--u) * 2); border: calc(var(--u) * 0.4) solid var(--c); background: var(--panel); }

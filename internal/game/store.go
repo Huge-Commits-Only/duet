@@ -16,6 +16,7 @@ type store struct {
 	yes     []yesItem
 	history []record        // finished games, oldest first (history.json)
 	banned  map[string]bool // ids of questions the couple never wants to see again (banned.json)
+	rounds  []roundRec      // answered rounds of the household, oldest first, for the profile (rounds.json)
 }
 
 // yesItem is one idea from "Wspólne TAK" on the couple's saved list.
@@ -36,6 +37,7 @@ func openStore(dir string) *store {
 		s.asked[id] = true
 	}
 	s.read("history.json", &s.history)
+	s.read("rounds.json", &s.rounds)
 	ids = nil
 	s.read("banned.json", &ids)
 	for _, id := range ids {

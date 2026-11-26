@@ -36,6 +36,7 @@ type question struct {
 	Kind    string   `json:"kind,omitempty"`
 	Alt     []string `json:"alt,omitempty"`
 	Max     int      `json:"max,omitempty"`
+	Topic   string   `json:"topic,omitempty"` // for the couple's profile; not part of the id, so tagging keeps bans and history
 }
 
 // valid reports whether the question has what its mode needs, so a broken hand-written pack cannot crash a game.

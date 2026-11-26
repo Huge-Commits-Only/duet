@@ -21,7 +21,7 @@
 3. Na telefonie wybieracie grę, ton (lekko / romantycznie / pikantnie 18+) i długość, a potem **Start**.
 4. Odpowiadacie w tajemnicy na telefonach; projektor odsłania odpowiedzi i liczy zgodność.
 
-Menu na telefonie ma na wierzchu tylko wybór gry, tonu i długości oraz przycisk Start; lista wspólnych TAK, statystyki, boty, zmiana imienia, gracze i kopia zapasowa są pod „Więcej". Ekran projektora dopasowuje się do każdej rozdzielczości i proporcji (16:9, 16:10, 4:3), a gdy treść się nie mieści, sam ją pomniejsza.
+Menu na telefonie ma na wierzchu tylko wybór gry, tonu i długości oraz przycisk Start; lista wspólnych TAK, statystyki, profil pary, boty, zmiana imienia, gracze i kopia zapasowa są pod „Więcej". Ekran projektora dopasowuje się do każdej rozdzielczości i proporcji (16:9, 16:10, 4:3), a gdy treść się nie mieści, sam ją pomniejsza.
 
 Rozmiar tekstu na projektorze zmienisz klawiszami `+` i `-` (`0` przywraca domyślny), a `m` wycisza dźwięk.
 
@@ -36,13 +36,19 @@ Przy dołączaniu każdy wybiera numer pary (partnerzy ten sam). Gdy siedzą co 
 
 Pod przyciskiem „Więcej" na dole menu telefonu widać, kto siedzi w której parze, i można usunąć gracza, który zajął miejsce przez pomyłkę.
 
-**Para 1 to domownicy.** Tylko ona widzi zapisaną listę wspólnych TAK, statystyki i kopię zapasową, i tylko wtedy, gdy nie siedzi nikt inny. Goście wybierają pary 2–4.
+**Para 1 to domownicy.** Tylko ona widzi zapisaną listę wspólnych TAK, statystyki, profil pary i kopię zapasową, i tylko wtedy, gdy nie siedzi nikt inny. Goście wybierają pary 2–4.
 
 ## Test w pojedynkę
 Bez drugiej osoby też da się wszystko sprawdzić. Gdy siedzisz w parze sam, telefon pokazuje przycisk „Zagraj z botem". Bot zajmuje miejsce partnera i odpowiada losowo po krótkiej chwili. Z menu można jeszcze dosadzić parę botów, żeby zobaczyć ranking kilku par. Gry z botem nie liczą się do statystyk, a prawdziwy partner, który dołączy do Twojej pary, po prostu zastępuje bota.
 
 ## Statystyki
 Każda dokończona gra trafia do historii. Przycisk „Pokaż statystyki na ekranie" w menu telefonu wyświetla na projektorze liczbę wieczorów i gier, średnią zgodność, wykres zgodności w ostatnich grach, zgodność w poszczególnych trybach, bilans zwycięstw i ostatnie wyniki.
+
+## Profil pary
+Pytania z trybów, w których oboje odpowiadacie na to samo (Co wolisz, Kto prędzej, Nigdy przenigdy, Jak dobrze mnie znasz, Skala, Szacowanie, Wspólne TAK), mają temat: codzienność, podróże, pieniądze i praca, przyszłość, rozrywka i znajomi, uczucia, charakter albo seks. Gra zapisuje każdą odpowiedzianą rundę domowników (`rounds.json` w wolumenie; gry z botem i z gośćmi się nie liczą).
+
+- **Na koniec gry** projektor i telefony pokazują „Do pogadania”: do trzech pytań, w których Wasze odpowiedzi najbardziej się rozjechały.
+- **„Pokaż profil pary na ekranie”** pod „Więcej” wyświetla zgodność w każdym temacie (od trzech pytań z tematu), zmianę w ostatnich 30 dniach (▲ albo ▼), najmocniejszy i najsłabszy temat, „Do pogadania” z ostatniego wieczoru i odznaki: serie zgodnych odpowiedzi, grę bez jednej różnicy, 10 wieczorów, wszystkie tematy i wszystkie tryby.
 
 ## Stawka
 Gdy gra jedna para, w grach z punktami każde z Was może przed startem wpisać tajną stawkę: co przegrany robi dla wygranego. Ekran odsłania stawkę zwycięzcy na końcu (przy remisie obie).

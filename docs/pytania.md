@@ -20,7 +20,7 @@ Wrzuć plik JSON do `/data/questions/` w wolumenie. Gra wczyta go przy następny
 docker cp moje-pytania.json duet:/data/questions/moje-pytania.json
 ```
 
-`tone` to `lekko`, `romantycznie` albo `pikantnie`. Formy zależne od płci zapisuj tak jak w gotowych paczkach („zrobiłeś/aś", „chciał(a)byś", „pewny/a"), a gra sama wybierze właściwą. Pola zależą od trybu (`mode`):
+`tone` to `lekko`, `romantycznie` albo `pikantnie`. Formy zależne od płci zapisuj tak jak w gotowych paczkach („zrobiłeś/aś", „chciał(a)byś", „pewny/a"), a gra sama wybierze właściwą. Opcjonalne `topic` przypisuje pytanie do tematu w [profilu pary](gra.md#profil-pary): `codziennosc`, `podroze`, `pieniadze`, `przyszlosc`, `rozrywka`, `uczucia`, `charakter` albo `seks`. Pola zależą od trybu (`mode`):
 
 | Tryb | `mode` | Pola pytania |
 |---|---|---|
