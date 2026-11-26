@@ -47,16 +47,6 @@ const standalone = navigator.standalone || matchMedia('(display-mode: standalone
 let hintSeen = standalone;
 try { hintSeen ||= localStorage.getItem('duet-a2hs') === '1'; } catch {}
 
-// The menu shows each game as a card: an icon and what it is about, in a few words.
-const MODE_INFO = {
-  wolisz: ['🤔', 'Dwie opcje, liczy się zgodność'], kto: ['👉', 'Wskazujecie, kogo dotyczy pytanie'],
-  nigdy: ['🙊', 'Zdarzyło się czy nigdy?'], znasz: ['💭', 'Jedno odpowiada, drugie zgaduje'],
-  skala: ['🎚️', 'Suwak od 0 do 100 i zgadywanie'], szacowanie: ['🔢', 'Liczba o sobie, partner zgaduje'],
-  telepatia: ['🔮', 'Czy wpiszecie to samo słowo?'], tak: ['✅', 'Tak albo nie, liczą się wspólne TAK'],
-  rozmowy: ['🕯️', 'Karty do rozmowy, bez punktów'], wyzwania: ['🎯', 'Prawda albo zadanie'],
-  blef: ['🃏', 'Dwie prawdy i jedno kłamstwo'], rysowanie: ['🎨', 'Rysujesz palcem, partner zgaduje'],
-  rocznica: ['🎂', 'Pytania z Waszej historii'], mix: ['🎲', 'Gra sama miesza tryby'],
-};
 
 const COLORS = ['#ff3d9a', '#9b5cff', '#3db8ff', '#3dffa8', '#ffd23d', '#ff7a3d', '#2ee6d6', '#b6ff3d'];
 
@@ -134,16 +124,15 @@ function picker(s, key, title) {
 
 // The games as a row of cards to swipe through. The row keeps its scroll position across re-renders,
 // and the chosen card slides into view when it changes.
-let modesScroll = 0, shownMode = '';
+let shownMode = '';
 function modeCards(s) {
-  const row = h('div', { className: 'picker mode cards', role: 'group', ariaLabel: 'Gra', onscroll: e => { modesScroll = e.target.scrollLeft; } },
+  const row = h('div', { className: 'picker mode cards', role: 'group', ariaLabel: 'Gra' },
     s.menu.mode.map(o => h('button', {
       type: 'button', className: 'mode-card', ariaPressed: s.cfg.mode === o.id, onclick: () => act('config', 'mode', o.id),
       disabled: (s.solo || []).includes(o.id),
     }, h('span', { className: 'icon', ariaHidden: true }, (MODE_INFO[o.id] || ['🎮'])[0]), h('b', {}, o.name), h('small', {}, (MODE_INFO[o.id] || ['', ''])[1]))));
-  requestAnimationFrame(() => {
-    row.scrollLeft = modesScroll;
-    if (shownMode !== s.cfg.mode) row.querySelector('[aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: shownMode ? 'smooth' : 'instant' });
+  requestAnimationFrame(() => { // the row on the page (a re-render keeps the old one, with its scroll position)
+    if (shownMode !== s.cfg.mode) document.querySelector('.picker.mode [aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: shownMode ? 'smooth' : 'instant' });
     shownMode = s.cfg.mode;
   });
   return row;
@@ -225,11 +214,13 @@ $('stake').onchange = saveStake;
 
 // rare actions are small and side by side, so they never compete with the answers
 const minor = (...bs) => h('div', { className: 'minor' }, bs.filter(Boolean));
-const quitBtn = () => h('button', { type: 'button', onclick: () => confirm('Zakończyć grę i wrócić do menu?') && act('quit') }, 'Zakończ grę');
-const skipBtn = () => h('button', { type: 'button', onclick: () => confirm('Pominąć tę rundę? Nikt nie dostanie punktów.') && act('skip') }, 'Pomiń rundę');
+// an icon in front of a label; screen readers read the label only
+const iconed = (icon, label) => [h('span', { ariaHidden: true }, icon + ' '), label];
+const quitBtn = () => h('button', { type: 'button', onclick: () => confirm('Zakończyć grę i wrócić do menu?') && act('quit') }, iconed('🚪', 'Zakończ grę'));
+const skipBtn = () => h('button', { type: 'button', onclick: () => confirm('Pominąć tę rundę? Nikt nie dostanie punktów.') && act('skip') }, iconed('⏭️', 'Pomiń rundę'));
 // a question you never want again: gone from every later game (the household decides, not guests)
 const banBtn = s => s.pair === 1 && h('button', { type: 'button', disabled: !!s.banned,
-  onclick: () => confirm('To pytanie już nigdy nie wróci. Na pewno?') && act('ban') }, s.banned ? '✓ Nie wróci' : 'Nie pokazuj więcej');
+  onclick: () => confirm('To pytanie już nigdy nie wróci. Na pewno?') && act('ban') }, s.banned ? '✓ Nie wróci' : iconed('🚫', 'Nie pokazuj więcej'));
 const roundLine = s => h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`);
 
 function lobbyScreen(s, { p, other, menu, home }) {
@@ -426,9 +417,14 @@ const SCREENS = { lobby: lobbyScreen, question: questionScreen, reveal: revealSc
 // skipping a round or ending the game is a vote: the others say yes or no here
 function voteBox(v) {
   const what = v.kind === 'skip' ? 'pominąć tę rundę' : 'zakończyć grę';
-  return h('div', { className: 'vote' }, v.agreed
-    ? [h('p', {}, `Czekamy na zgodę: ${v.waiting.join(', ')}`), btn('Wycofaj', () => act('no'), 'ghost')]
-    : [h('p', {}, `${v.by} chce ${what}. Zgadzasz się?`), btn('Zgoda', () => act(v.kind)), btn('Nie', () => act('no'), 'ghost')]);
+  // a proposal you have to answer stands out; one you made just waits
+  return h('div', { className: 'vote' + (v.agreed ? ' sent' : '') },
+    h('div', { className: 'vote-icon', ariaHidden: true }, v.kind === 'skip' ? '⏭️' : '🚪'),
+    v.agreed
+      ? [h('p', {}, `Czekamy na zgodę: ${v.waiting.join(', ')}`), btn('Wycofaj', () => act('no'), 'ghost')]
+      : [h('p', {}, `${v.by} chce ${what}. Zgadzasz się?`),
+         h('div', { className: 'vote-buttons' }, h('button', { className: 'btn', type: 'button', onclick: () => act(v.kind) }, iconed('✓', 'Zgoda')),
+           h('button', { className: 'btn ghost', type: 'button', onclick: () => act('no') }, iconed('✕', 'Nie')))]);
 }
 
 let draft = 50, draftRound = 0; // slider position in "skala", kept across re-renders
@@ -467,13 +463,13 @@ function show(s) {
   }
   lastKey = key;
   // a new screen slides in; small updates of the same one do not
-  const main = document.querySelector('main');
-  if (s.phase !== shown.phase || s.round !== shown.round) {
+  const main = document.querySelector('main'), fresh = s.phase !== shown.phase || s.round !== shown.round || shown.editing !== editing;
+  if (fresh) {
     main.classList.remove('fresh');
     void main.offsetWidth; // restart the animation
     main.classList.add('fresh');
   }
-  shown = { phase: s.phase, round: s.round };
+  shown = { phase: s.phase, round: s.round, editing };
 
   // a couple that sat down while a game was on waits for the next one
   if (s.phase !== 'lobby' && !s.pairs.some(x => x.n === s.pair)) {
@@ -493,7 +489,8 @@ function show(s) {
   // one function per screen; a vote to skip or end shows above whatever screen it is
   const kids = (SCREENS[s.phase] || endScreen)(s, { p, other, menu, home, waiting });
   if (s.vote && s.phase !== 'lobby') kids.unshift(voteBox(s.vote));
-  $('app').replaceChildren(...kids.flat(3).filter(Boolean));
+  // a new screen is built anew; on the same one only what changed is updated
+  if (fresh) $('app').replaceChildren(...kids.flat(3).filter(Boolean)); else morph($('app'), kids);
 }
 
 let first = true;

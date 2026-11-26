@@ -15,7 +15,7 @@ flowchart LR
 | Technologia | Rola | Szczegóły |
 |---|---|---|
 | **Go** | Serwer | Jeden plik binarny, frontend wbudowany, ok. 25 MB RAM |
-| **HTML / CSS / JS** | Ekran i pilot | Bez frameworka i bez kroku budowania, zero zasobów z internetu |
+| **HTML / CSS / JS** | Ekran i pilot | Bez frameworka i bez kroku budowania, zero zasobów z internetu; czcionka Quicksand wbudowana w grę (SIL OFL 1.1, `web/quicksand-license.txt`) |
 | **Docker** | Kontener | Obraz `scratch`, multi-arch (amd64 / arm64 dla Raspberry Pi) |
 | **GitHub Actions** | CI/CD | Testy, lint, skany bezpieczeństwa, publikacja obrazu |
 | **GHCR** | Rejestr | `ghcr.io/huge-commits-only/duet` |

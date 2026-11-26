@@ -156,7 +156,7 @@ async function step() {
     await a.getByRole('button', { name: 'Wyślij' }).click();
     await b.fill('#word', odd ? 'slonce' : 'deszcz');
     await b.getByRole('button', { name: 'Wyślij' }).click();
-  } else if (await has(a, 'input[type=range]') && await has(b, 'input[type=range]')) { // skala
+  } else if (await has(a, 'input[type=range]') && await has(b, 'input[type=range]') && !(await has(a, '.waiting'))) { // skala (the slider stays after answering: skip a round already answered)
     await slide(a, 60);
     await a.getByRole('button', { name: 'Zatwierdź' }).click();
     await a.getByText(/myśli|Wysłane|Czekamy/).waitFor(); // the server took the first answer before the second phone moves
@@ -319,7 +319,8 @@ for (const [name, n] of [['Ewa', '3'], ['Piotr', '3'], ['Zosia', '4'], ['Adam', 
   guests.push(page);
 }
 await screen.getByText('Para 4').waitFor();
-const colors = await Promise.all([a, b, c, d, ...guests].map(p => p.evaluate(() => JSON.parse(localStorage.getItem('duet')).color)));
+// the projector may show a player before that phone has saved its profile: wait for the save
+const colors = await Promise.all([a, b, c, d, ...guests].map(async p => (await p.waitForFunction(() => JSON.parse(localStorage.getItem('duet') || '{}').color)).jsonValue()));
 check(new Set(colors).size === 8, 'eight players need eight colors: ' + colors);
 await more(a);
 for (const name of ['Ewa', 'Piotr', 'Zosia', 'Adam']) {
