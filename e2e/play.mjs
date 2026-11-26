@@ -156,7 +156,7 @@ async function step() {
     await a.getByRole('button', { name: 'Wyślij' }).click();
     await b.fill('#word', odd ? 'slonce' : 'deszcz');
     await b.getByRole('button', { name: 'Wyślij' }).click();
-  } else if (await has(a, 'input[type=range]') && await has(b, 'input[type=range]')) { // skala
+  } else if (await has(a, 'input[type=range]') && await has(b, 'input[type=range]') && !(await has(a, '.waiting'))) { // skala (the slider stays after answering: skip a round already answered)
     await slide(a, 60);
     await a.getByRole('button', { name: 'Zatwierdź' }).click();
     await a.getByText(/myśli|Wysłane|Czekamy/).waitFor(); // the server took the first answer before the second phone moves
