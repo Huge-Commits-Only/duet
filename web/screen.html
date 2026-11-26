@@ -15,7 +15,7 @@
   <!-- the stage takes whatever height is left; fit() shrinks #app when it would not fit -->
   <div class="stage">
     <aside id="joinbox">
-      <p id="lost" hidden>Ktoś się rozłączył — zeskanuj kod, żeby wrócić do gry</p>
+      <p id="lost" hidden>Ktoś się rozłączył. Zeskanuj kod, żeby wrócić do gry</p>
       <img id="qr" src="/qr.png" alt="Kod QR do dołączenia">
       <p id="url" class="dim"></p>
     </aside>
@@ -75,7 +75,7 @@ function statsPanel(st) {
       lines('Zgodność w trybach', st.modes, l => `${l.value}% · ${l.note}`),
       lines('Zwycięstwa', st.wins, l => l.value),
       lines('Ostatnie gry', st.recent, l => `${l.value}%` + (l.note ? ` · ${l.note}` : ''))),
-    h('p', { className: 'dim' }, 'Ukryj — na telefonie'),
+    h('p', { className: 'dim' }, 'Ukryj na telefonie'),
   ];
 }
 
@@ -204,7 +204,7 @@ function render(s) {
         : s.list
         ? [h('h2', {}, 'Wasze wspólne TAK'),
            h('div', { className: 'list' }, s.list.map(it => h('span', { className: it.done ? 'done' : '' }, (it.done ? '✓ ' : '') + it.text))),
-           h('p', { className: 'dim' }, 'Odhaczanie, usuwanie i ukrycie listy — na telefonie')]
+           h('p', { className: 'dim' }, 'Odhaczanie, usuwanie i ukrycie listy na telefonie')]
         : both
         ? [h('h2', {}, optName(s, 'mode')),
            h('p', { className: 'rule' }, s.rule),
@@ -218,7 +218,7 @@ function render(s) {
       s.rule && h('p', { className: 'rule' }, s.rule),
       question(s),
       m === 'rozmowy'
-        ? h('p', { className: 'dim' }, 'Porozmawiajcie · Dalej — na telefonie')
+        ? h('p', { className: 'dim' }, 'Porozmawiajcie · Dalej na telefonie')
         : m === 'rysowanie'
         ? [clock(s), h('p', { className: 'dim' }, s.guesses ? `${guesser(s).name}: ${s.guesses.join(' · ')}` : `${guesser(s).name} zgaduje na telefonie`)]
         : m === 'wyzwania'
@@ -233,7 +233,7 @@ function render(s) {
       round(),
       h('h2', { className: 'long' }, s.q.text),
       ranking(s, true),
-      h('p', { className: 'dim' }, `Dalej — na telefonach · gotowi: ${ready(s)}`),
+      h('p', { className: 'dim' }, `Dalej na telefonach · gotowi: ${ready(s)}`),
     ];
   } else if (s.phase === 'reveal') {
     const v = verdict(s);
@@ -241,7 +241,7 @@ function render(s) {
       round(),
       h('h2', { className: v.hit ? 'hit' : 'miss' }, v.text),
       question(s),
-      h('div', { className: 'slots' }, s.players.map((p, i) => slot(p, i, p.ready ? '✓ dalej' : 'Dalej — na telefonie'))),
+      h('div', { className: 'slots' }, s.players.map((p, i) => slot(p, i, p.ready ? '✓ dalej' : 'Dalej na telefonie'))),
     ];
   } else {
     kids = summary(s);

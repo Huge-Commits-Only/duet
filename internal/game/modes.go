@@ -76,7 +76,7 @@ var modes = []modeDef{
 	},
 	{
 		id: "rozmowy", name: "Głębokie rozmowy",
-		rule:   "Karty do rozmowy, od lekkich po najgłębsze. Bez punktów — po prostu rozmawiajcie.",
+		rule:   "Karty do rozmowy, od lekkich po najgłębsze. Bez punktów, po prostu rozmawiajcie.",
 		rounds: [3]int{3, 9, 15}, subject: false, multi: "", mix: false,
 		valid: func(q question) bool { return q.Q != "" && q.Level >= 1 && q.Level <= 3 },
 	},
