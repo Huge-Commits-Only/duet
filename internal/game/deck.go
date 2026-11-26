@@ -37,11 +37,11 @@ func (g *Game) pick(mode string, pool []question, want int) []question {
 	return fresh[:want]
 }
 
-// cards draws up to want rounds of one mode in the chosen tone.
+// cards draws up to want rounds of one mode in the chosen tone ("mieszany": from every tone).
 func (g *Game) cards(mode string, all map[string][]question, want int) []card {
 	var pool, picked []question
 	for _, q := range all[mode] {
-		if q.Tone == g.cfg["tone"] && q.valid(mode) && !g.store.banned[q.id(mode)] {
+		if (q.Tone == g.cfg["tone"] || g.cfg["tone"] == "mieszany") && q.valid(mode) && !g.store.banned[q.id(mode)] {
 			pool = append(pool, q)
 		}
 	}

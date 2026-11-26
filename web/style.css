@@ -426,3 +426,74 @@ details small { display: block; margin-top: 1.1rem; }
 /* once everyone is in, the code moves to a corner: it is only for someone who drops out */
 #joinbox:has(#qr.small) { position: absolute; right: calc(var(--u) * 3); bottom: calc(var(--u) * 3); align-items: center; opacity: .85; }
 .screen #joinbox #qr.small { height: calc(var(--u) * 14); }
+
+/* ---- round three: projector ---- */
+#top:empty { display: none; }
+/* players: cards with gentle corners, not pills */
+.slot { border-radius: calc(var(--u) * 2); }
+.slot .ini { border-radius: calc(var(--u) * 1.4); }
+.slot.off { border-style: dashed; border-color: var(--pink); box-shadow: none; }
+.slot.off .ini { filter: grayscale(1); opacity: .45; box-shadow: none; }
+.slot.off small { color: var(--pink); font-weight: 700; }
+/* the menu: the two of you as big cards, a heart between */
+.slots.lobby { align-items: center; gap: calc(var(--u) * 4); }
+.slots.lobby .slot { grid-template-columns: 1fr; justify-items: center; row-gap: calc(var(--u) * .6); min-width: calc(var(--u) * 32); padding: calc(var(--u) * 2.5) calc(var(--u) * 4); text-align: center;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--c, var(--line)) 24%, var(--panel)), var(--panel) 70%); }
+.slots.lobby .ini { grid-row: auto; width: calc(var(--u) * 11); height: calc(var(--u) * 11); margin-bottom: calc(var(--u) * .8); font-size: calc(var(--u) * 6); }
+.slots.lobby b { font-size: calc(var(--u) * 5); line-height: 1.1; }
+.slots.lobby small { font-size: calc(var(--u) * 2.6); }
+.heart { font-size: calc(var(--u) * 6); filter: drop-shadow(0 0 calc(var(--u) * 2) var(--pink)); }
+.slots.lobby:has(.off, .empty) .heart { filter: grayscale(1); opacity: .35; }
+.alert { padding: calc(var(--u) * 2) calc(var(--u) * 4); border-radius: calc(var(--u) * 2); border: calc(var(--u) * .4) solid var(--pink); background: rgba(255, 61, 154, .12); box-shadow: 0 0 calc(var(--u) * 5) calc(var(--u) * -1) var(--pink); }
+.alert b { font-size: calc(var(--u) * 4); color: var(--pink); }
+.screen .alert p { margin-top: calc(var(--u) * .6); font-size: calc(var(--u) * 2.8); color: var(--dim); }
+#lost { padding: calc(var(--u) * 1.2) calc(var(--u) * 2); border-radius: calc(var(--u) * 1.6); border: calc(var(--u) * .3) solid var(--pink); background: rgba(255, 61, 154, .12); }
+@media (prefers-reduced-motion: no-preference) {
+  .slot.off, .alert, #lost { animation: lost 1.6s ease-in-out infinite; }
+  @keyframes lost { 50% { box-shadow: 0 0 calc(var(--u) * 5) var(--pink); } }
+}
+/* names on the answers and the words of Telepatia: gentle corners too */
+.who span { border-radius: calc(var(--u) * 1.2); }
+.who.words span { border-radius: calc(var(--u) * 1.6); }
+/* whose turn it is: the name, big, in their color */
+.spot { display: inline-flex; flex-direction: column; align-items: center; padding: calc(var(--u) * 1.2) calc(var(--u) * 5); border-radius: calc(var(--u) * 2); border: calc(var(--u) * .4) solid var(--c);
+  background: color-mix(in srgb, var(--c) 18%, var(--panel)); box-shadow: 0 0 calc(var(--u) * 5) calc(var(--u) * -1) var(--c); }
+.spot small { font-size: calc(var(--u) * 2.4); color: var(--dim); text-transform: uppercase; letter-spacing: .12em; }
+.spot b { font-size: calc(var(--u) * 6); line-height: 1.15; color: var(--c); text-shadow: 0 0 calc(var(--u) * 2) var(--c); }
+
+/* ---- round three: phone ---- */
+/* the round always at the top, above the spacer that centers the rest */
+.phone .roundline { order: -1; }
+.phone .spot { width: 100%; padding: .6rem 1rem; border-width: 2px; border-radius: 1rem; box-shadow: 0 0 1.4rem -.4rem var(--c); }
+.phone .spot small { font-size: .8rem; }
+.phone .spot b { font-size: 1.8rem; text-shadow: 0 0 1rem var(--c); }
+/* the pad takes the room the screen has: no scrolling, on any phone */
+.padgrid { flex: 10 0 auto; max-height: 36rem; grid-auto-rows: minmax(4.5rem, 1fr); }
+.padgrid .pick, .padgrid.n2 .pick, .padgrid.n3 .pick, .padgrid.n4 .pick, .padgrid.plain .pick { min-height: 0; }
+/* three answers: one under another, the shape in front of the text */
+.padgrid.n3 { grid-template-columns: 1fr; }
+.padgrid.n3 .pick { flex-direction: row; justify-content: flex-start; gap: .9rem; padding: .8rem 1.1rem; text-align: left; font-size: 1.15rem; }
+.padgrid.n3 .shape { flex: none; width: 2.2rem; font-size: 1.9rem; }
+/* dares: two big verdicts */
+.verdicts { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; width: 100%; }
+.verdicts .btn { min-height: 7rem; font-size: 1.3rem; }
+.verdicts .btn.yes { background: linear-gradient(150deg, var(--green), #1fb87a); color: #0d0717; box-shadow: 0 .4rem 1.6rem -.4rem var(--green); }
+.verdicts .btn.no { background: var(--panel); border: 3px solid var(--pink); color: var(--text); box-shadow: 0 .4rem 1.6rem -.6rem var(--pink); }
+/* the partner dropped out: hard to miss */
+.lost { display: flex; flex-direction: column; align-items: center; gap: .5rem; width: 100%; padding: 1.2rem; border-radius: 1.2rem; border: 2px solid var(--pink); background: rgba(255, 61, 154, .1); box-shadow: 0 0 2rem -.4rem var(--pink); }
+.lost b { font-size: 1.3rem; }
+.lost p { color: var(--dim); font-size: .95rem; }
+/* the code in the corner: the menu above it, never under it */
+.screen:has(#joinbox:not([hidden]) #qr.small) .stage { padding-bottom: calc(var(--u) * 16); }
+/* the rare actions in one row: icon above a short label */
+.minor { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: .5rem; }
+.minor button { display: flex; flex-direction: column; align-items: center; gap: .15rem; padding: .5rem .3rem; border-radius: .9rem; font-size: .8rem; line-height: 1.15; }
+.minor button > span { font-size: 1.15rem; }
+/* Prawda czy wyzwanie: the two choices a bit lower, so the screen fits */
+.btn.pick:not(.padgrid .pick) { min-height: 5.5rem; }
+.phone.in h2 { font-size: 1.5rem; }
+/* Blef: three statements, the topic and Gotowe on one screen */
+.phone form:has(.stmt) { gap: .7rem; }
+.stmt [name=st] { padding: .55rem .8rem; }
+/* four tones in one row */
+.picker.tone { grid-template-columns: repeat(4, 1fr); }
