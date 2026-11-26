@@ -24,7 +24,7 @@
 
 **Duet jak aplikacja:** w Safari stuknij Udostępnij i wybierz „Do ekranu początkowego”. Gra otwiera się wtedy na pełnym ekranie, bez paska Safari; telefon podpowiada to raz po dołączeniu. Na ekranie początkowym iPhone trzyma osobne dane, więc za pierwszym razem wpiszesz imię jeszcze raz.
 
-Menu na telefonie ma na wierzchu tylko karty z grami, ton, długość i przycisk Start; lista wspólnych TAK, statystyki, profil pary, wyciszenie dźwięków telefonu, boty, zmiana imienia, gracze i kopia zapasowa są pod „Więcej". Ekran projektora dopasowuje się do każdej rozdzielczości i proporcji (16:9, 16:10, 4:3), a gdy treść się nie mieści, sam ją pomniejsza.
+Menu na telefonie ma na wierzchu karty z grami, ton, długość, przycisk Start i pod nim karty graczy; lista wspólnych TAK, statystyki, profil pary, wyciszenie dźwięków telefonu i kopia zapasowa są pod „Więcej". Po wyniku przycisk „Dalej” odblokowuje się po 5 sekundach, żeby nikt nie przeskoczył wyniku przed przeczytaniem. Ekran projektora dopasowuje się do każdej rozdzielczości i proporcji (16:9, 16:10, 4:3), a gdy treść się nie mieści, sam ją pomniejsza.
 
 Rozmiar tekstu na projektorze zmienisz klawiszami `+` i `-` (`0` przywraca domyślny), a `m` wycisza dźwięk.
 
@@ -37,7 +37,7 @@ Przy dołączaniu każdy wybiera numer pary (partnerzy ten sam). Gdy siedzą co 
 - **Po kolei:** Wyzwania, Blef, Rysowanie. Jedna para gra, reszta patrzy na ekran; kolejka idzie wokół stołu, a gra jest odpowiednio dłuższa, żeby każdy miał tyle samo rund.
 - **Wieczór mix** miesza jedne i drugie. **Głębokie rozmowy** i **Wieczór rocznicowy** są tylko dla jednej pary.
 
-Pod przyciskiem „Więcej" na dole menu telefonu widać, kto siedzi w której parze, i można usunąć gracza, który zajął miejsce przez pomyłkę.
+Pod przyciskiem Start w menu telefonu są karty graczy: kolor, imię, stan (w grze, brak połączenia, bot) i para. Na swojej karcie zmieniasz imię i kolor (✏️), innych graczy usuwasz (✕), gdy ktoś zajął miejsce przez pomyłkę. Tam też usuwasz bota albo dodajesz parę botów.
 
 **Para 1 to domownicy.** Tylko ona widzi zapisaną listę wspólnych TAK, statystyki, profil pary i kopię zapasową, i tylko wtedy, gdy nie siedzi nikt inny. Goście wybierają pary 2–4.
 
