@@ -73,7 +73,7 @@ function summary(s) {
     s.found && chips(s.found),
     s.scored && h('h2', {}, s.winner < 0 ? 'Remis!' : `Wygrywa ${s.players[s.winner].name}!`),
     s.scored && h('p', {}, score(s)),
-    (s.stakes || []).map((t, i) => t && h('p', { className: 'stake', style: '--c:' + s.players[i].color }, `Nagroda dla: ${s.players[i].name} — ${t}`)),
+    (s.stakes || []).map((t, i) => t && h('p', { className: 'stake', style: '--c:' + s.players[i].color }, `Nagroda dla: ${s.players[i].name} · ${t}`)),
   ];
 }
 

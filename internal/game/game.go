@@ -295,7 +295,7 @@ func (g *Game) view(id string) []byte {
 	if id == "" && g.mode == "rysowanie" && (g.phase == "question" || g.phase == "reveal") {
 		v.Strokes, v.Colors = g.strokes, g.colors
 	}
-	// With several couples the projector shows the ranking, not one couple's answers —
+	// With several couples the projector shows the ranking, not one couple's answers,
 	// unless they take turns: then it shows the couple playing, like in a game for two.
 	turn := multi && turnModes[g.mode] && (g.phase == "question" || g.phase == "reveal")
 	if turn {

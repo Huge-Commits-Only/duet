@@ -236,12 +236,12 @@ const TASK = {
   draw: (s, q) => `Co rysuje ${q.about.name}? Patrz na projektor i zgaduj`,
   pick: (s, q) => q.mineQ ? 'Twój wybór' : `${q.about.name} wybiera…`,
   talk: s => s.q.options[0] + ' · bez punktów, po prostu porozmawiajcie',
-  text: () => 'Wpisz pierwsze skojarzenie — jedno słowo',
+  text: () => 'Wpisz pierwsze skojarzenie: jedno słowo',
   yesno: () => 'Tajne: ekran pokaże tylko wspólne TAK',
   dare: (s, q) => q.mineQ ? `${s.q.options[0]} dla Ciebie!` : `${s.q.options[0]} dla: ${q.about.name}. Oceń, gdy skończy`,
   write: (s, q) => q.mineQ ? 'Napisz o sobie dwie prawdy i jedno kłamstwo. Zaznacz kłamstwo.' : `${q.about.name} pisze dwie prawdy i jedno kłamstwo…`,
   default: (s, q) => s.mode === 'blef' ? (q.mineQ ? 'Zaznaczone zdanie to Twoje kłamstwo' : 'Które zdanie to kłamstwo?')
-    : !q.about ? 'Wybierz w tajemnicy' : q.mineQ ? '🙋 Pytanie o Ciebie — odpowiedz szczerze' : `🔮 Zgadujesz, co odpowie ${q.about.name}`,
+    : !q.about ? 'Wybierz w tajemnicy' : q.mineQ ? '🙋 Pytanie o Ciebie, odpowiedz szczerze' : `🔮 Zgadujesz, co odpowie ${q.about.name}`,
 };
 
 // The word form of "telepatia" and of guessing a drawing.
@@ -308,7 +308,7 @@ function questionScreen(s, c) {
   // nothing to do on the phone: say so, and point at the projector
   const idle = q.mine != null && k !== 'draw' ? c.waiting || '✓ Wysłane'
     : !q.mineQ && k === 'pick' ? `${q.about.name} wybiera: prawda czy wyzwanie`
-    : !q.mineQ && k === 'write' ? `${q.about.name} pisze dwie prawdy i jedno kłamstwo — potem zgadujesz`
+    : !q.mineQ && k === 'write' ? `${q.about.name} pisze dwie prawdy i jedno kłamstwo, potem zgadujesz`
     : null;
   if (idle) return [top, look(idle), minor(skipBtn(), banBtn(s), quitBtn())];
   return [
@@ -316,7 +316,7 @@ function questionScreen(s, c) {
     h('p', { className: 'do', id: 'status', style: '--c:' + (quiz && !q.mineQ ? q.about.color : c.p.color) }, (TASK[k] || TASK.default)(s, q)),
     text && h('h2', {}, text),
     (ANSWER[k] || ANSWER.default)(s, q),
-    k === 'draw' ? btn('Poddaję się — pokaż hasło', () => act('giveup'), 'ghost') : null,
+    k === 'draw' ? btn('Poddaję się, pokaż hasło', () => act('giveup'), 'ghost') : null,
     minor(k !== 'draw' && skipBtn(), banBtn(s), quitBtn()),
   ];
 }
@@ -380,7 +380,7 @@ function show(s) {
   // a couple that sat down while a game was on waits for the next one
   if (s.phase !== 'lobby' && !s.pairs.some(x => x.n === s.pair)) {
     return $('app').replaceChildren(h('div', { className: 'badge', style: '--c:' + p.color }, p.name),
-      h('p', { className: 'dim' }, 'Gra już trwa. Dołączycie do następnej — patrzcie na ekran.'));
+      h('p', { className: 'dim' }, 'Gra już trwa. Dołączycie do następnej, patrzcie na ekran.'));
   }
 
   // dares, bluffs and drawings go round the table: the couples whose turn it is not just watch

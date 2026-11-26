@@ -216,7 +216,7 @@ await play('Kto prędzej', /Wasza zgodność \| 50%/);
 await play('Nigdy przenigdy', /Wasza zgodność \| 50%/);
 await play('Jak dobrze mnie znasz', /Wygrywa|Remis/);
 // Kuba guesses in the odd rounds, which are the close ones: only the winner's reward is revealed
-await play('Skala', /Wygrywa Kuba! \| Natalia 0 : 12 Kuba \| Nagroda dla: Kuba — tydzień zmywania$/);
+await play('Skala', /Wygrywa Kuba! \| Natalia 0 : 12 Kuba \| Nagroda dla: Kuba · tydzień zmywania$/);
 await play('Szacowanie', /Wygrywa|Remis/);
 await play('Telepatia', /Wasza zgodność \| 50%/);
 await play('Wspólne TAK', /Wspólne TAK \| 4/);
