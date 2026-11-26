@@ -399,7 +399,7 @@ func (g *Game) phaseView(v *snapshot, p *pair, me int, own bool) {
 		}
 	case "question":
 		v.Q, v.Subject, v.Guesses = g.viewQ(p, me), g.subject(), g.guesses
-		if g.intro {
+		if g.intro && g.mode != g.cfg["mode"] { // a single game was explained in the menu already; a mix explains each mode it brings in
 			v.Rule = rules[g.mode]
 		}
 		if g.mode == "rysowanie" {

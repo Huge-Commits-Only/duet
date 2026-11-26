@@ -123,8 +123,7 @@ function picker(s, key, title) {
 }
 
 // The games as a row of cards to swipe through. The row keeps its scroll position across re-renders,
-// and the chosen card slides into view when it changes.
-let shownMode = '';
+// and the chosen card slides into view when it changes or the menu comes back after a game.
 function modeCards(s) {
   const row = h('div', { className: 'picker mode cards', role: 'group', ariaLabel: 'Gra' },
     s.menu.mode.map(o => h('button', {
@@ -132,8 +131,10 @@ function modeCards(s) {
       disabled: (s.solo || []).includes(o.id),
     }, h('span', { className: 'icon', ariaHidden: true }, (MODE_INFO[o.id] || ['🎮'])[0]), h('b', {}, o.name), h('small', {}, (MODE_INFO[o.id] || ['', ''])[1]))));
   requestAnimationFrame(() => { // the row on the page (a re-render keeps the old one, with its scroll position)
-    if (shownMode !== s.cfg.mode) document.querySelector('.picker.mode [aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: shownMode ? 'smooth' : 'instant' });
-    shownMode = s.cfg.mode;
+    const on = document.querySelector('.picker.mode');
+    if (!on || on.shown === s.cfg.mode) return;
+    on.querySelector('[aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: on.shown ? 'smooth' : 'instant' });
+    on.shown = s.cfg.mode; // a property, not an attribute: morph() leaves it alone
   });
   return row;
 }
@@ -221,7 +222,7 @@ const skipBtn = () => h('button', { type: 'button', onclick: () => confirm('Pomi
 // a question you never want again: gone from every later game (the household decides, not guests)
 const banBtn = s => s.pair === 1 && h('button', { type: 'button', disabled: !!s.banned,
   onclick: () => confirm('To pytanie już nigdy nie wróci. Na pewno?') && act('ban') }, s.banned ? '✓ Nie wróci' : iconed('🚫', 'Nie pokazuj więcej'));
-const roundLine = s => h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`);
+const roundLine = s => h('p', { className: 'dim roundline' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`);
 
 function lobbyScreen(s, { p, other, menu, home }) {
   return [
@@ -235,8 +236,13 @@ function lobbyScreen(s, { p, other, menu, home }) {
       ? [modeCards(s), h('p', { className: 'dim rulebox' }, s.rule),
          picker(s, 'tone', 'Ton'), picker(s, 'length', 'Długość'),
          btn('Start', async () => { await saveStake(); beep('next'); act('start'); }, 'after start')]
+      : other
+      ? h('div', { className: 'lost' }, h('div', { className: 'vote-icon', ariaHidden: true }, '📵'),
+          h('b', {}, `${other.name} ${other.form === 'f' ? 'straciła' : other.form === 'm' ? 'stracił' : 'traci'} połączenie`),
+          h('p', {}, 'Gra czeka. Wystarczy znów otworzyć link albo zeskanować kod z projektora.'),
+          h('span', { className: 'dots', ariaHidden: true }, h('i'), h('i'), h('i')))
       : [h('p', { className: 'dim' }, 'Czekamy na drugą osobę…'),
-         !other && btn('Zagraj z botem (test w pojedynkę)', () => act('bot'), 'ghost')],
+         btn('Zagraj z botem (test w pojedynkę)', () => act('bot'), 'ghost')],
     // everything not needed every evening, folded away; stays open across re-renders,
     // or any update would fold it away under your finger
     h('details', { className: 'after', open: infoOpen, ontoggle: e => { infoOpen = e.target.open; } }, h('summary', {}, 'Więcej'),
@@ -290,6 +296,9 @@ const TASK = {
     : !q.about ? 'Wybierz w tajemnicy' : q.mineQ ? '🙋 Pytanie o Ciebie, odpowiedz szczerze' : `🔮 Zgadujesz, co odpowie ${q.about.name}`,
 };
 
+// whose turn it is in dares, bluffs and drawings: their name, big and in their color
+const spot = (label, o) => h('div', { className: 'spot', style: '--c:' + o.color }, h('small', {}, label), h('b', {}, o.name));
+
 // The word form of "telepatia" and of guessing a drawing.
 const wordForm = (s, q) => q.mine != null
   ? h('div', { className: 'badge' }, s.myText)
@@ -307,14 +316,14 @@ const wordForm = (s, q) => q.mine != null
 const ANSWER = {
   talk: s => btn(s.round === s.rounds ? 'Zakończ rozmowę' : 'Dalej', () => act('next')),
   pick: (s, q) => q.mineQ && s.q.options.map((text, i) => h('button', { className: 'btn pick', type: 'button', onclick: () => act('answer', '', String(i)) }, text)),
-  dare: (s, q) => !q.mineQ && [btn('Zaliczone ✓', () => act('answer', '', '0')), btn('Odpuszczone ✗', () => act('answer', '', '1'), 'ghost')],
+  dare: (s, q) => !q.mineQ && h('div', { className: 'verdicts' }, btn(iconed('✓', 'Zaliczone'), () => act('answer', '', '0'), 'yes'), btn(iconed('✕', 'Nie zaliczone'), () => act('answer', '', '1'), 'no')),
   write: (s, q) => q.mineQ && h('form', { className: 'stack', onsubmit: e => {
     e.preventDefault();
     const f = new FormData(e.target);
     act('answer', f.get('lie'), f.getAll('st').map(t => t.replace(/\s+/g, ' ').trim()).join('\n')); // a typed Enter must not split a statement
   } },
     [0, 1, 2].map(i => h('div', { className: 'stmt' },
-      h('textarea', { name: 'st', rows: 3, maxLength: 80, required: true, autocomplete: 'off', placeholder: `Zdanie ${i + 1}`, ariaLabel: `Zdanie ${i + 1}` }),
+      h('textarea', { name: 'st', rows: 2, maxLength: 80, required: true, autocomplete: 'off', placeholder: `Zdanie ${i + 1}`, ariaLabel: `Zdanie ${i + 1}` }),
       h('label', {}, h('input', { type: 'radio', name: 'lie', value: i, required: true }), 'kłamstwo'))),
     h('button', { className: 'btn' }, 'Gotowe')),
   text: wordForm,
@@ -370,10 +379,14 @@ function questionScreen(s, c) {
     : !q.mineQ && k === 'pick' ? `${q.about.name} wybiera: prawda czy wyzwanie`
     : !q.mineQ && k === 'write' ? `${q.about.name} pisze dwie prawdy i jedno kłamstwo, potem zgadujesz`
     : null;
-  if (idle) return [top, look(idle), minor(skipBtn(), banBtn(s), quitBtn())];
+  // (not over your own statements: writing them is the whole screen)
+  const turn = q.about && (k === 'pick' || k === 'dare' || s.mode === 'blef') && !(k === 'write' && q.mineQ) && spot(
+    k === 'dare' ? (q.mineQ ? 'Zadanie dla Ciebie' : 'Zadanie dla') : s.mode === 'blef' ? (q.mineQ ? 'Blefujesz' : 'Blefuje') : q.mineQ ? 'Twoja kolej' : 'Wybiera', q.about);
+  if (idle) return [top, turn, look(idle), minor(skipBtn(), banBtn(s), quitBtn())];
   return [
     top,
-    h('p', { className: 'do', id: 'status', style: '--c:' + (quiz && !q.mineQ ? q.about.color : c.p.color) }, (TASK[k] || TASK.default)(s, q)),
+    turn,
+    !(k === 'pick' && q.mineQ) && h('p', { className: 'do', id: 'status', style: '--c:' + (quiz && !q.mineQ ? q.about.color : c.p.color) }, (TASK[k] || TASK.default)(s, q)),
     text && !onScreen && h('h2', {}, text),
     (ANSWER[k] || ANSWER.default)(s, q),
     k === 'draw' ? btn('Poddaję się, pokaż hasło', () => act('giveup'), 'ghost') : null,
@@ -392,8 +405,8 @@ function revealScreen(s, { p }) {
   return [
     left > 0 ? h('div', { className: 'count', id: 'count', ariaLive: 'polite' }, String(Math.ceil(left / 700)))
       : h('div', { className: 'look up' }, h('div', { className: 'eye', ariaHidden: true }, '👀'), h('b', {}, 'Podnieś wzrok'), h('p', { className: 'dim' }, 'Wynik jest na projektorze')),
-    // there from the start, so a quick tap is never lost; it fades in when the count ends
-    h('button', { className: 'btn later', type: 'button', style: `animation-delay:${Math.max(0, left)}ms`, onclick: () => act('next') }, s.round === s.rounds ? 'Zobacz wynik' : 'Dalej'),
+    // there from the start, so the layout does not jump; it fades in and unlocks when the count ends
+    h('button', { className: 'btn later', type: 'button', disabled: left > 0, style: `animation-delay:${Math.max(0, left)}ms`, onclick: () => act('next') }, s.round === s.rounds ? 'Zobacz wynik' : 'Dalej'),
     minor(banBtn(s), quitBtn()),
   ];
 }
@@ -447,6 +460,7 @@ function show(s) {
   $('stakeBox').hidden = !(menu && s.scored); // a reward needs a winner, so only in games with points
   if (document.activeElement !== $('stake')) $('stake').value = s.myStake || '';
   if (!inGame) { lastKey = ''; return $('app').replaceChildren(); }
+  if (s.phase === 'lobby' || s.phase === 'end') padEl = null; // the next game's round 1 is a new pad, not the old drawing
 
   // Who has answered changes while you are still choosing: update that line only,
   // so a re-render never interrupts dragging the slider.

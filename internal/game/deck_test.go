@@ -50,3 +50,22 @@ func TestMix(t *testing.T) {
 		t.Fatalf("spotlight must be shared equally: %v", spotlight)
 	}
 }
+
+func TestMixedTone(t *testing.T) {
+	g := New(t.TempDir())
+	all := loadQuestions(t.TempDir())
+	tones := func() map[string]bool {
+		seen := map[string]bool{}
+		for _, c := range g.cards("wolisz", all, 1000) {
+			seen[c.q.Tone] = true
+		}
+		return seen
+	}
+	if got := tones(); len(got) != 1 || !got["lekko"] {
+		t.Fatalf("a single tone draws only from it: %v", got)
+	}
+	g.cfg["tone"] = "mieszany"
+	if got := tones(); len(got) != 3 {
+		t.Fatalf("the mixed tone draws from all three: %v", got)
+	}
+}

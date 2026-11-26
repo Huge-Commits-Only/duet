@@ -331,8 +331,8 @@ func TestSkipAndRules(t *testing.T) {
 		json.Unmarshal(g.view(id), &v)
 		return v.Rule
 	}
-	if rule("") != rules["znasz"] {
-		t.Fatal("the first round of a mode explains the rules")
+	if rule("") != "" {
+		t.Fatal("a single game is explained in the menu, not again in its first round")
 	}
 	first := g.cur
 	g.Act("a", "answer", "", "0")
@@ -341,9 +341,6 @@ func TestSkipAndRules(t *testing.T) {
 	}
 	if g.round != 2 || g.phase != "question" || g.points != [2]int{} || g.matches != 0 || !g.store.asked[first.id("znasz")] {
 		t.Fatalf("skip moves on without points and uses the question up: round=%d phase=%s points=%v", g.round, g.phase, g.points)
-	}
-	if rule("") != "" {
-		t.Fatal("the rules are explained once per mode")
 	}
 	for g.phase == "question" {
 		all(g, "skip")

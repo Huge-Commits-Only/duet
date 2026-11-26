@@ -23,6 +23,9 @@ func TestBuiltinPacks(t *testing.T) {
 			continue // draws from the other modes' packs
 		}
 		for _, tone := range menu["tone"] {
+			if tone.ID == "mieszany" {
+				continue // draws from the other tones
+			}
 			n := 0
 			for _, q := range packs[mode.ID] {
 				if q.Tone == tone.ID && q.valid(mode.ID) {

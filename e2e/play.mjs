@@ -138,12 +138,12 @@ async function step() {
     if (await has(p, 'button:text-is("Prawda")')) { // wyzwania: pick truth or dare...
       const before = await text(p);
       await p.getByRole('button', { name: 'Wyzwanie' }).click();
-      await Promise.all([changed(p, before), other.getByRole('button', { name: 'Zaliczone' }).waitFor()]);
+      await Promise.all([changed(p, before), other.getByRole('button', { name: 'Zaliczone', exact: true }).waitFor()]);
       return true;
     }
     if (await has(p, 'button:text("Zaliczone")')) { // ...then the partner judges
       const before = await text(p);
-      await p.getByRole('button', { name: 'Zaliczone' }).click();
+      await p.getByRole('button', { name: 'Zaliczone', exact: true }).click();
       await changed(p, before);
       return true;
     }
@@ -185,7 +185,10 @@ async function play(label, expectAtEnd, atEnd) {
   await screen.locator('.rule').waitFor(); // the menu explains the rules
   await a.getByRole('button', { name: 'Start' }).click();
   await a.getByRole('button', { name: 'Start' }).waitFor({ state: 'detached' });
-  check((await screen.locator('.rule').count()) === 1, `${label}: the first round must explain the rules`);
+  // the menu explained a single game; a mix explains each mode it brings in
+  const mixed = /mix|rocznicowy/.test(label);
+  await screen.locator('.topbar').waitFor(); // the projector is in the game, past the menu
+  check((await screen.locator('.rule').count()) === (mixed ? 1 : 0), `${label}: the first round must ${mixed ? '' : 'not '}explain the rules`);
   for (let steps = 0; await step(); steps++) check(steps < 600, `${label}: stuck at\n${await text(a)}\n---\n${await text(b)}`);
   await screen.locator('.count').waitFor({ state: 'detached' }); // the 3-2-1 before a result
   const end = (await text(screen)).replace(/\n+/g, ' | ');

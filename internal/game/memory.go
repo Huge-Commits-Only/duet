@@ -70,7 +70,7 @@ func (g *Game) names() [2]string {
 }
 
 // usable reports whether a past round can be played again tonight: same couple, the question still
-// exists and is not banned, and its tone is not hotter than the evening's.
+// exists and is not banned, and its tone is not hotter than the evening's ("mieszany" is last, so it takes any).
 func (g *Game) usable(all map[string][]question, r roundRec) (question, bool) {
 	q, ok := lookup(all, r)
 	hotter := slices.IndexFunc(menu["tone"], func(o opt) bool { return o.ID == q.Tone }) >

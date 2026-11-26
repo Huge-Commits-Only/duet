@@ -123,7 +123,7 @@ var (
 
 	// menu is what the phones can pick before a game; keys match Game.cfg.
 	menu = map[string][]opt{
-		"tone":   {{"lekko", "Lekko"}, {"romantycznie", "Romantycznie"}, {"pikantnie", "Pikantnie 18+"}},
+		"tone":   {{"lekko", "Lekko"}, {"romantycznie", "Romantycznie"}, {"pikantnie", "Pikantnie 18+"}, {"mieszany", "Mieszany"}},
 		"length": {{"krotka", "ok. 10 min"}, {"srednia", "ok. 25 min"}, {"dluga", "ok. 45 min"}},
 	}
 )
