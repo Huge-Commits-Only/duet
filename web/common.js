@@ -8,6 +8,40 @@ function h(tag, props, ...kids) {
   return el;
 }
 
+// Updates the children of parent to look like kids, reusing the elements already there: a tap on a
+// setting changes only what changed, so nothing flickers, scrolled rows keep their place and a field
+// being typed in keeps its text and focus. A new screen still replaces everything (with replaceChildren).
+const HANDLERS = ['onclick', 'oninput', 'onchange', 'onsubmit', 'onscroll', 'ontoggle'];
+function morph(parent, kids) {
+  kids = kids.flat(Infinity).filter(k => k != null && k !== false).map(k => k instanceof Node ? k : document.createTextNode(String(k)));
+  kids.forEach((next, i) => {
+    const old = parent.childNodes[i];
+    if (old === next) return;
+    // a canvas carries its painting, not attributes: always take the new one
+    if (!old || old.nodeName !== next.nodeName || next.nodeName === 'CANVAS') {
+      return old ? parent.replaceChild(next, old) : parent.append(next);
+    }
+    if (next.nodeType === 3) { if (old.data !== next.data) old.data = next.data; return; }
+    for (const a of [...old.attributes]) if (!next.hasAttribute(a.name)) old.removeAttribute(a.name);
+    for (const a of next.attributes) if (old.getAttribute(a.name) !== a.value) old.setAttribute(a.name, a.value);
+    for (const ev of HANDLERS) old[ev] = next[ev];
+    if (next.type === 'range' && old.value !== next.value) old.value = next.value; // the slider follows its draft; typed text is never overwritten
+    morph(old, [...next.childNodes]);
+  });
+  while (parent.childNodes.length > kids.length) parent.lastChild.remove();
+}
+
+// The menu shows each game as a card: an icon and what it is about, in a few words.
+const MODE_INFO = {
+  wolisz: ['🤔', 'Dwie opcje, liczy się zgodność'], kto: ['👉', 'Wskazujecie, kogo dotyczy pytanie'],
+  nigdy: ['🙊', 'Zdarzyło się czy nigdy?'], znasz: ['💭', 'Jedno odpowiada, drugie zgaduje'],
+  skala: ['🎚️', 'Suwak od 0 do 100 i zgadywanie'], szacowanie: ['🔢', 'Liczba o sobie, partner zgaduje'],
+  telepatia: ['🔮', 'Czy wpiszecie to samo słowo?'], tak: ['✅', 'Tak albo nie, liczą się wspólne TAK'],
+  rozmowy: ['🕯️', 'Karty do rozmowy, bez punktów'], wyzwania: ['🎯', 'Prawda albo zadanie'],
+  blef: ['🃏', 'Dwie prawdy i jedno kłamstwo'], rysowanie: ['🎨', 'Rysujesz palcem, partner zgaduje'],
+  rocznica: ['🎂', 'Pytania z Waszej historii'], mix: ['🎲', 'Gra sama miesza tryby'],
+};
+
 const optName = (s, key) => (s.menu[key].find(o => o.id === s.cfg[key]) || {}).name || '';
 const percent = s => s.rounds ? Math.round(100 * s.matches / s.rounds) : 0;
 

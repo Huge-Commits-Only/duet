@@ -26,6 +26,7 @@
 <script>
 function slot(p, i, sub) {
   return h('div', { className: 'slot ' + (p ? (p.online ? 'on' : '') : 'empty'), style: p ? '--c:' + p.color : '' },
+    h('i', { className: 'ini', ariaHidden: true }, p ? p.name[0].toUpperCase() : i + 1),
     p ? p.name : 'Gracz ' + (i + 1),
     h('small', {}, !p ? 'czeka na telefon' : p.bot ? 'bot' : !p.online ? 'rozłączony' : sub ?? 'w grze'));
 }
@@ -36,7 +37,7 @@ function choice(s, i) {
   // in "blef" the bluffer's pick is the lie itself, so it is labelled instead of named
   const who = s.answers ? s.players.filter((p, seat) => s.answers[seat] === i && !(blef && seat === s.subject)) : [];
   // the shape and color the phones show on the same answer (blef has no pad: the statements are read out)
-  return h('div', { className: 'choice' + (lie ? ' lie' : who.length === 2 ? ' both' : ''), style: blef ? '' : '--k:' + optColor(s, i) },
+  return h('div', { className: 'choice' + (lie ? ' lie' : who.length === 2 ? ' both' : '') + (who.length || lie ? ' picked' : ''), style: blef ? '' : '--k:' + optColor(s, i) },
     !blef && h('i', { className: 'shape', ariaHidden: true }, SHAPES[i]),
     s.q.options[i],
     h('div', { className: 'who' }, lie && h('span', { style: '--c:var(--pink)' }, 'KŁAMSTWO'),
@@ -128,7 +129,7 @@ function question(s) {
           h('span', { className: 'mark ' + (i ? 'down' : 'up'), style: `--c:${p.color};left:${100 * s.answers[i] / (s.q.max || 100)}%` }, `${p.name} ${s.answers[i]}`))),
         h('div', { className: 'ends' }, ends(s.q).map(t => h('span', {}, t))))
     : k === 'choice'
-    ? h('div', { className: 'choices' }, (s.q.options || []).map((_, i) =>
+    ? h('div', { className: 'choices' + (s.answers ? ' revealed' : '') }, (s.q.options || []).map((_, i) =>
         [i > 0 && s.mode === 'wolisz' && h('span', { className: 'or' }, 'czy'), choice(s, i)]))
     : k === 'draw' ? drawing(s)
     : s.texts && h('div', { className: 'who words' }, s.players.map((p, i) => h('span', { style: '--c:' + p.color }, `${p.name}: ${s.texts[i]}`)));
@@ -191,7 +192,8 @@ function render(s) {
   // a burst of confetti for a match and for the end of a game
   if (prev && s.phase !== prev.phase && (s.phase === 'end' || s.phase === 'reveal' && !ranked(s) && verdict(s).hit)) confetti();
   // entrance animations only when a new screen appears, not on every small update
-  $('app').classList.toggle('fresh', !prev || s.phase !== prev.phase || s.round !== prev.round || !!s.list !== !!prev.list || !!s.stats !== !!prev.stats || !!s.profile !== !!prev.profile || !!s.month !== !!prev.month || !!s.letters !== !!prev.letters);
+  const fresh = !prev || s.phase !== prev.phase || s.round !== prev.round || !!s.list !== !!prev.list || !!s.stats !== !!prev.stats || !!s.profile !== !!prev.profile || !!s.month !== !!prev.month || !!s.letters !== !!prev.letters;
+  $('app').classList.toggle('fresh', fresh);
   prev = s;
   // ready: at least one couple, and nobody still waiting for a partner or offline
   const both = s.pairs.length > 0 && s.pairs.every(p => p.players.length === 2 && p.players.every(x => x.online));
@@ -203,9 +205,12 @@ function render(s) {
   document.querySelector('main').classList.toggle('ingame', s.phase !== 'lobby'); // small title: the game gets the room
   $('url').textContent = link || `${location.host}/play?k=${s.key}`; // for a phone that cannot scan the code
   const m = s.mode;
-  const round = () => h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}` +
-    (s.active ? ` · teraz: ${pairName(activePair(s))}` : m === 'rozmowy' || s.multi ? '' : m === 'tak' ? ` · wspólne TAK: ${(s.found || []).length}`
-      : ' · ' + (s.scored ? score(s) : `zgodność ${s.matches}/${s.round - (s.phase === 'question')}`)));
+  // the round on the left, the score on the right, out of the way of the question
+  const round = () => {
+    const info = s.active ? `teraz: ${pairName(activePair(s))}` : m === 'rozmowy' || s.multi ? '' : m === 'tak' ? `wspólne TAK: ${(s.found || []).length}`
+      : s.scored ? score(s) : `zgodność ${s.matches}/${s.round - (s.phase === 'question')}`;
+    return h('div', { className: 'topbar' }, h('span', { className: 'pill' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`), info && h('span', { className: 'pill' }, info));
+  };
   let kids;
   if (s.phase === 'lobby') {
     kids = [
@@ -227,9 +232,10 @@ function render(s) {
            h('div', { className: 'list' }, s.list.map(it => h('span', { className: it.done ? 'done' : '' }, (it.done ? '✓ ' : '') + it.text))),
            h('p', { className: 'dim' }, 'Odhaczanie, usuwanie i ukrycie listy na telefonie')]
         : both
-        ? [h('h2', {}, optName(s, 'mode')),
-           h('p', { className: 'rule' }, s.rule),
-           h('p', {}, optName(s, 'tone') + ' · ' + optName(s, 'length')),
+        ? [h('div', { className: 'modecard' },
+             h('div', { className: 'icon', ariaHidden: true }, (MODE_INFO[s.cfg.mode] || ['🎮'])[0]),
+             h('div', {}, h('h2', {}, optName(s, 'mode')), h('p', { className: 'rule' }, s.rule),
+               h('p', { className: 'chips' }, h('span', {}, optName(s, 'tone')), h('span', {}, optName(s, 'length'))))),
            h('p', { className: 'dim' }, 'Ustawcie grę na telefonie i naciśnijcie Start')]
         : h('p', { className: 'dim' }, 'Zeskanujcie kod telefonami'),
     ];
@@ -261,7 +267,7 @@ function render(s) {
     const v = verdict(s);
     kids = [
       round(),
-      h('h2', { className: v.hit ? 'hit' : 'miss' }, v.text),
+      h('h2', { className: 'verdict ' + (v.hit ? 'hit' : 'miss') }, h('span', { ariaHidden: true }, v.hit ? '💞 ' : '🙈 '), v.text),
       question(s),
       againLine(s),
       h('div', { className: 'slots' }, s.players.map((p, i) => slot(p, i, p.ready ? '✓ dalej' : 'Dalej na telefonie'))),
@@ -271,7 +277,8 @@ function render(s) {
   }
   const v = s.phase !== 'lobby' && s.vote;
   if (v) kids.unshift(h('p', { className: 'rule' }, `${v.by} chce ${v.kind === 'skip' ? 'pominąć rundę' : 'zakończyć grę'} · czekamy na: ${v.waiting.join(', ')}`));
-  $('app').replaceChildren(...kids.flat(3).filter(Boolean));
+  // a new screen is built anew, with its entrance; on the same one only what changed is updated
+  if (fresh) $('app').replaceChildren(...kids.flat(3).filter(Boolean)); else morph($('app'), kids);
   fit();
 }
 
