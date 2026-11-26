@@ -267,3 +267,96 @@ a.btn, label.btn { display: block; text-align: center; text-decoration: none; cu
 #err { color: #ff6b6b; }
 body.offline::before { content: 'Łączenie…'; position: fixed; z-index: 9; top: 0; left: 0; right: 0; padding: calc(env(safe-area-inset-top) + 6px) 16px 6px; background: var(--pink); color: var(--bg); font-weight: 700; text-align: center; }
 #err:empty { display: none; }
+
+/* ---- neon, turned up: shared by the projector and the phones ---- */
+/* a slow aurora behind everything; still for those who prefer less motion */
+body::before { content: ''; position: fixed; inset: -20%; z-index: -1; pointer-events: none;
+  background: radial-gradient(35% 30% at 25% 30%, rgba(255, 61, 154, .22), transparent 70%), radial-gradient(35% 35% at 75% 70%, rgba(155, 92, 255, .25), transparent 70%), radial-gradient(25% 25% at 70% 20%, rgba(61, 184, 255, .12), transparent 70%); }
+h1 { text-shadow: 0 0 .4em var(--pink), 0 0 1.2em rgba(255, 61, 154, .5); }
+.btn { position: relative; overflow: hidden; transition: transform .12s, filter .12s, box-shadow .2s; }
+.btn:not(.ghost) { box-shadow: 0 .4rem 1.6rem -.4rem var(--pink), inset 0 1px 0 rgba(255, 255, 255, .25); }
+.btn:active { transform: scale(.97); }
+.btn.ghost { border-radius: .9rem; }
+
+/* projector: answers carry the shape and color of the phone pad */
+.choice { position: relative; --k: var(--violet); border-color: var(--k); box-shadow: 0 0 calc(var(--u) * 3) -1px var(--k), inset 0 0 calc(var(--u) * 6) -2px color-mix(in srgb, var(--k) 35%, transparent); }
+.choice .shape { position: absolute; top: calc(var(--u) * 1.2); left: calc(var(--u) * 2); font-style: normal; font-size: calc(var(--u) * 3.6); color: var(--k); text-shadow: 0 0 calc(var(--u) * 2) var(--k); }
+.choice.both { --k: var(--green); }
+.screen h2 { text-shadow: 0 0 calc(var(--u) * 3) rgba(155, 92, 255, .55); }
+
+/* confetti for a match */
+.confetti { position: fixed; inset: 0; z-index: 20; overflow: hidden; pointer-events: none; }
+.confetti i { position: absolute; top: -4vh; left: var(--x); width: .7rem; height: 1.1rem; border-radius: 2px; background: var(--c); box-shadow: 0 0 .6rem var(--c); animation: fall 2.2s var(--d) cubic-bezier(.3, .6, .5, 1) both; }
+@keyframes fall { to { transform: translateY(110vh) rotate(var(--r)); opacity: .6; } }
+
+/* ---- phone ---- */
+/* the games as swipeable cards */
+.phone .picker.mode.cards { display: flex; gap: .7rem; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; width: calc(100% + 2rem); margin: 0 -1rem; padding: .3rem 1rem 1rem; }
+.phone .picker.mode.cards::-webkit-scrollbar { display: none; }
+.mode-card { flex: 0 0 9.2rem; scroll-snap-align: center; display: flex !important; flex-direction: column; align-items: center; justify-content: center; gap: .35rem; min-height: 9.5rem !important; padding: .9rem .6rem !important; border-radius: 1.2rem !important;
+  background: linear-gradient(160deg, #241544, var(--panel)) !important; text-align: center; transition: transform .15s, box-shadow .2s; }
+.mode-card .icon { font-size: 2.4rem; line-height: 1; filter: drop-shadow(0 0 .5rem rgba(255, 255, 255, .25)); }
+.mode-card b { font-size: 1rem; }
+.mode-card small { font-size: .76rem; line-height: 1.25; color: var(--dim); }
+.mode-card[aria-pressed="true"] { transform: translateY(-3px); border-color: var(--pink) !important; box-shadow: 0 0 1.4rem -.2rem var(--pink), inset 0 0 1.4rem -.6rem var(--pink) !important; background: linear-gradient(160deg, #3a1550, #1d1035) !important; }
+.phone .picker:not(.mode) { gap: 0; padding: .25rem; border-radius: 1rem; background: var(--panel); border: 2px solid var(--line); }
+.phone .picker:not(.mode) { position: relative; margin-top: 1.6rem; }
+.phone .picker:not(.mode) legend { position: absolute; top: -1.55rem; left: .2rem; padding: 0; } /* above the box, not on its border */
+.phone .picker:not(.mode) button { border: 0; border-radius: .75rem; background: none; }
+.phone .picker:not(.mode) button[aria-pressed="true"] { background: linear-gradient(90deg, var(--pink), var(--violet)); box-shadow: 0 0 1rem -.2rem var(--pink); color: #fff; }
+.btn.start { padding: 1.3rem; font-size: 1.5rem; letter-spacing: .04em; animation: breathe 2.4s ease-in-out infinite; }
+@keyframes breathe { 50% { box-shadow: 0 .4rem 2.4rem -.2rem var(--pink), inset 0 1px 0 rgba(255, 255, 255, .25); } }
+.hint { display: flex; flex-direction: column; gap: .5rem; width: 100%; padding: 1rem; border-radius: 1rem; border: 2px dashed var(--violet); background: rgba(155, 92, 255, .08); text-align: left; }
+.hint b { font-size: 1.05rem; }
+.hint p { font-size: .95rem; color: var(--dim); }
+
+/* the pad: big buttons in the shapes and colors of the projector's answers */
+.padgrid { display: grid; gap: .8rem; width: 100%; }
+.padgrid.n3, .padgrid.n4 { grid-template-columns: 1fr 1fr; }
+.padgrid .pick { --k: var(--violet); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem; min-height: 8.5rem; padding: 1rem .8rem; border: 3px solid var(--k); border-radius: 1.3rem;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--k) 30%, var(--panel)), var(--panel) 75%); box-shadow: 0 0 1.4rem -.5rem var(--k); font-size: 1.3rem; line-height: 1.2; }
+.padgrid.n2 .pick { min-height: min(14rem, 27dvh); }
+.padgrid.n3 .pick, .padgrid.n4 .pick { min-height: min(11rem, 21dvh); font-size: 1.05rem; }
+.padgrid .shape { font-style: normal; font-size: 2.2rem; line-height: 1; color: var(--k); text-shadow: 0 0 1rem var(--k); }
+.padgrid .pick[aria-pressed="true"] { background: var(--k); color: #160b25; box-shadow: 0 0 2.2rem -.2rem var(--k); }
+.padgrid .pick[aria-pressed="true"] .shape { color: #160b25; text-shadow: none; }
+.padgrid:has([aria-pressed="true"]) .pick:not([aria-pressed="true"]) { opacity: .45; }
+.padgrid.plain .pick { --k: var(--violet); min-height: 5rem; font-size: 1.05rem; }
+.padgrid.plain .pick[aria-pressed="true"] { --k: var(--pink); }
+
+/* waiting for the partner */
+.waiting { display: flex; flex-direction: column; align-items: center; gap: .35rem; width: 100%; padding: .9rem; border-radius: 1rem; background: var(--panel); box-shadow: 0 0 1.4rem -.5rem var(--violet); }
+.waiting b { font-size: 1.15rem; }
+.waiting small { color: var(--dim); }
+.dots { display: flex; gap: .35rem; }
+.dots i { width: .55rem; height: .55rem; border-radius: 50%; background: var(--pink); box-shadow: 0 0 .6rem var(--pink); animation: blink 1.2s infinite both; }
+.dots i:nth-child(2) { animation-delay: .2s; background: var(--violet); box-shadow: 0 0 .6rem var(--violet); }
+.dots i:nth-child(3) { animation-delay: .4s; background: #3db8ff; box-shadow: 0 0 .6rem #3db8ff; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25; transform: scale(.8); } 40% { opacity: 1; transform: scale(1.15); } }
+
+/* the result: 3-2-1 with the projector, then look up */
+.phone .count { font-size: 9rem; font-weight: 800; line-height: 1; color: var(--pink); text-shadow: 0 0 2rem var(--pink), 0 0 4rem rgba(255, 61, 154, .5); padding: 3rem 0 1rem; }
+.look.up .eye { animation: peek 1.4s ease-in-out infinite; }
+@keyframes peek { 50% { transform: translateY(-.5rem); } }
+.btn.later { animation: appear .3s both; }
+@keyframes appear { from { opacity: 0; transform: translateY(.6rem); } }
+
+@media (prefers-reduced-motion: no-preference) {
+  body::before { animation: drift 24s ease-in-out infinite alternate; }
+  @keyframes drift { to { transform: translate(6%, -4%) rotate(8deg) scale(1.08); } }
+  .phone.fresh #app > * { animation: slidein .35s both; }
+  .phone.fresh #app > :nth-child(2) { animation-delay: .05s; }
+  .phone.fresh #app > :nth-child(3) { animation-delay: .1s; }
+  .phone.fresh #app > :nth-child(n+4) { animation-delay: .15s; }
+  @keyframes slidein { from { opacity: 0; transform: translateY(.8rem); } }
+  .phone .count { animation: beat .7s ease-out infinite; }
+  @keyframes beat { from { transform: scale(1.25); opacity: .6; } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.start, .dots i, .look.up .eye { animation: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* these keep their own animation when the screen slides in */
+  .phone.fresh #app > .btn.later { animation: appear .3s both; }
+  .phone.fresh #app > .count { animation: beat .7s ease-out infinite; }
+}

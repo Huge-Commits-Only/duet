@@ -17,7 +17,7 @@
 Projektor albo telewizor pokazuje grę, a telefony są pilotami: dołączacie, skanując kod QR. Gracie we dwoje albo z gośćmi, do czterech par przy jednym ekranie. Całość działa lokalnie w homelabie, bez kont i bez chmury.
 
 ## ✨ Funkcje
-- Telefon jest pilotem. Skanujesz kod QR i grasz, bez aplikacji, kont i logowania.
+- Telefon jest padem: kolorowe przyciski w kształtach odpowiedzi z ekranu. Skanujesz kod QR i grasz, bez instalowania aplikacji, kont i logowania; można dodać Duet do ekranu początkowego.
 - 14 trybów w trzech tonach, od „Co wolisz” przez Blef po rysowanie palcem: lekko, romantycznie albo pikantnie (18+).
 - Do czterech par przy jednym ekranie, z rankingiem najbardziej zgranej pary i botami do testów w pojedynkę.
 - Profil pary: zgodność w ośmiu tematach, pytania do pogadania po grze i odznaki.

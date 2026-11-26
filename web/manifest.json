@@ -1,7 +1,7 @@
 {
   "name": "Duet",
   "short_name": "Duet",
-  "start_url": "/play",
+  "id": "/play",
   "display": "standalone",
   "background_color": "#0d0717",
   "theme_color": "#0d0717",
