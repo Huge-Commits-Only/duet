@@ -101,10 +101,11 @@ async function step() {
       locked ||= await next.first().isDisabled();
       const before = await text(p);
       check(!/Zgodni|Pudło|Trafione|Różnica|Tym razem|Telepatia!|wykryte|Blef się udał|Zgadnięte/.test(before), `the result belongs to the projector, the phone says:\n${before}`);
-      // the tap can land while the screen re-renders: Playwright then waits for a button that is already
-      // gone, though the game took the tap. A changed screen means it went through (issue #19).
-      await next.first().click({ timeout: 10000 }).catch(async e => { if (await text(p) === before) throw e; });
-      await changed(p, before);
+      const tapped = await next.first().elementHandle();
+      await tapped.click();
+      // wait until the game took the tap and this button is gone (the next screen is built anew); any change
+      // is not enough: the 3-2-1 changes the screen too, and the next step would tap the same Dalej twice (issue #19)
+      await p.waitForFunction(el => !el.isConnected, tapped);
       return true;
     }
     if (await has(p, '.stmt')) { // blef: write three statements, the partner guesses
