@@ -73,7 +73,7 @@ func TestPartnerka(t *testing.T) {
 		"Patrzeć, jak partner robi sobie dobrze":              "Patrzeć, jak partnerka robi sobie dobrze",
 		"Kto bardziej lubi patrzeć na nagiego partnera?":      "Kto bardziej lubi patrzeć na nagą partnerkę?",
 		"Zaśpiewaj refren ulubionej piosenki partnera.":       "Zaśpiewaj refren ulubionej piosenki partnerki.",
-		"Naśladuj trzy zwierzęta — partner zgaduje jakie.":    "Naśladuj trzy zwierzęta — partnerka zgaduje jakie.",
+		"Naśladuj trzy zwierzęta, a partner zgaduje jakie.":   "Naśladuj trzy zwierzęta, a partnerka zgaduje jakie.",
 		"Zrób partnerowi malinkę w miejscu, które wybierzesz": "Zrób partnerce malinkę w miejscu, które wybierzesz",
 	} {
 		if got := gender(in, "m", "f"); got != want {

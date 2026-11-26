@@ -12,7 +12,7 @@ func TestProfile(t *testing.T) {
 	now := time.Date(2026, 11, 26, 21, 0, 0, 0, time.UTC)
 	old, recent := now.AddDate(0, 0, -40), now.AddDate(0, 0, -1)
 	r := func(when time.Time, topic string, gap int, text string) roundRec {
-		return roundRec{when, topic, gap, text}
+		return roundRec{When: when, Topic: topic, Gap: gap, Text: text}
 	}
 	s := &store{rounds: []roundRec{
 		// uczucia: far apart a month ago, close lately

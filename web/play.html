@@ -191,6 +191,10 @@ const roundLine = s => h('p', { className: 'dim' }, `${cardMode(s) ? 'Karta' : '
 function lobbyScreen(s, { p, other, menu, home }) {
   return [
     h('div', { className: 'badge', style: '--c:' + p.color }, p.name + (s.multi ? ` · para ${s.pair}` : '')),
+    // the time capsule: a letter written a year ago is waiting
+    menu && home && s.lettersDue > 0 && !s.letters && btn(`📬 Otwórzcie ${s.lettersDue > 1 ? 'listy' : 'list'} sprzed roku`, () => act('letters')),
+    s.letters && btn('Schowaj listy', () => act('letters'), 'ghost'),
+    s.month && btn('Zamknij podsumowanie miesiąca', () => act('month'), 'ghost'),
     menu
       ? [picker(s, 'mode', 'Gra'), h('p', { className: 'dim rulebox' }, s.rule),
          picker(s, 'tone', 'Ton'), picker(s, 'length', 'Długość'),
@@ -305,7 +309,7 @@ function questionScreen(s, c) {
   // a question about one of you: the guesser reads it addressed to the partner, not to themselves
   const quiz = q.about && (k === 'choice' || k === 'scale') && s.mode !== 'blef';
   const text = quiz && !q.mineQ && s.q.text ? `${q.about.name}, ${s.q.text[0].toLowerCase()}${s.q.text.slice(1)}` : s.q.text;
-  const top = [roundLine(s), s.rule && h('p', { className: 'rulebox' }, s.rule)];
+  const top = [roundLine(s), s.rule && h('p', { className: 'rulebox' }, s.rule), againLine(s)];
   // nothing to do on the phone: say so, and point at the projector
   const idle = q.mine != null && k !== 'draw' ? c.waiting || '✓ Wysłane'
     : !q.mineQ && k === 'pick' ? `${q.about.name} wybiera: prawda czy wyzwanie`
@@ -330,7 +334,13 @@ function revealScreen(s, { p }) {
     : [look('Wynik jest na projektorze'), btn(s.round === s.rounds ? 'Zobacz wynik' : 'Dalej', () => act('next')), minor(banBtn(s), quitBtn())];
 }
 
-const endScreen = s => [summary(s), btn('Jeszcze raz', () => act('again')), btn('Menu', () => act('quit'), 'ghost')];
+// a letter for a year from now: only its writer sees it before then
+const capsule = s => s.canWrite && h('form', { className: 'capsule', onsubmit: e => { e.preventDefault(); act('letter', '', e.target.letter.value); } },
+  h('p', {}, '📬 List do Was za rok'),
+  h('textarea', { name: 'letter', rows: 3, maxLength: 200, required: true, value: s.myLetter || '', placeholder: 'Jedno zdanie, które przeczytacie za rok', ariaLabel: 'List do Was za rok' }),
+  h('button', { className: 'btn ghost' }, s.myLetter ? 'Popraw list' : 'Schowaj do kapsuły'),
+  s.myLetter && h('p', { className: 'dim' }, '✓ List czeka w kapsule. Otworzycie go za rok.'));
+const endScreen = s => [summary(s), capsule(s), btn('Jeszcze raz', () => act('again')), btn('Menu', () => act('quit'), 'ghost')];
 
 const SCREENS = { lobby: lobbyScreen, question: questionScreen, reveal: revealScreen, end: endScreen };
 

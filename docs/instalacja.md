@@ -55,9 +55,9 @@ gh attestation verify oci://ghcr.io/huge-commits-only/duet:latest -R Huge-Commit
 ```
 
 ## Kopia zapasowa
-W menu telefonu, pod przyciskiem „Więcej", są dwa przyciski: **Pobierz kopię zapasową** (jeden plik JSON z historią gier, listą wspólnych TAK, listą zadanych pytań, pytaniami wyłączonymi przyciskiem „Nie pokazuj więcej” i rundami profilu pary) oraz **Wczytaj kopię zapasową** (zastępuje zapisane dane zawartością pliku). Przydaje się przed przenosinami na inny serwer.
+W menu telefonu, pod przyciskiem „Więcej", są dwa przyciski: **Pobierz kopię zapasową** (jeden plik JSON z historią gier, listą wspólnych TAK, listą zadanych pytań, pytaniami wyłączonymi przyciskiem „Nie pokazuj więcej” rundami profilu pary i listami z kapsuły czasu) oraz **Wczytaj kopię zapasową** (zastępuje zapisane dane zawartością pliku). Przydaje się przed przenosinami na inny serwer.
 
-**Kopia sama, raz w tygodniu.** Jedyne niezastępowalne dane to lista wspólnych TAK, historia gier i profil pary w wolumenie. Na Pi dopisz do `crontab -e` (nazwę wolumenu sprawdzisz przez `docker volume ls | grep duet`):
+**Kopia sama, raz w tygodniu.** Jedyne niezastępowalne dane to lista wspólnych TAK, historia gier, profil pary i listy z kapsuły czasu w wolumenie. Na Pi dopisz do `crontab -e` (nazwę wolumenu sprawdzisz przez `docker volume ls | grep duet`):
 
 ```cron
 # niedziela 4:00: spakuj wolumen Duet, trzymaj kopie z ostatnich 3 miesięcy

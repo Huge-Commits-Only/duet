@@ -48,7 +48,7 @@ func (g *Game) do(id, act, key, value string) error {
 		return ErrBad
 	}
 	// the saved list, statistics and backup belong to the household (couple 1), and only with no guests around
-	if (p != g.pairs[0] || !g.home()) && slices.Contains([]string{"list", "stats", "profile", "yesdone", "yesdel"}, act) {
+	if (p != g.pairs[0] || !g.home()) && slices.Contains([]string{"list", "stats", "profile", "letters", "month", "yesdone", "yesdel"}, act) {
 		return ErrBad
 	}
 	switch {
@@ -92,11 +92,30 @@ func (g *Game) do(id, act, key, value string) error {
 		kp.stakes = [2]string{}
 		g.lead()
 	case act == "list" && g.phase == "lobby":
-		g.showList, g.showStats, g.showProfile = !g.showList, false, false
+		g.showList, g.showStats, g.showProfile, g.showLetters = !g.showList, false, false, false
 	case act == "stats" && g.phase == "lobby":
-		g.showStats, g.showList, g.showProfile = !g.showStats, false, false
+		g.showStats, g.showList, g.showProfile, g.showLetters = !g.showStats, false, false, false
 	case act == "profile" && g.phase == "lobby":
-		g.showProfile, g.showList, g.showStats = !g.showProfile, false, false
+		g.showProfile, g.showList, g.showStats, g.showLetters = !g.showProfile, false, false, false
+	case act == "letters" && g.phase == "lobby":
+		// opening is for good: the letters are marked read and stay on the projector until hidden
+		if !g.showLetters {
+			if g.shownLetters = g.store.openLetters(); len(g.shownLetters) == 0 {
+				return ErrBad
+			}
+		}
+		g.showLetters, g.showList, g.showStats, g.showProfile = !g.showLetters, false, false, false
+	case act == "month" && g.phase == "lobby":
+		if m := g.store.month(); m != nil {
+			g.store.markMonth(m.Key)
+		}
+	case act == "letter" && g.phase == "end":
+		if !g.household() || p != g.playing[0] {
+			return ErrBad
+		}
+		if err := g.writeLetter(p.players[me].Name, value); err != nil {
+			return err
+		}
 	case act == "yesdone" && g.phase == "lobby":
 		if !g.store.toggleYes(value) {
 			return ErrBad

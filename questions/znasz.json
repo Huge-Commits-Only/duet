@@ -105,7 +105,7 @@
 
     {"tone": "pikantnie", "topic": "seks", "q": "Ulubiona pozycja?", "options": ["Na jeźdźca", "Od tyłu", "Misjonarska", "Na łyżeczkę"]},
     {"tone": "pikantnie", "topic": "seks", "q": "Kiedy masz największą ochotę na seks?", "options": ["Rano", "Po południu", "Wieczorem", "W środku nocy"]},
-    {"tone": "pikantnie", "topic": "seks", "q": "Seks oralny — wolisz…", "options": ["Robić", "Dostawać", "69"]},
+    {"tone": "pikantnie", "topic": "seks", "prev": ["d4502ce5362eee05"], "q": "Seks oralny: wolisz…", "options": ["Robić", "Dostawać", "69"]},
     {"tone": "pikantnie", "topic": "seks", "q": "Jak często chcesz seksu?", "options": ["Codziennie", "Kilka razy w tygodniu", "Raz w tygodniu", "Rzadziej"]},
     {"tone": "pikantnie", "topic": "seks", "q": "Gdzie poza łóżkiem najchętniej?", "options": ["Pod prysznicem", "Na kuchennym stole", "Na kanapie", "W samochodzie"]},
     {"tone": "pikantnie", "topic": "seks", "q": "Co cię najszybciej podnieca?", "options": ["Pocałunki w szyję", "Sprośne słowa", "Dotyk między nogami", "Widok nagiego partnera"]},
@@ -146,7 +146,7 @@
     {"tone": "pikantnie", "topic": "seks", "q": "Co powiesz na seks w wodzie?", "options": ["Basen", "Morze", "Wanna", "Nie lubię"]},
     {"tone": "pikantnie", "topic": "seks", "q": "Ile gry wstępnej?", "options": ["5 minut", "Kwadrans", "Pół godziny", "Im dłużej, tym lepiej"]},
     {"tone": "pikantnie", "topic": "seks", "q": "Wibrator podczas seksu?", "options": ["Zawsze mile widziany", "Czasami", "Nie potrzebuję"]},
-    {"tone": "pikantnie", "topic": "seks", "q": "Seks w aucie — gdzie?", "options": ["Tylne siedzenie", "Fotel pasażera", "Na masce", "Nigdzie"]},
+    {"tone": "pikantnie", "topic": "seks", "prev": ["fbe4f97c6f1ba1b9"], "q": "Seks w aucie: gdzie?", "options": ["Tylne siedzenie", "Fotel pasażera", "Na masce", "Nigdzie"]},
     {"tone": "pikantnie", "topic": "seks", "q": "Co cię najbardziej kręci w partnerze nago?", "options": ["Tyłek", "Klatka lub piersi", "Brzuch", "To, co między nogami"]},
     {"tone": "pikantnie", "topic": "seks", "q": "Jak często chcesz czegoś nowego w łóżku?", "options": ["Za każdym razem", "Raz w miesiącu", "Rzadko", "Lubię sprawdzone"]},
     {"tone": "pikantnie", "topic": "seks", "q": "Masaż z finałem?", "options": ["Daję", "Dostaję", "Na zmianę", "Sam masaż wystarczy"]},

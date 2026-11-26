@@ -63,32 +63,35 @@ type Game struct {
 	pairs   [maxPairs]*pair
 	playing []*pair // the couples in the current game: every complete one at the time it started
 
-	phase       string // lobby | question | reveal | end
-	cfg         map[string]string
-	deck        []card
-	mode        string // mode of the current round; differs from cfg["mode"] only in "mix"
-	cur         question
-	subj        int      // seat in the spotlight this round (in every couple), -1 = none
-	turn        int      // subject rounds played so far, to alternate the spotlight
-	stmts       []string // "blef": the three statements, once the subject wrote them
-	pending     *card    // "wyzwania": truth or dare not chosen yet
-	strokes     [][]int  // "rysowanie": the drawing, each stroke as x,y,x,y… on a 0-1000 square
-	ink         int      // numbers in strokes
-	colors      []int    // "rysowanie": color of each stroke, an index into PALETTE in common.js
-	guesses     []string // "rysowanie": the latest wrong guesses
-	deadline    time.Time
-	seen        map[string]bool // modes already played in this game
-	intro       bool            // the current round is the first of its mode: explain the rules
-	epoch       int             // bumped on every start, so a timer from an abandoned game does nothing
-	round       int             // 1-based number of the current question
-	rounds      int
-	showList    bool              // lobby: the projector shows the saved list of mutual yeses
-	showStats   bool              // lobby: the projector shows the statistics
-	showProfile bool              // lobby: the projector shows the couple's profile
-	talk        []roundRec        // scored rounds of this game, for "Do pogadania" at its end
-	botStage    map[string]string // per bot: the situation its pending move was scheduled for
-	ready       map[string]bool   // reveal: ids of the players who tapped "Dalej"
-	vote        *vote
+	phase        string // lobby | question | reveal | end
+	cfg          map[string]string
+	deck         []card
+	mode         string // mode of the current round; differs from cfg["mode"] only in "mix"
+	cur          question
+	subj         int      // seat in the spotlight this round (in every couple), -1 = none
+	turn         int      // subject rounds played so far, to alternate the spotlight
+	stmts        []string // "blef": the three statements, once the subject wrote them
+	pending      *card    // "wyzwania": truth or dare not chosen yet
+	strokes      [][]int  // "rysowanie": the drawing, each stroke as x,y,x,y… on a 0-1000 square
+	ink          int      // numbers in strokes
+	colors       []int    // "rysowanie": color of each stroke, an index into PALETTE in common.js
+	guesses      []string // "rysowanie": the latest wrong guesses
+	deadline     time.Time
+	seen         map[string]bool // modes already played in this game
+	intro        bool            // the current round is the first of its mode: explain the rules
+	epoch        int             // bumped on every start, so a timer from an abandoned game does nothing
+	round        int             // 1-based number of the current question
+	rounds       int
+	showList     bool              // lobby: the projector shows the saved list of mutual yeses
+	showStats    bool              // lobby: the projector shows the statistics
+	showProfile  bool              // lobby: the projector shows the couple's profile
+	talk         []roundRec        // scored rounds of this game, for "Do pogadania" at its end
+	before       *roundRec         // the current question was asked before: that round
+	showLetters  bool              // lobby: the projector shows the letters just opened…
+	shownLetters []letter          // …these
+	botStage     map[string]string // per bot: the situation its pending move was scheduled for
+	ready        map[string]bool   // reveal: ids of the players who tapped "Dalej"
+	vote         *vote
 }
 
 func New(dataDir string) *Game {
@@ -100,6 +103,7 @@ func New(dataDir string) *Game {
 		g.pairs[i] = &pair{}
 	}
 	g.pair = g.pairs[0]
+	g.store.migrate(loadQuestions(dataDir))
 	g.load()
 	return g
 }
@@ -245,13 +249,19 @@ type snapshot struct {
 	Points     [2]int            `json:"points"`
 	Gain       int               `json:"gain"`
 	Hit        bool              `json:"hit"`
-	ListLen    int               `json:"listLen"`           // saved mutual yeses
-	List       []yesItem         `json:"list,omitempty"`    // only while shown on the projector
-	HasStats   bool              `json:"hasStats"`          // at least one game was recorded
-	Stats      *stats            `json:"stats,omitempty"`   // only while shown on the projector
-	HasProfile bool              `json:"hasProfile"`        // at least one round was counted
-	Profile    *profile          `json:"profile,omitempty"` // only while shown on the projector
-	Talk       []string          `json:"talk,omitempty"`    // at the end: questions to talk about, where the answers differed most
+	ListLen    int               `json:"listLen"`              // saved mutual yeses
+	List       []yesItem         `json:"list,omitempty"`       // only while shown on the projector
+	HasStats   bool              `json:"hasStats"`             // at least one game was recorded
+	Stats      *stats            `json:"stats,omitempty"`      // only while shown on the projector
+	HasProfile bool              `json:"hasProfile"`           // at least one round was counted
+	Profile    *profile          `json:"profile,omitempty"`    // only while shown on the projector
+	Talk       []string          `json:"talk,omitempty"`       // at the end: questions to talk about, where the answers differed most
+	Before     *viewBefore       `json:"before,omitempty"`     // a question asked again: what the two said then (the projector shows it in the reveal)
+	LettersDue int               `json:"lettersDue,omitempty"` // lobby: letters from the time capsule waiting to be opened
+	Letters    []viewLetter      `json:"letters,omitempty"`    // shown on the projector: just opened, or all of them at the end of an anniversary
+	CanWrite   bool              `json:"canWrite,omitempty"`   // at the end: this phone may leave a letter for a year from now
+	MyLetter   string            `json:"myLetter,omitempty"`
+	Month      *monthView        `json:"month,omitempty"`   // lobby: the previous month, until someone moves on
 	MyText     string            `json:"myText,omitempty"`  // own word in "telepatia"
 	Texts      *[2]string        `json:"texts,omitempty"`   // both words, in the reveal
 	Strokes    [][]int           `json:"strokes,omitempty"` // "rysowanie": only sent to the projector
@@ -284,7 +294,7 @@ func (g *Game) view(id string) []byte {
 	multi := g.multi()
 	v := snapshot{Phase: g.phase, Players: g.viewPlayers(p), Me: me, Multi: multi, Pairs: []viewPair{}, Cfg: g.cfg, Menu: menu, Round: g.round, Step: g.step(), Rounds: g.rounds, Matches: p.matches,
 		// rewards are between the two of a couple, so only when one couple plays
-		Scored:  (subjectModes[g.cfg["mode"]] || g.cfg["mode"] == "mix") && !multi,
+		Scored:  (subjectModes[g.cfg["mode"]] || g.cfg["mode"] == "mix" || g.cfg["mode"] == "rocznica") && !multi,
 		Subject: -1, Mode: g.cfg["mode"], Points: p.points, StakeSet: [2]bool{p.stakes[0] != "", p.stakes[1] != ""},
 		ListLen: len(g.store.yes), HasStats: len(g.store.history) > 0, HasProfile: len(g.store.rounds) > 0}
 	v.Pairs, v.Pair, v.Solo, v.Vote = g.pairsView(), slices.Index(g.pairs[:], p)+1, g.soloModes(multi), g.voteView(id)
@@ -292,7 +302,10 @@ func (g *Game) view(id string) []byte {
 		v.MyStake = p.stakes[me]
 	}
 	if g.phase == "question" || g.phase == "reveal" {
-		v.Mode, v.Banned = g.mode, g.store.banned[g.cur.id(g.mode)]
+		v.Mode, v.Banned, v.Before = g.mode, g.store.banned[g.cur.id(g.mode)], g.beforeView(p)
+		if v.Before != nil && g.phase == "question" { // the old answers only come out with the new ones
+			v.Before.Said = [2]string{}
+		}
 	}
 	if id == "" {
 		v.Key = g.key
@@ -374,7 +387,15 @@ func (g *Game) phaseView(v *snapshot, p *pair, me int, own bool) {
 			v.Stats = g.store.stats()
 		}
 		if g.showProfile && g.home() {
-			v.Profile = g.store.profile(time.Now())
+			v.Profile = g.store.profile(clock())
+		}
+		if g.home() {
+			v.LettersDue = len(g.store.due())
+			if g.showLetters {
+				v.Letters = viewLetters(g.shownLetters)
+			} else if m := g.store.month(); m != nil && m.Key != g.store.meta.MonthShown && !g.showList && !g.showStats && !g.showProfile {
+				v.Month = m
+			}
 		}
 	case "question":
 		v.Q, v.Subject, v.Guesses = g.viewQ(p, me), g.subject(), g.guesses
@@ -399,6 +420,12 @@ func (g *Game) phaseView(v *snapshot, p *pair, me int, own bool) {
 	case "end":
 		if len(g.playing) == 1 {
 			v.Talk = widest(g.talk, 3)
+		}
+		if g.household() && me >= 0 && p == g.playing[0] {
+			v.CanWrite, v.MyLetter = true, g.store.myLetter(p.players[me].Name)
+		}
+		if g.cfg["mode"] == "rocznica" && g.household() {
+			v.Letters = viewLetters(g.store.opened())
 		}
 		if v.Scored { // nobody wins a game without points, so there is nothing to reward
 			v.Winner, v.Stakes = rewards(p)

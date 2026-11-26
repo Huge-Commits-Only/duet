@@ -20,7 +20,7 @@
     {"tone": "lekko", "topic": "rozrywka", "q": "Całodniowa wycieczka rowerowa"},
     {"tone": "lekko", "topic": "rozrywka", "q": "Escape room"},
     {"tone": "lekko", "topic": "rozrywka", "q": "Wspólny tatuaż"},
-    {"tone": "lekko", "topic": "podroze", "q": "Wyjazd w ciemno — kierunek losowany"},
+    {"tone": "lekko", "topic": "podroze", "prev": ["141fea96026a883d"], "q": "Wyjazd w ciemno, kierunek losowany"},
     {"tone": "lekko", "topic": "rozrywka", "q": "Nocny spacer po mieście"},
     {"tone": "lekko", "topic": "codziennosc", "q": "Własny ogródek lub rośliny na balkonie"},
     {"tone": "lekko", "topic": "rozrywka", "q": "Wspólna siłownia"},

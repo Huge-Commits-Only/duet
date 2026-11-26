@@ -51,9 +51,10 @@ type savedPlayer struct {
 }
 
 type savedCard struct {
-	Mode string
-	Q    question
-	Dare *question
+	Mode   string
+	Q      question
+	Dare   *question
+	Before *roundRec // a question asked again
 }
 
 // save writes the current state. Caller holds mu. The drawing itself is not kept:
@@ -77,7 +78,7 @@ func (g *Game) save() {
 	}
 	s.Active = slices.Index(g.pairs[:], g.pair)
 	for _, c := range g.deck {
-		s.Deck = append(s.Deck, savedCard{c.mode, c.q, c.dare})
+		s.Deck = append(s.Deck, savedCard{c.mode, c.q, c.dare, c.before})
 	}
 	g.store.write("game.json", s)
 }
@@ -129,7 +130,7 @@ func (g *Game) load() {
 		p.matches, p.score, p.gain, p.hit, p.found = sp.Matches, sp.Score, sp.Gain, sp.Hit, sp.Found
 	}
 	for _, c := range s.Deck {
-		g.deck = append(g.deck, card{c.Mode, c.Q, c.Dare})
+		g.deck = append(g.deck, card{c.Mode, c.Q, c.Dare, c.Before})
 	}
 	g.playing = playing
 	g.phase, g.mode, g.cur, g.round, g.rounds = s.Phase, s.Mode, s.Cur, s.Round, s.Rounds

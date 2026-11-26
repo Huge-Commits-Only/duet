@@ -176,7 +176,7 @@ async function step() {
 // every game is played on another phone screen: iPhone SE, 13, 15 Pro Max, 13 turned sideways (drawing lands here)
 const sizes = [[320, 568], [390, 844], [430, 932], [844, 390]];
 let games = 0;
-async function play(label, expectAtEnd) {
+async function play(label, expectAtEnd, atEnd) {
   const [width, height] = sizes[games++ % sizes.length];
   for (const p of phones) await p.setViewportSize({ width, height });
   const pick = a.locator('.picker button', { hasText: label });
@@ -191,6 +191,7 @@ async function play(label, expectAtEnd) {
   const end = (await text(screen)).replace(/\n+/g, ' | ');
   check(expectAtEnd.test(end), `${label}: unexpected final screen: ${end}`);
   console.log(`✔ ${label}: ${end}`);
+  if (atEnd) await atEnd();
   await a.getByRole('button', { name: 'Menu' }).click();
   await b.getByRole('button', { name: 'Start' }).waitFor();
 }
@@ -226,6 +227,14 @@ await play('Wyzwania', /Zaliczone zadania \| 6 z 6/);
 await play('Blef', /Wykryte kłamstwa \| 4 z 4/);
 await play('Rysowanie', /Odgadnięte hasła \| 4 z 4/);
 await play('Wieczór mix', /Wspólny wynik/);
+// the anniversary evening is made of tonight's questions, each with what the two said the first time;
+// at its end each phone may leave a letter for a year from now, which nobody else sees
+await play('Wieczór rocznicowy', /Wspólny wynik/, async () => {
+  await a.getByLabel('List do Was za rok').fill('Za rok gramy dalej');
+  await a.getByRole('button', { name: 'Schowaj do kapsuły' }).click();
+  await a.getByText('List czeka w kapsule').waitFor();
+  check(!(await text(b)).includes('Za rok gramy') && !(await text(screen)).includes('Za rok gramy'), 'a letter must stay secret until it opens');
+});
 for (const p of phones) await p.setViewportSize(devices['iPhone 16'].viewport);
 
 // ---- the saved list of mutual yeses: show, tick off, remove ----
@@ -273,7 +282,7 @@ await b.getByRole('button', { name: 'Start' }).waitFor();
 await more(a);
 await a.getByRole('button', { name: 'Pokaż statystyki na ekranie' }).click();
 await screen.getByText('Wasze statystyki').waitFor();
-check(Number(await screen.locator('.tile b').nth(1).textContent()) === 13, 'every finished game must be counted, the abandoned one not');
+check(Number(await screen.locator('.tile b').nth(1).textContent()) === 14, 'every finished game must be counted, the abandoned one not');
 check((await screen.locator('.chart polyline').count()) === 1, 'compatibility over time must be drawn');
 await shot('stats', screen);
 await a.getByRole('button', { name: 'Ukryj statystyki' }).click();

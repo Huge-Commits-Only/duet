@@ -23,12 +23,21 @@ const (
 	trendDays = 30 // the trend compares the latest month with everything before it
 )
 
-// roundRec is one answered round: its topic, how far apart the two answers were (0-100) and the question.
+// roundRec is one answered round: its topic, how far apart the two answers were (0-100) and the question,
+// plus what each of the two said, so the question can come back months later to compare.
+// Rounds kept before that have no Mode, ID or Said and never come back.
 type roundRec struct {
-	When  time.Time `json:"when"`
-	Topic string    `json:"topic,omitempty"`
-	Gap   int       `json:"gap"`
-	Text  string    `json:"text"`
+	When    time.Time  `json:"when"`
+	Topic   string     `json:"topic,omitempty"`
+	Gap     int        `json:"gap"`
+	Text    string     `json:"text"`
+	Mode    string     `json:"mode,omitempty"`
+	ID      string     `json:"id,omitempty"`      // the question's id
+	Names   [2]string  `json:"names"`             // the two seats
+	Said    [2]string  `json:"said"`              // each seat's answer as the screen puts it
+	Subj    int        `json:"subj"`              // the seat the question was about, -1 = both
+	WasWhen *time.Time `json:"wasWhen,omitempty"` // a question asked again: when it was asked before…
+	WasSaid *[2]string `json:"wasSaid,omitempty"` // …and what each seat said then
 }
 
 func (r roundRec) close() bool { return r.Gap <= closeGap }
@@ -73,7 +82,12 @@ func (g *Game) note(p *pair) {
 	if !ok || len(g.playing) != 1 || g.hasBots() {
 		return
 	}
-	r := roundRec{When: time.Now(), Topic: g.cur.Topic, Gap: gap, Text: g.talkText(p)}
+	r := roundRec{When: clock(), Topic: g.cur.Topic, Gap: gap, Text: g.talkText(p), Mode: g.mode, ID: g.cur.id(g.mode),
+		Names: [2]string{p.players[0].Name, p.players[1].Name}, Said: [2]string{g.said(p, 0), g.said(p, 1)}, Subj: g.subj}
+	if b := g.before; b != nil {
+		was := b.align(r.Names)
+		r.WasWhen, r.WasSaid = &b.When, &was
+	}
 	g.talk = append(g.talk, r)
 	if g.home() {
 		g.store.rounds = append(g.store.rounds, r)
@@ -94,10 +108,20 @@ func widest(rounds []roundRec, n int) []string {
 
 // profile is what the projector shows about the couple.
 type profile struct {
-	Rounds int        `json:"rounds"` // rounds counted so far
-	Topics []statLine `json:"topics"` // agreement per topic in percent, best first; Note: the trend, e.g. "▲ 12"
-	Talk   []string   `json:"talk"`   // the widest differences of the latest evening
-	Badges []statLine `json:"badges"` // Value 1 = earned; Note: what it takes
+	Rounds  int        `json:"rounds"`  // rounds counted so far
+	Topics  []statLine `json:"topics"`  // agreement per topic in percent, best first; Note: the trend, e.g. "▲ 12"
+	Talk    []string   `json:"talk"`    // the widest differences of the latest evening
+	Badges  []statLine `json:"badges"`  // Value 1 = earned; Note: what it takes
+	Changed []change   `json:"changed"` // "Wasza historia": questions asked again where someone changed their mind, newest first
+}
+
+// change is one person's different answer to a question asked again.
+type change struct {
+	Text string `json:"text"`
+	Who  string `json:"who"`
+	From string `json:"from"`
+	To   string `json:"to"`
+	When string `json:"when"` // when the first answer was given
 }
 
 func (s *store) profile(now time.Time) *profile {
@@ -145,15 +169,31 @@ func (s *store) profile(now time.Time) *profile {
 		}
 		pr.Talk = widest(s.rounds[first:], 3)
 	}
-	pr.Badges = s.badges()
+	pr.Badges = s.badgesAt(farFuture)
+	pr.Changed = []change{}
+	for i := len(s.rounds) - 1; i >= 0 && len(pr.Changed) < 4; i-- {
+		r := s.rounds[i]
+		for seat := 0; r.WasSaid != nil && seat < 2; seat++ {
+			// when the question was about one of them, the other only guessed: that is not a change of mind
+			if was := r.WasSaid[seat]; (r.Subj < 0 || r.Subj == seat) && was != "" && was != r.Said[seat] {
+				pr.Changed = append(pr.Changed, change{r.Text, r.Names[seat], was, r.Said[seat], whenText(*r.WasWhen)})
+			}
+		}
+	}
 	return pr
 }
 
-// badges are small goals that give a reason to come back; all are listed, the earned ones lit.
-func (s *store) badges() []statLine {
+var farFuture = time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
+
+// badgesAt are small goals that give a reason to come back, as they stood before the given moment;
+// all are listed, the earned ones lit.
+func (s *store) badgesAt(until time.Time) []statLine {
 	best, run, day := 0, 0, ""
 	seen := map[string]bool{}
 	for _, r := range s.rounds {
+		if !r.When.Before(until) {
+			break
+		}
 		if d := r.When.Format(time.DateOnly); d != day { // a run lasts one evening
 			day, run = d, 0
 		}
@@ -168,6 +208,9 @@ func (s *store) badges() []statLine {
 	allTopics := !slices.ContainsFunc(topics, func(t opt) bool { return !seen[t.ID] })
 	perfect, days, played := false, map[string]bool{}, map[string]bool{}
 	for _, r := range s.history {
+		if !r.When.Before(until) {
+			break
+		}
 		days[r.When.Format(time.DateOnly)] = true
 		played[r.Mode] = true
 		c, ok := r.compat()

@@ -94,9 +94,26 @@ function profilePanel(pr) {
         t.length > 1 && h('p', { className: 'dim' }, `Najbardziej zgodni: ${best.name} · najwięcej różnic: ${worst.name}`)),
       h('div', { className: 'statlist' },
         pr.talk.length > 0 && [h('small', {}, 'Do pogadania po ostatnim wieczorze'), h('div', { className: 'talk' }, pr.talk.map(q => h('p', {}, q)))],
+        pr.changed.length > 0 && [h('small', {}, 'Wasza historia: kto zmienił zdanie'), h('div', { className: 'talk' }, pr.changed.map(c => h('p', {}, c.text, h('small', {}, `${c.who}: ${c.from} → ${c.to} · pierwszy raz ${c.when}`))))],
         h('small', {}, `Odznaki: ${pr.badges.filter(b => b.value).length} z ${pr.badges.length}`),
         h('div', { className: 'medals' }, pr.badges.map(b => h('div', { className: 'medal' + (b.value ? ' on' : '') }, h('b', {}, b.name), h('small', {}, b.note)))))),
     h('p', { className: 'dim' }, 'Ukryj na telefonie'),
+  ];
+}
+
+// The previous month in a few numbers, shown in the menu at the first game of a new one.
+function monthPanel(m) {
+  const tile = (value, label) => h('div', { className: 'tile' }, h('b', {}, value), h('small', {}, label));
+  return [
+    h('h2', {}, `Wasz ${m.name}`),
+    h('div', { className: 'tiles' },
+      tile(m.evenings, plural(m.evenings, 'wieczór', 'wieczory', 'wieczorów')),
+      tile(m.games, plural(m.games, 'gra', 'gry', 'gier')),
+      tile(m.compat + '%', 'średnia zgodność')),
+    m.best && h('p', {}, `Najbardziej zgodni: ${m.best.name} (${m.best.value}%)`),
+    m.change && h('p', {}, `Największa zmiana: ${m.change.name} (${m.change.value > 0 ? '▲' : '▼'} ${Math.abs(m.change.value)})`),
+    m.badges.length > 0 && [h('p', { className: 'dim' }, 'Nowe odznaki'), h('div', { className: 'list' }, m.badges.map(b => h('span', {}, b.name)))],
+    h('p', { className: 'dim' }, 'Dalej na telefonie'),
   ];
 }
 
@@ -114,7 +131,7 @@ function question(s) {
     : k === 'draw' ? drawing(s)
     : s.texts && h('div', { className: 'who words' }, s.players.map((p, i) => h('span', { style: '--c:' + p.color }, `${p.name}: ${s.texts[i]}`)));
   return [
-    s.cfg.mode === 'mix' && h('p', { className: 'tag' }, modeName(s)),
+    (s.cfg.mode === 'mix' || s.cfg.mode === 'rocznica') && h('p', { className: 'tag' }, modeName(s)),
     about && !ranked(s) && h('p', {}, k === 'pick' ? 'Wybiera: ' : k === 'dare' ? s.q.options[0] + ' dla: ' : s.mode === 'blef' ? 'Blefuje: ' : k === 'draw' ? 'Rysuje: ' : 'Pytanie o: ',
       h('b', { style: 'color:' + about.color }, about.name),
       (k === 'choice' || k === 'scale') && s.mode !== 'blef' && [' · zgaduje: ', h('b', { style: 'color:' + guesser(s).color }, guesser(s).name)]),
@@ -197,13 +214,13 @@ setInterval(() => { // last seconds of a timed round
 function render(s) {
   sounds(s);
   // entrance animations only when a new screen appears, not on every small update
-  $('app').classList.toggle('fresh', !prev || s.phase !== prev.phase || s.round !== prev.round || !!s.list !== !!prev.list || !!s.stats !== !!prev.stats || !!s.profile !== !!prev.profile);
+  $('app').classList.toggle('fresh', !prev || s.phase !== prev.phase || s.round !== prev.round || !!s.list !== !!prev.list || !!s.stats !== !!prev.stats || !!s.profile !== !!prev.profile || !!s.month !== !!prev.month || !!s.letters !== !!prev.letters);
   prev = s;
   // ready: at least one couple, and nobody still waiting for a partner or offline
   const both = s.pairs.length > 0 && s.pairs.every(p => p.players.length === 2 && p.players.every(x => x.online));
   // the code stays up in the menu, so another couple can still join; it only shrinks once someone is ready
   // in a game the code comes back when someone drops out, so a phone that lost its seat can take it again
-  $('joinbox').hidden = s.phase !== 'lobby' && both || !!s.list || !!s.stats || !!s.profile;
+  $('joinbox').hidden = s.phase !== 'lobby' && both || !!s.list || !!s.stats || !!s.profile || !!s.month || !!s.letters;
   $('lost').hidden = s.phase === 'lobby' || both;
   $('qr').classList.toggle('small', both);
   document.querySelector('main').classList.toggle('ingame', s.phase !== 'lobby'); // small title: the game gets the room
@@ -215,12 +232,16 @@ function render(s) {
   let kids;
   if (s.phase === 'lobby') {
     kids = [
-      s.stats || s.list || s.profile ? null // these need the whole screen
+      s.stats || s.list || s.profile || s.month || s.letters ? null // these need the whole screen
         : s.multi
         ? h('div', { className: 'pairs' }, s.pairs.map(p => h('div', { className: 'pairbox' }, h('small', {}, 'Para ' + p.n),
             [0, 1].map(i => slot(p.players[i], i)))))
         : h('div', { className: 'slots' }, [0, 1].map(i => slot(s.players[i], i, both && s.scored ? (s.stakeSet[i] ? '✓ stawka wpisana' : 'bez stawki') : undefined))),
-      s.profile
+      s.letters
+        ? [h('h2', {}, '📬 List sprzed roku'), letterList(s.letters), h('p', { className: 'dim' }, 'Schowaj na telefonie')]
+        : s.month
+        ? monthPanel(s.month)
+        : s.profile
         ? profilePanel(s.profile)
         : s.stats
         ? statsPanel(s.stats)
@@ -239,6 +260,7 @@ function render(s) {
     kids = [
       round(),
       s.rule && h('p', { className: 'rule' }, s.rule),
+      againLine(s),
       question(s),
       m === 'rozmowy'
         ? h('p', { className: 'dim' }, 'Porozmawiajcie · Dalej na telefonie')
@@ -264,6 +286,7 @@ function render(s) {
       round(),
       h('h2', { className: v.hit ? 'hit' : 'miss' }, v.text),
       question(s),
+      againLine(s),
       h('div', { className: 'slots' }, s.players.map((p, i) => slot(p, i, p.ready ? '✓ dalej' : 'Dalej na telefonie'))),
     ];
   } else {

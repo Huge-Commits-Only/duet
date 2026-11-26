@@ -32,7 +32,7 @@ Przy dołączaniu każdy wybiera numer pary (partnerzy ten sam). Gdy siedzą co 
 
 - **Wszyscy naraz:** Co wolisz, Kto prędzej…, Nigdy przenigdy, Jak dobrze mnie znasz, Skala, Szacowanie, Telepatia, Wspólne TAK. Każda para odpowiada między sobą na to samo pytanie.
 - **Po kolei:** Wyzwania, Blef, Rysowanie. Jedna para gra, reszta patrzy na ekran; kolejka idzie wokół stołu, a gra jest odpowiednio dłuższa, żeby każdy miał tyle samo rund.
-- **Wieczór mix** miesza jedne i drugie. **Głębokie rozmowy** są tylko dla jednej pary.
+- **Wieczór mix** miesza jedne i drugie. **Głębokie rozmowy** i **Wieczór rocznicowy** są tylko dla jednej pary.
 
 Pod przyciskiem „Więcej" na dole menu telefonu widać, kto siedzi w której parze, i można usunąć gracza, który zajął miejsce przez pomyłkę.
 
@@ -48,10 +48,18 @@ Każda dokończona gra trafia do historii. Przycisk „Pokaż statystyki na ekra
 Pytania z trybów, w których oboje odpowiadacie na to samo (Co wolisz, Kto prędzej, Nigdy przenigdy, Jak dobrze mnie znasz, Skala, Szacowanie, Wspólne TAK), mają temat: codzienność, podróże, pieniądze i praca, przyszłość, rozrywka i znajomi, uczucia, charakter albo seks. Gra zapisuje każdą odpowiedzianą rundę domowników (`rounds.json` w wolumenie; gry z botem i z gośćmi się nie liczą).
 
 - **Na koniec gry** projektor i telefony pokazują „Do pogadania”: do trzech pytań, w których Wasze odpowiedzi najbardziej się rozjechały.
-- **„Pokaż profil pary na ekranie”** pod „Więcej” wyświetla zgodność w każdym temacie (od trzech pytań z tematu), zmianę w ostatnich 30 dniach (▲ albo ▼), najmocniejszy i najsłabszy temat, „Do pogadania” z ostatniego wieczoru i odznaki: serie zgodnych odpowiedzi, grę bez jednej różnicy, 10 wieczorów, wszystkie tematy i wszystkie tryby.
+- **„Pokaż profil pary na ekranie”** pod „Więcej” wyświetla zgodność w każdym temacie (od trzech pytań z tematu), zmianę w ostatnich 30 dniach (▲ albo ▼), najmocniejszy i najsłabszy temat, „Do pogadania” z ostatniego wieczoru, „Waszą historię” (kto zmienił zdanie przy pytaniu zadanym ponownie) i odznaki: serie zgodnych odpowiedzi, grę bez jednej różnicy, 10 wieczorów, wszystkie tematy i wszystkie tryby.
+
+## Pamięć pary
+Duet pamięta Wasze odpowiedzi, więc z czasem robi się ciekawszy:
+
+- **Powtórki.** Raz na grę wraca pytanie, na które odpowiadaliście co najmniej dwa miesiące temu. Na telefonach i projektorze widać „🔁 To pytanie już było w marcu”, a przy wyniku projektor pokazuje, co każde z Was odpowiedziało wtedy. Pytanie o jedną osobę wraca do tej samej osoby.
+- **Kapsuła czasu.** Na koniec gry każde z Was może zostawić na telefonie jedno zdanie (do 200 znaków) do przeczytania za rok. Nikt go nie zobaczy wcześniej, także partner. Po roku w menu pojawia się przycisk „📬 Otwórzcie list sprzed roku”, który pokazuje listy na projektorze (`letters.json` w wolumenie).
+- **Wieczór rocznicowy.** Tryb złożony wyłącznie z Waszej historii: najpierw pytania, przy których najbardziej się różniliście, potem te najdawniejsze, w kolejności, w jakiej padły pierwszy raz, każde z odpowiedziami sprzed miesięcy. Na koniec projektor pokazuje otwarte już listy z kapsuły. Potrzebuje co najmniej czterech pytań z Waszej historii i gra tylko jedna para, bez botów.
+- **Wasz miesiąc.** Przy pierwszej grze w nowym miesiącu menu na projektorze podsumowuje poprzedni: wieczory, gry, średnią zgodność, temat, w którym byliście najbardziej zgodni, największą zmianę i nowe odznaki. Znika po „Zamknij podsumowanie miesiąca” albo po starcie gry.
 
 ## Stawka
 Gdy gra jedna para, w grach z punktami każde z Was może przed startem wpisać tajną stawkę: co przegrany robi dla wygranego. Ekran odsłania stawkę zwycięzcy na końcu (przy remisie obie).
 
 ## Pytania, których nie chcecie
-Pod każdym pytaniem na telefonie jest mały link **Nie pokazuj więcej**: pytanie znika ze wszystkich następnych gier (zapisuje się w `banned.json` w wolumenie). Działa tylko dla pary 1, czyli domowników.
+Pod każdym pytaniem na telefonie jest mały link **Nie pokazuj więcej**: pytanie znika ze wszystkich następnych gier (zapisuje się w `banned.json` w wolumenie). Działa tylko dla pary 1, czyli domowników. Gdy w nowej wersji gry poprawimy treść pytania, jego historia i ukrycie przechodzą na nową treść.

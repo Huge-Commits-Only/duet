@@ -35,6 +35,9 @@ func TestPlayingAloneWithBots(t *testing.T) {
 
 	// every mode can be played through alone
 	for _, mode := range menu["mode"] {
+		if mode.ID == "rocznica" {
+			continue // the couple's own history: never with a bot (see TestAnniversary)
+		}
 		if err := g.Act("a", "config", "mode", mode.ID); err != nil {
 			t.Fatal(err)
 		}

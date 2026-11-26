@@ -37,4 +37,4 @@ docker cp moje-pytania.json duet:/data/questions/moje-pytania.json
 | Blef | `blef` | `q`: temat, na który piszecie dwie prawdy i kłamstwo |
 | Rysowanie | `rysowanie` | `q`: hasło do narysowania (jedno słowo, bo partner wpisuje je z klawiatury); opcjonalnie `alt`: lista słów też uznawanych za trafienie |
 
-„Wieczór mix" nie ma własnych pytań, tylko losuje rundy z pozostałych trybów.
+„Wieczór mix" nie ma własnych pytań, tylko losuje rundy z pozostałych trybów. „Wieczór rocznicowy" bierze pytania z Waszej historii.
