@@ -153,3 +153,47 @@ function keepAwake() {
   navigator.wakeLock?.request('screen').catch(() => {});
 }
 keepAwake();
+
+// Sound effects are synthesised (no audio files). Browsers only allow sound after a tap,
+// a click or a key press on the page; each page unlocks it its own way.
+const SFX = { // [frequency Hz, start s, length s, waveform]
+  join: [[523, 0, .15], [784, .12, .25]],
+  tick: [[880, 0, .06]],
+  next: [[440, 0, .08], [660, .07, .1]],
+  hit: [[523, 0, .12], [659, .1, .12], [784, .2, .35]],
+  miss: [[196, 0, .4, 'sawtooth']],
+  clock: [[1200, 0, .04]],
+  end: [[523, 0, .15], [659, .15, .15], [784, .3, .15], [1047, .45, .6]],
+};
+let audio, muted = false;
+try { audio = new AudioContext(); } catch {}
+const audible = () => audio && audio.state === 'running' && !muted;
+function play(name, delay = 0, volume = 1) {
+  if (!audible()) return;
+  for (const [freq, at, len, type = 'sine'] of SFX[name]) {
+    const osc = audio.createOscillator(), gain = audio.createGain(), t = audio.currentTime + delay + at;
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime((type === 'sine' ? .2 : .08) * volume, t);
+    gain.gain.exponentialRampToValueAtTime(.001, t + len);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(t);
+    osc.stop(t + len);
+  }
+}
+
+// Answers have a shape and a color, the same on the projector and on the phones, so a phone
+// works like a game pad: find the color, tap. In "Kto prędzej" the answers are the players: their colors.
+const SHAPES = ['▲', '◆', '●', '■'];
+const SHAPE_COLORS = ['#ff3d9a', '#3db8ff', '#ffd23d', '#3dffa8'];
+const optColor = (s, i) => s.mode === 'kto' && s.players[i] ? s.players[i].color : SHAPE_COLORS[i % SHAPE_COLORS.length];
+
+// A short burst of confetti for a match; purely decorative, and skipped when motion is reduced.
+function confetti() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const box = h('div', { className: 'confetti', ariaHidden: true }, Array.from({ length: 36 }, (_, i) => h('i', {
+    style: `--x:${Math.random() * 100}vw;--d:${(Math.random() * .5).toFixed(2)}s;--r:${Math.round(Math.random() * 720 - 360)}deg;--c:${SHAPE_COLORS[i % 4]}`,
+  })));
+  document.body.append(box);
+  setTimeout(() => box.remove(), 2600);
+}

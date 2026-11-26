@@ -35,7 +35,9 @@ function choice(s, i) {
   const blef = s.mode === 'blef', lie = blef && s.answers && s.answers[s.subject] === i;
   // in "blef" the bluffer's pick is the lie itself, so it is labelled instead of named
   const who = s.answers ? s.players.filter((p, seat) => s.answers[seat] === i && !(blef && seat === s.subject)) : [];
-  return h('div', { className: 'choice' + (lie ? ' lie' : who.length === 2 ? ' both' : '') },
+  // the shape and color the phones show on the same answer (blef has no pad: the statements are read out)
+  return h('div', { className: 'choice' + (lie ? ' lie' : who.length === 2 ? ' both' : ''), style: blef ? '' : '--k:' + optColor(s, i) },
+    !blef && h('i', { className: 'shape', ariaHidden: true }, SHAPES[i]),
     s.q.options[i],
     h('div', { className: 'who' }, lie && h('span', { style: '--c:var(--pink)' }, 'KŁAMSTWO'),
       who.map(p => h('span', { style: '--c:' + p.color }, p.name))));
@@ -146,37 +148,10 @@ function question(s) {
   ];
 }
 
-// Sound effects are synthesised (no audio files). Browsers only allow sound after
-// a click or key press on the page, so the corner button doubles as the unlock.
-const SFX = { // [frequency Hz, start s, length s, waveform]
-  join: [[523, 0, .15], [784, .12, .25]],
-  tick: [[880, 0, .06]],
-  next: [[440, 0, .08], [660, .07, .1]],
-  hit: [[523, 0, .12], [659, .1, .12], [784, .2, .35]],
-  miss: [[196, 0, .4, 'sawtooth']],
-  clock: [[1200, 0, .04]],
-  end: [[523, 0, .15], [659, .15, .15], [784, .3, .15], [1047, .45, .6]],
-};
-let audio, muted = false;
-try { audio = new AudioContext(); } catch {}
 // Sound is on from the start; the browser still wants one click or key anywhere before it plays.
 const unlock = e => audio && e.target.id !== 'snd' && e.key !== 'm' && audio.resume().then(soundButton, () => {}); // no audio device: stay silent
 addEventListener('pointerdown', unlock);
 addEventListener('keydown', unlock);
-const audible = () => audio && audio.state === 'running' && !muted;
-function play(name, delay = 0) {
-  if (!audible()) return;
-  for (const [freq, at, len, type = 'sine'] of SFX[name]) {
-    const osc = audio.createOscillator(), gain = audio.createGain(), t = audio.currentTime + delay + at;
-    osc.type = type;
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(type === 'sine' ? .2 : .08, t);
-    gain.gain.exponentialRampToValueAtTime(.001, t + len);
-    osc.connect(gain).connect(audio.destination);
-    osc.start(t);
-    osc.stop(t + len);
-  }
-}
 function soundButton() {
   $('snd').textContent = !audio ? '' : audible() ? '🔊' : muted ? '🔇' : '🔇 Kliknij, aby włączyć dźwięk';
   $('snd').ariaLabel = audible() ? 'Wycisz dźwięk' : 'Włącz dźwięk';
@@ -213,6 +188,8 @@ setInterval(() => { // last seconds of a timed round
 
 function render(s) {
   sounds(s);
+  // a burst of confetti for a match and for the end of a game
+  if (prev && s.phase !== prev.phase && (s.phase === 'end' || s.phase === 'reveal' && !ranked(s) && verdict(s).hit)) confetti();
   // entrance animations only when a new screen appears, not on every small update
   $('app').classList.toggle('fresh', !prev || s.phase !== prev.phase || s.round !== prev.round || !!s.list !== !!prev.list || !!s.stats !== !!prev.stats || !!s.profile !== !!prev.profile || !!s.month !== !!prev.month || !!s.letters !== !!prev.letters);
   prev = s;

@@ -37,6 +37,27 @@
 </main>
 <script src="/static/common.js"></script>
 <script>
+// Quiet sounds on the phone (half the projector's volume): a tap unlocks them, muting is remembered here.
+try { muted = localStorage.getItem('duet-mute') === '1'; } catch {}
+addEventListener('pointerdown', () => audio && audio.state !== 'running' && audio.resume().catch(() => {}));
+const beep = name => play(name, 0, .5);
+
+// Opened from the home screen the game has no Safari bars; a one-time hint says how to get there.
+const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+let hintSeen = standalone;
+try { hintSeen ||= localStorage.getItem('duet-a2hs') === '1'; } catch {}
+
+// The menu shows each game as a card: an icon and what it is about, in a few words.
+const MODE_INFO = {
+  wolisz: ['🤔', 'Dwie opcje, liczy się zgodność'], kto: ['👉', 'Wskazujecie, kogo dotyczy pytanie'],
+  nigdy: ['🙊', 'Zdarzyło się czy nigdy?'], znasz: ['💭', 'Jedno odpowiada, drugie zgaduje'],
+  skala: ['🎚️', 'Suwak od 0 do 100 i zgadywanie'], szacowanie: ['🔢', 'Liczba o sobie, partner zgaduje'],
+  telepatia: ['🔮', 'Czy wpiszecie to samo słowo?'], tak: ['✅', 'Tak albo nie, liczą się wspólne TAK'],
+  rozmowy: ['🕯️', 'Karty do rozmowy, bez punktów'], wyzwania: ['🎯', 'Prawda albo zadanie'],
+  blef: ['🃏', 'Dwie prawdy i jedno kłamstwo'], rysowanie: ['🎨', 'Rysujesz palcem, partner zgaduje'],
+  rocznica: ['🎂', 'Pytania z Waszej historii'], mix: ['🎲', 'Gra sama miesza tryby'],
+};
+
 const COLORS = ['#ff3d9a', '#9b5cff', '#3db8ff', '#3dffa8', '#ffd23d', '#ff7a3d', '#2ee6d6', '#b6ff3d'];
 
 // Profile lives on the phone so a rescan (or a dropped connection) puts you straight back in.
@@ -110,6 +131,29 @@ function picker(s, key, title) {
       disabled: key === 'mode' && (s.solo || []).includes(o.id), // with several couples: only the modes everyone plays at once
     }, o.name)));
 }
+
+// The games as a row of cards to swipe through. The row keeps its scroll position across re-renders,
+// and the chosen card slides into view when it changes.
+let modesScroll = 0, shownMode = '';
+function modeCards(s) {
+  const row = h('div', { className: 'picker mode cards', role: 'group', ariaLabel: 'Gra', onscroll: e => { modesScroll = e.target.scrollLeft; } },
+    s.menu.mode.map(o => h('button', {
+      type: 'button', className: 'mode-card', ariaPressed: s.cfg.mode === o.id, onclick: () => act('config', 'mode', o.id),
+      disabled: (s.solo || []).includes(o.id),
+    }, h('span', { className: 'icon', ariaHidden: true }, (MODE_INFO[o.id] || ['🎮'])[0]), h('b', {}, o.name), h('small', {}, (MODE_INFO[o.id] || ['', ''])[1]))));
+  requestAnimationFrame(() => {
+    row.scrollLeft = modesScroll;
+    if (shownMode !== s.cfg.mode) row.querySelector('[aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: shownMode ? 'smooth' : 'instant' });
+    shownMode = s.cfg.mode;
+  });
+  return row;
+}
+
+// how to get the game on the home screen, once
+const homeHint = () => !hintSeen && h('div', { className: 'hint' },
+  h('b', {}, '📲 Duet jak aplikacja'),
+  h('p', {}, 'W Safari stuknij Udostępnij (kwadrat ze strzałką) i wybierz „Do ekranu początkowego”. Gra otworzy się na pełnym ekranie, bez paska Safari.'),
+  btn('OK, rozumiem', () => { hintSeen = true; try { localStorage.setItem('duet-a2hs', '1'); } catch {} lastKey = ''; show(last); }, 'ghost'));
 
 // The drawing pad of "rysowanie": one canvas per round, kept across re-renders.
 // Points are queued and sent in order, a batch at a time, so strokes arrive as drawn.
@@ -195,10 +239,11 @@ function lobbyScreen(s, { p, other, menu, home }) {
     menu && home && s.lettersDue > 0 && !s.letters && btn(`📬 Otwórzcie ${s.lettersDue > 1 ? 'listy' : 'list'} sprzed roku`, () => act('letters')),
     s.letters && btn('Schowaj listy', () => act('letters'), 'ghost'),
     s.month && btn('Zamknij podsumowanie miesiąca', () => act('month'), 'ghost'),
+    homeHint(),
     menu
-      ? [picker(s, 'mode', 'Gra'), h('p', { className: 'dim rulebox' }, s.rule),
+      ? [modeCards(s), h('p', { className: 'dim rulebox' }, s.rule),
          picker(s, 'tone', 'Ton'), picker(s, 'length', 'Długość'),
-         btn('Start', async () => { await saveStake(); act('start'); }, 'after start')]
+         btn('Start', async () => { await saveStake(); beep('next'); act('start'); }, 'after start')]
       : [h('p', { className: 'dim' }, 'Czekamy na drugą osobę…'),
          !other && btn('Zagraj z botem (test w pojedynkę)', () => act('bot'), 'ghost')],
     // everything not needed every evening, folded away; stays open across re-renders,
@@ -216,6 +261,11 @@ function lobbyScreen(s, { p, other, menu, home }) {
       menu && other.bot && [
         btn('Usuń bota', () => act('bot'), 'ghost'),
         btn(s.pairs.some(x => x.players.every(o => o.bot)) ? 'Usuń parę botów' : 'Dodaj parę botów', () => act('botpair'), 'ghost')],
+      btn(muted ? '🔊 Włącz dźwięki na telefonie' : '🔇 Wycisz dźwięki na telefonie', () => {
+        muted = !muted;
+        try { localStorage.setItem('duet-mute', muted ? '1' : ''); } catch {}
+        lastKey = ''; show(last);
+      }, 'ghost'),
       btn('Zmień imię lub kolor', () => { editing = true; lastKey = ''; show(last); }, 'ghost'),
       h('small', {}, 'Gracze'),
       s.pairs.flatMap(x => x.players.map((o, seat) => h('div', { className: 'row' },
@@ -278,17 +328,21 @@ const ANSWER = {
     h('button', { className: 'btn' }, 'Gotowe')),
   text: wordForm,
   draw: wordForm,
-  scale: (s, q) => q.mine != null
-    ? h('div', { className: 'big' }, String(q.mine))
-    : [h('div', { className: 'big', id: 'val' }, String(draft)),
-       h('input', { type: 'range', min: 0, max: s.q.max || 100, value: draft, ariaLabel: s.q.text,
-         oninput: e => { draft = +e.target.value; $('val').textContent = draft; } }),
-       h('div', { className: 'ends' }, ends(s.q).map(t => h('span', {}, t))),
-       btn('Zatwierdź', () => act('answer', '', String(draft)))],
-  default: (s, q) => s.q.options.map((text, i) => h('button', {
-    className: 'btn pick' + (s.q.options.length > 2 ? ' small' : ''), type: 'button',
-    ariaPressed: q.mine === i, onclick: () => act('answer', '', String(i)),
-  }, text)),
+  // the slider stays after answering: until the partner answers you can still move it and send again
+  scale: (s, q) => [h('div', { className: 'big', id: 'val' }, String(draft)),
+    h('input', { type: 'range', min: 0, max: s.q.max || 100, value: draft, ariaLabel: s.q.text,
+      oninput: e => { draft = +e.target.value; $('val').textContent = draft; } }),
+    h('div', { className: 'ends' }, ends(s.q).map(t => h('span', {}, t))),
+    btn(q.mine != null ? 'Zmień odpowiedź' : 'Zatwierdź', () => { beep('tick'); act('answer', '', String(draft)); }, q.mine != null ? 'ghost' : '')],
+  // the pad: the answer's shape and color as on the projector, and its text so a tap is never a guess
+  default: (s, q) => {
+    const yesno = s.q.kind === 'yesno', blef = s.mode === 'blef';
+    return h('div', { className: 'padgrid n' + s.q.options.length + (blef ? ' plain' : '') }, s.q.options.map((text, i) => h('button', {
+      className: 'btn pick', type: 'button', ariaPressed: q.mine === i,
+      style: blef ? '' : '--k:' + (yesno ? ['#3dffa8', '#ff3d9a'][i] : optColor(s, i)),
+      onclick: () => { beep('tick'); act('answer', '', String(i)); },
+    }, !blef && h('i', { className: 'shape', ariaHidden: true }, yesno ? ['✓', '✕'][i] : SHAPES[i]), h('span', {}, text))));
+  },
 };
 
 // drawing needs the whole phone screen: just the word, the clock and the pad
@@ -310,6 +364,16 @@ function questionScreen(s, c) {
   const quiz = q.about && (k === 'choice' || k === 'scale') && s.mode !== 'blef';
   const text = quiz && !q.mineQ && s.q.text ? `${q.about.name}, ${s.q.text[0].toLowerCase()}${s.q.text.slice(1)}` : s.q.text;
   const top = [roundLine(s), s.rule && h('p', { className: 'rulebox' }, s.rule), againLine(s)];
+  // the question is read on the projector; the phone is the pad. Only what you write or do yourself stays here.
+  const onScreen = ['choice', 'yesno', 'scale', 'text'].includes(k);
+  // answered, partner still thinking: the pad stays, so you can change your mind until then
+  if (q.mine != null && (k === 'choice' || k === 'yesno' || k === 'scale') && s.mode !== 'blef') return [
+    top,
+    h('div', { className: 'waiting' }, h('span', { className: 'dots', ariaHidden: true }, h('i'), h('i'), h('i')),
+      h('b', { id: 'status' }, c.waiting || '✓ Wysłane'), h('small', {}, 'Możesz jeszcze zmienić zdanie')),
+    (ANSWER[k] || ANSWER.default)(s, q),
+    minor(skipBtn(), banBtn(s), quitBtn()),
+  ];
   // nothing to do on the phone: say so, and point at the projector
   const idle = q.mine != null && k !== 'draw' ? c.waiting || '✓ Wysłane'
     : !q.mineQ && k === 'pick' ? `${q.about.name} wybiera: prawda czy wyzwanie`
@@ -319,20 +383,35 @@ function questionScreen(s, c) {
   return [
     top,
     h('p', { className: 'do', id: 'status', style: '--c:' + (quiz && !q.mineQ ? q.about.color : c.p.color) }, (TASK[k] || TASK.default)(s, q)),
-    text && h('h2', {}, text),
+    text && !onScreen && h('h2', {}, text),
     (ANSWER[k] || ANSWER.default)(s, q),
     k === 'draw' ? btn('Poddaję się, pokaż hasło', () => act('giveup'), 'ghost') : null,
     minor(k !== 'draw' && skipBtn(), banBtn(s), quitBtn()),
   ];
 }
 
-// the result belongs to the projector: the phone does not spoil it. Everyone taps Dalej to go on.
+// The result belongs to the projector: the phone does not spoil it. It counts 3-2-1 with the projector
+// (700 ms a number, as in screen.html), then says to look up. Everyone taps Dalej to go on.
+const COUNT = 2100, revealAt = {};
+const countLeft = s => s.mode === 'rysowanie' ? 0 : COUNT - (Date.now() - (revealAt[s.round] ||= Date.now()));
 function revealScreen(s, { p }) {
   const notYet = s.pairs.flatMap(x => x.players).filter(o => o.online && !o.bot && !o.ready).map(o => o.name);
-  return p.ready
-    ? [look('Czekamy na: ' + (s.multi ? 'pozostałych' : notYet.join(', '))), minor(banBtn(s), quitBtn())]
-    : [look('Wynik jest na projektorze'), btn(s.round === s.rounds ? 'Zobacz wynik' : 'Dalej', () => act('next')), minor(banBtn(s), quitBtn())];
+  if (p.ready) return [look('Czekamy na: ' + (s.multi ? 'pozostałych' : notYet.join(', '))), minor(banBtn(s), quitBtn())];
+  const left = countLeft(s);
+  return [
+    left > 0 ? h('div', { className: 'count', id: 'count', ariaLive: 'polite' }, String(Math.ceil(left / 700)))
+      : h('div', { className: 'look up' }, h('div', { className: 'eye', ariaHidden: true }, '👀'), h('b', {}, 'Podnieś wzrok'), h('p', { className: 'dim' }, 'Wynik jest na projektorze')),
+    // there from the start, so a quick tap is never lost; it fades in when the count ends
+    h('button', { className: 'btn later', type: 'button', style: `animation-delay:${Math.max(0, left)}ms`, onclick: () => act('next') }, s.round === s.rounds ? 'Zobacz wynik' : 'Dalej'),
+    minor(banBtn(s), quitBtn()),
+  ];
 }
+setInterval(() => {
+  const el = $('count');
+  if (!el || last.phase !== 'reveal') return;
+  const left = countLeft(last), n = String(Math.ceil(left / 700));
+  if (left <= 0) { lastKey = ''; show(last); beep('join'); } else if (el.textContent !== n) { el.textContent = n; beep('tick'); }
+}, 100);
 
 // a letter for a year from now: only its writer sees it before then
 const capsule = s => s.canWrite && h('form', { className: 'capsule', onsubmit: e => { e.preventDefault(); act('letter', '', e.target.letter.value); } },
@@ -353,7 +432,7 @@ function voteBox(v) {
 }
 
 let draft = 50, draftRound = 0; // slider position in "skala", kept across re-renders
-let last = { phase: 'lobby', players: [], me: -1 }, lastKey = '';
+let last = { phase: 'lobby', players: [], me: -1 }, lastKey = '', shown = {};
 function show(s) {
   last = s;
   const p = s.players[s.me], other = s.players[1 - s.me];
@@ -376,7 +455,7 @@ function show(s) {
   // Who has answered changes while you are still choosing: update that line only,
   // so a re-render never interrupts dragging the slider.
   const waiting = s.phase !== 'question' || s.myAnswer == null ? ''
-    : !s.answered[1 - s.me] ? `Czekamy na: ${other.name}` : s.multi ? 'Czekamy na pozostałe pary…' : '';
+    : !s.answered[1 - s.me] ? `${other.name} jeszcze myśli…` : s.multi ? 'Czekamy na pozostałe pary…' : '';
   // ...and a partner's phone locking must not wipe what you are typing.
   if (s.left) endAt = Date.now() + s.left;
   // (Fields are removed rather than overwritten: a field that appears later would change the key order.)
@@ -387,6 +466,14 @@ function show(s) {
     return;
   }
   lastKey = key;
+  // a new screen slides in; small updates of the same one do not
+  const main = document.querySelector('main');
+  if (s.phase !== shown.phase || s.round !== shown.round) {
+    main.classList.remove('fresh');
+    void main.offsetWidth; // restart the animation
+    main.classList.add('fresh');
+  }
+  shown = { phase: s.phase, round: s.round };
 
   // a couple that sat down while a game was on waits for the next one
   if (s.phase !== 'lobby' && !s.pairs.some(x => x.n === s.pair)) {

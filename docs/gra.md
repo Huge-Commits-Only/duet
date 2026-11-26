@@ -18,14 +18,17 @@
 ## Jak to działa
 1. Na projektorze otwierasz `https://twoja-domena/screen`; pojawia się kod QR.
 2. Oboje skanujecie kod telefonami, wpisujecie imię i wybieracie, jak się do Was zwracać („byłeś" czy „byłaś"), a telefon to zapamięta. Dołączyć może tylko ktoś, kto ma adres z kodu QR.
-3. Na telefonie wybieracie grę, ton (lekko / romantycznie / pikantnie 18+) i długość, a potem **Start**.
-4. Odpowiadacie w tajemnicy na telefonach; projektor odsłania odpowiedzi i liczy zgodność.
+3. Na telefonie przesuwacie karty z grami, wybieracie ton (lekko / romantycznie / pikantnie 18+) i długość, a potem **Start**.
+4. Pytanie czytacie na projektorze. Telefon działa jak pad: duże przyciski mają ten sam kształt i kolor co odpowiedzi na ekranie (▲ ◆ ● ■), a pod spodem tekst odpowiedzi. Dopóki partner nie odpowie, możecie zmienić zdanie.
+5. Gdy oboje odpowiecie, telefon odlicza 3-2-1 razem z projektorem i każe podnieść wzrok: wynik jest tylko na projektorze. Przy zgodnej odpowiedzi leci konfetti.
 
-Menu na telefonie ma na wierzchu tylko wybór gry, tonu i długości oraz przycisk Start; lista wspólnych TAK, statystyki, profil pary, boty, zmiana imienia, gracze i kopia zapasowa są pod „Więcej". Ekran projektora dopasowuje się do każdej rozdzielczości i proporcji (16:9, 16:10, 4:3), a gdy treść się nie mieści, sam ją pomniejsza.
+**Duet jak aplikacja:** w Safari stuknij Udostępnij i wybierz „Do ekranu początkowego”. Gra otwiera się wtedy na pełnym ekranie, bez paska Safari; telefon podpowiada to raz po dołączeniu. Na ekranie początkowym iPhone trzyma osobne dane, więc za pierwszym razem wpiszesz imię jeszcze raz.
+
+Menu na telefonie ma na wierzchu tylko karty z grami, ton, długość i przycisk Start; lista wspólnych TAK, statystyki, profil pary, wyciszenie dźwięków telefonu, boty, zmiana imienia, gracze i kopia zapasowa są pod „Więcej". Ekran projektora dopasowuje się do każdej rozdzielczości i proporcji (16:9, 16:10, 4:3), a gdy treść się nie mieści, sam ją pomniejsza.
 
 Rozmiar tekstu na projektorze zmienisz klawiszami `+` i `-` (`0` przywraca domyślny), a `m` wycisza dźwięk.
 
-Dźwięk gra z urządzenia podłączonego do projektora. Dźwięk jest zawsze włączony na starcie, ale przeglądarka puści go dopiero po pierwszym kliknięciu lub klawiszu na ekranie projektora. Wyciszasz ikoną głośnika w prawym górnym rogu albo klawiszem `m`.
+Dźwięk gra głównie z urządzenia podłączonego do projektora; telefony cicho klikają przy odpowiedzi i odliczaniu (wyciszysz je pod „Więcej”). iPhone nie pozwala grze w przeglądarce wibrować. Dźwięk jest zawsze włączony na starcie, ale przeglądarka puści go dopiero po pierwszym kliknięciu lub klawiszu na ekranie projektora. Wyciszasz ikoną głośnika w prawym górnym rogu albo klawiszem `m`.
 
 ## Kilka par
 Przy dołączaniu każdy wybiera numer pary (partnerzy ten sam). Gdy siedzą co najmniej dwie pary, ekran pokazuje ranking: wygrywa najbardziej zgrana para.

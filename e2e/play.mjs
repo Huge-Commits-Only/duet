@@ -86,8 +86,8 @@ async function step() {
     check(await p.evaluate(w => document.documentElement.scrollWidth <= w, p.viewportSize().width), `the phone scrolls sideways at ${p.viewportSize().width}x${p.viewportSize().height}:\n${await text(p)}`);
     // both players picked a form, so a phone never shows a double spelling like "zrobiłeś/aś"
     // the guesser reads the question addressed to the partner, so it is clear whose answer it is
-    const guess = (await text(p)).match(/Zgadujesz, co odpowie (\S+)/);
-    if (guess) check((await p.locator('#app h2').textContent()).startsWith(guess[1] + ','), `the guesser's question must name ${guess[1]}`);
+    // the phone is a pad: the question itself is read on the projector
+    if (await has(p, '.padgrid')) check(!(await has(p, '#app h2')), `the phone must not repeat the question:\n${await text(p)}`);
     const double = (await text(p)).match(/\p{L}+\/aś|\p{L}+\(a\)\p{L}*|\p{L}+y\/a\b/u);
     check(!double, `unresolved form on a phone: ${double}`);
     const other = p === a ? b : a;
@@ -95,7 +95,7 @@ async function step() {
     const next = p.locator('button:text-is("Dalej"), button:text-is("Zobacz wynik"), button:text-is("Zakończ rozmowę")');
     if (await next.count()) {
       const before = await text(p);
-      if (!before.startsWith('Karta')) check(before.includes('Patrz na projektor'), `the result belongs to the projector, the phone says:\n${before}`);
+      check(!/Zgodni|Pudło|Trafione|Różnica|Tym razem|Telepatia!|wykryte|Blef się udał|Zgadnięte/.test(before), `the result belongs to the projector, the phone says:\n${before}`);
       await next.first().click();
       await changed(p, before);
       return true;
@@ -159,7 +159,7 @@ async function step() {
   } else if (await has(a, 'input[type=range]') && await has(b, 'input[type=range]')) { // skala
     await slide(a, 60);
     await a.getByRole('button', { name: 'Zatwierdź' }).click();
-    await a.getByText(/Czekamy na|Wysłane/).waitFor(); // the server took the first answer before the second phone moves
+    await a.getByText(/myśli|Wysłane|Czekamy/).waitFor(); // the server took the first answer before the second phone moves
     await slide(b, odd ? 62 : 10);
     await b.getByRole('button', { name: 'Zatwierdź' }).click();
   } else if (await has(a, '.pick') && await has(b, '.pick') && !(await has(a, '.pick[aria-pressed="true"]'))) { // any choice
