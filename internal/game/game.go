@@ -472,17 +472,28 @@ func (g *Game) JoinAs(id, name, color, form, key string, n int) error {
 	if key != g.key && old == nil {
 		return ErrKey
 	}
+	target := g.pairs[n]
+	// The same person on a new phone, or in the home-screen app (its storage is separate from Safari's):
+	// they take back their own seat in the couple instead of finding it "full".
+	same := -1
+	if old == nil {
+		same = slices.IndexFunc(target.players, func(pl *player) bool { return !pl.Bot && strings.EqualFold(pl.Name, name) })
+	}
 	for _, p := range g.pairs {
-		for _, pl := range p.players {
+		for i, pl := range p.players {
+			if p == target && i == same {
+				continue // their own old seat and color
+			}
 			if pl.ID != id && pl.Color == color && g.conns[pl.ID] > 0 {
 				return ErrColor // the projector tells the players apart by color
 			}
 		}
 	}
 	np := &player{ID: id, Name: name, Color: color, Form: form}
-	target := g.pairs[n]
 	if old != nil && (old == target || g.phase != "lobby") {
 		old.players[at] = np // same seat, new name, color or form
+	} else if same >= 0 {
+		target.players[same] = np // the seat and the secret stake stay theirs
 	} else {
 		slot := -1
 		for i, pl := range target.players {

@@ -371,3 +371,18 @@ func all(g *Game, act string) error {
 	}
 	return err
 }
+
+func TestRejoinOnAnotherPhone(t *testing.T) {
+	g := started(t, "wolisz")
+	g.Subscribe("a2") // Natalia's home-screen app: new storage, new id, while Safari still holds her seat
+	if err := g.JoinAs("a2", "natalia", "#ff00aa", "f", g.key, 0); err != nil {
+		t.Fatalf("the same name takes back its own seat, even mid-game: %v", err)
+	}
+	if p := g.pairs[0].players[0]; p.ID != "a2" || len(g.pairs[0].players) != 2 || g.pairs[0].stakes[0] != "masaż" {
+		t.Fatalf("seat and stake must stay with Natalia: %+v %v", p, g.pairs[0].stakes)
+	}
+	g.Subscribe("x")
+	if g.JoinAs("x", "Obcy", "#123456", "", g.key, 0) != ErrFull {
+		t.Fatal("someone else still finds the couple complete")
+	}
+}

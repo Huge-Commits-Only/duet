@@ -17,7 +17,7 @@
 
 ## Jak to działa
 1. Na projektorze otwierasz `https://twoja-domena/screen`; pojawia się kod QR.
-2. Oboje skanujecie kod telefonami, wpisujecie imię i wybieracie, jak się do Was zwracać („byłeś" czy „byłaś"), a telefon to zapamięta. Dołączyć może tylko ktoś, kto ma adres z kodu QR.
+2. Oboje skanujecie kod telefonami, wpisujecie imię i wybieracie, jak się do Was zwracać („byłeś" czy „byłaś"), a telefon to zapamięta. Dołączyć może tylko ktoś, kto ma adres z kodu QR. Kto wejdzie z innego telefonu albo z gry dodanej do ekranu początkowego (ma osobną pamięć od Safari), wpisuje to samo imię i wraca na swoje miejsce w parze, także w trakcie gry.
 3. Na telefonie przesuwacie karty z grami, wybieracie ton (lekko / romantycznie / pikantnie 18+ / mieszany, czyli pytania ze wszystkich tonów) i długość, a potem **Start**.
 4. Pytanie czytacie na projektorze. Telefon działa jak pad: duże przyciski mają ten sam kształt i kolor co odpowiedzi na ekranie (▲ ◆ ● ■), a pod spodem tekst odpowiedzi. Dopóki partner nie odpowie, możecie zmienić zdanie.
 5. Gdy oboje odpowiecie, telefon odlicza 3-2-1 razem z projektorem i każe podnieść wzrok: wynik jest tylko na projektorze. Przy zgodnej odpowiedzi leci konfetti.
