@@ -34,7 +34,7 @@ function morph(parent, kids) {
 // The menu shows each game as a card: an icon and what it is about, in a few words.
 const MODE_INFO = {
   wolisz: ['🤔', 'Dwie opcje, liczy się zgodność'], kto: ['👉', 'Wskazujecie, kogo dotyczy pytanie'],
-  nigdy: ['🙊', 'Zdarzyło się czy nigdy?'], znasz: ['💭', 'Jedno odpowiada, drugie zgaduje'],
+  nigdy: ['🙊', 'Zdarzyło się czy nigdy?'], znasz: ['🧩', 'Jedno odpowiada, drugie zgaduje'],
   skala: ['🎚️', 'Suwak od 0 do 100 i zgadywanie'], szacowanie: ['🔢', 'Liczba o sobie, partner zgaduje'],
   telepatia: ['🔮', 'Czy wpiszecie to samo słowo?'], tak: ['✅', 'Tak albo nie, liczą się wspólne TAK'],
   rozmowy: ['🕯️', 'Karty do rozmowy, bez punktów'], wyzwania: ['🎯', 'Prawda albo zadanie'],
@@ -59,6 +59,12 @@ const againLine = s => s.before && h('p', { className: 'again' }, s.before.said.
 // letters from the time capsule: the sentence, who wrote it and when
 const letterList = ls => h('div', { className: 'letters' }, ls.map(l => h('figure', {}, h('blockquote', {}, `„${l.text}”`), h('figcaption', {}, `${l.name}, ${l.when}`))));
 
+// "Pytanie o Natalię": the accusative of a first name, by its ending (a guess for unusual names)
+// (Natalia → Natalię, Marek → Marka, Paweł → Pawła, Jerzy → Jerzego, Piotr → Piotra; each part of Aleksandra-Maria)
+const accusative = name => name.split(/([ -])/).map(n =>
+  /a$/i.test(n) ? n.slice(0, -1) + 'ę' : /ek$/i.test(n) ? n.slice(0, -2) + 'ka' : /eł$/i.test(n) ? n.slice(0, -2) + 'ła'
+  : /y$/i.test(n) && n.length > 2 ? n.slice(0, -1) + 'ego' : /i$/i.test(n) && n.length > 2 ? n + 'ego' : /[bcćdfghjklłmnńprsśtwzźż]$/i.test(n) ? n + 'a' : n).join('');
+
 const modeName = s => (s.menu.mode.find(o => o.id === s.mode) || {}).name || '';
 
 // Headline of a reveal.
@@ -68,12 +74,14 @@ function verdict(s) {
     m === 'skala' || m === 'szacowanie' ? `Różnica ${Math.abs(s.answers[0] - s.answers[1])} · ` + (s.gain ? `+${s.gain} pkt: ${who.name}` : 'bez punktów')
     : m === 'znasz' ? (s.hit ? `Trafione! +1 pkt: ${who.name}` : 'Pudło!')
     : m === 'blef' ? (s.hit ? `Kłamstwo wykryte! +1 pkt: ${who.name}` : `Blef się udał! +1 pkt: ${subj(s).name}`)
-    : m === 'rysowanie' ? (s.hit ? `Zgadnięte! +2 pkt: ${who.name}, +1 pkt: ${subj(s).name}` : 'Czas minął!')
+    : m === 'rysowanie' ? (s.hit ? `Zgadnięte! +2 pkt: ${who.name}, +1 pkt: ${subj(s).name}` : 'Hasło nieodgadnięte')
     : m === 'telepatia' ? (s.hit ? 'Telepatia! To samo słowo' : 'Tym razem inne słowa')
     : s.hit ? 'Zgodni!' : 'Tym razem inaczej';
   return { hit: m === 'skala' || m === 'szacowanie' ? s.gain > 0 : s.hit, text };
 }
 
+// a long name shortened where room is scarce (the top bar): "Aleksandra-Maria" is "Aleksandra"
+const short = n => { const f = n.split(/[ -]/)[0]; return f.length > 11 ? f.slice(0, 10) + '…' : f; };
 const score = s => `${s.players[0].name} ${s.points[0]} : ${s.points[1]} ${s.players[1].name}`;
 const chips = items => h('div', { className: 'list' }, items.map(t => h('span', {}, t)));
 

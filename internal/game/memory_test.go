@@ -156,6 +156,9 @@ func TestTimeCapsule(t *testing.T) {
 		t.Fatal("a letter must stay secret until it opens")
 	}
 	all(g, "quit")
+	if g.Act("a", "letter", "", "Kocham Cię") != nil || !strings.Contains(string(g.view("a")), `"canWrite":true`) {
+		t.Fatal("the letter can also be written from the menu")
+	}
 
 	var lobby struct {
 		LettersDue int

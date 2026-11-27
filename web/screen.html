@@ -40,12 +40,12 @@ function choice(s, i) {
   const blef = s.mode === 'blef', lie = blef && s.answers && s.answers[s.subject] === i;
   // in "blef" the bluffer's pick is the lie itself, so it is labelled instead of named
   const who = s.answers ? s.players.filter((p, seat) => s.answers[seat] === i && !(blef && seat === s.subject)) : [];
-  // the shape and color the phones show on the same answer (blef has no pad: the statements are read out)
-  return h('div', { className: 'choice' + (lie ? ' lie' : who.length === 2 ? ' both' : '') + (who.length || lie ? ' picked' : ''), style: blef ? '' : '--k:' + optColor(s, i) },
-    !blef && h('i', { className: 'shape', ariaHidden: true }, SHAPES[i]),
+  // the shape and color the phones show on the same answer
+  return h('div', { className: 'choice' + (lie ? ' lie' : who.length === 2 ? ' both' : '') + (who.length || lie ? ' picked' : ''), style: '--k:' + optColor(s, i) },
+    h('i', { className: 'shape', ariaHidden: true }, SHAPES[i]),
     s.q.options[i],
-    h('div', { className: 'who' }, lie && h('span', { style: '--c:var(--pink)' }, 'KŁAMSTWO'),
-      who.map(p => h('span', { style: '--c:' + p.color }, p.name))));
+    h('div', { className: 'who' }, lie && h('span', { className: 'lie-tag' }, 'KŁAMSTWO'),
+      who.map(p => h('span', { style: '--c:' + p.color }, short(p.name)))));
 }
 
 // The whole drawing so far, repainted from the strokes in each state.
@@ -136,20 +136,19 @@ function question(s) {
     ? h('div', { className: 'choices' + (s.answers ? ' revealed' : '') }, (s.q.options || []).map((_, i) =>
         [i > 0 && s.mode === 'wolisz' && h('span', { className: 'or' }, 'czy'), choice(s, i)]))
     : k === 'draw' ? drawing(s)
-    : s.texts && h('div', { className: 'who words' }, s.players.map((p, i) => h('span', { style: '--c:' + p.color }, `${p.name}: ${s.texts[i]}`)));
+    : s.texts && h('div', { className: 'who words' }, s.players.map((p, i) => h('span', { style: '--c:' + p.color }, h('small', {}, p.name), s.texts[i])));
   return [
     (s.cfg.mode === 'mix' || s.cfg.mode === 'rocznica') && h('p', { className: 'tag' }, modeName(s)),
     about && !ranked(s) && (k === 'pick' || k === 'dare' || k === 'write' || k === 'draw' || s.mode === 'blef'
-      ? spot(k === 'pick' ? 'Wybiera' : k === 'dare' ? s.q.options[0] + ' dla' : s.mode === 'blef' ? 'Blefuje' : 'Rysuje', about)
-      : h('p', {}, 'Pytanie o: ', h('b', { style: 'color:' + about.color }, about.name),
-          (k === 'choice' || k === 'scale') && [' · zgaduje: ', h('b', { style: 'color:' + guesser(s).color }, guesser(s).name)])),
-    k === 'write' && h('p', { className: 'dim' }, `${about.name} pisze dwie prawdy i jedno kłamstwo na temat:`),
+      ? s.phase === 'question' && spot(k === 'pick' ? 'Wybiera' : k === 'dare' ? s.q.options[0] + ' dla' : s.mode === 'blef' ? 'Blefuje' : 'Rysuje', about)
+      : h('p', { className: 'about', style: '--c:' + about.color }, 'Pytanie o ', h('b', {}, accusative(about.name)))),
+    k === 'write' && h('p', { className: 'dim' }, 'Dwie prawdy i jedno kłamstwo na temat:'),
     k === 'text' && !s.texts && h('p', { className: 'dim' }, 'Wpiszcie pierwsze skojarzenie ze słowem'),
     k === 'yesno' && h('p', { className: 'dim' }, 'Chcielibyście? Ekran pokaże tylko wspólne TAK'),
-    k === 'talk' && h('p', { className: 'dim' }, s.q.options[0]),
     k === 'draw'
       ? s.q.text && h('h2', {}, 'Hasło: ' + s.q.text)
-      : h('h2', { className: k === 'text' ? 'word' : s.q.text.length > 40 ? 'long' : '' }, s.q.text),
+      : k === 'talk' ? h('div', { className: 'talkcard' }, h('small', {}, s.q.options[0]), h('h2', { className: s.q.text.length > 60 ? 'long' : '' }, s.q.text))
+      : s.mode !== 'wolisz' && h('h2', { className: k === 'text' ? 'word' : s.q.text.length > 40 ? 'long' : '' }, s.q.text),
     answers,
   ];
 }
@@ -159,7 +158,8 @@ const unlock = e => audio && e.target.id !== 'snd' && e.key !== 'm' && audio.res
 addEventListener('pointerdown', unlock);
 addEventListener('keydown', unlock);
 function soundButton() {
-  $('snd').textContent = !audio ? '' : audible() ? '🔊' : '🔇';
+  // a line icon in the pill style of the top bar (an emoji sits lower than the text next to it)
+  $('snd').innerHTML = !audio ? '' : `<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/>${audible() ? '<path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>' : '<path d="M16 9l5 6M21 9l-5 6"/>'}</svg>`;
   $('snd').ariaLabel = $('snd').title = audible() ? 'Wycisz dźwięk (M)' : 'Włącz dźwięk (M)';
 }
 $('snd').onclick = async () => {
@@ -212,7 +212,7 @@ function render(s) {
   // the round on the left, the score on the right, out of the way of the question
   const round = () => {
     const info = s.active ? `teraz: ${pairName(activePair(s))}` : m === 'rozmowy' || s.multi ? '' : m === 'tak' ? `wspólne TAK: ${(s.found || []).length}`
-      : s.scored ? score(s) : `zgodność ${s.matches}/${s.round - (s.phase === 'question')}`;
+      : s.scored ? `${short(s.players[0].name)} ${s.points[0]} : ${s.points[1]} ${short(s.players[1].name)}` : s.round - (s.phase === 'question') > 0 ? `zgodność ${s.matches}/${s.round - (s.phase === 'question')}` : '';
     return h('div', { className: 'topbar' }, h('span', { className: 'pill' }, `${cardMode(s) ? 'Karta' : 'Runda'} ${s.round} z ${s.rounds}`), info && h('span', { className: 'pill' }, info));
   };
   $('top').replaceChildren(...(s.phase === 'question' || s.phase === 'reveal' ? [round()] : []));
@@ -247,33 +247,34 @@ function render(s) {
     ];
   } else if (s.phase === 'question') {
     kids = [
-      s.rule && h('p', { className: 'rule' }, s.rule),
       againLine(s),
       question(s),
       m === 'rozmowy'
-        ? h('p', { className: 'dim' }, 'Porozmawiajcie · Dalej na telefonie')
+        ? h('p', { className: 'phones' }, '💬 Porozmawiajcie')
+        : s.q.kind === 'write'
+        ? h('p', { className: 'phones' }, `✍️ ${subj(s).name} pisze na telefonie…`)
         : m === 'rysowanie'
         ? [clock(s), h('p', { className: 'dim' }, s.guesses ? `${guesser(s).name}: ${s.guesses.join(' · ')}` : `${guesser(s).name} zgaduje na telefonie`)]
         : m === 'wyzwania'
-        ? h('p', { className: 'dim' }, s.q.kind === 'pick' ? `${subj(s).name} wybiera na telefonie`
-            : `${guesser(s).name} ocenia na telefonie: zaliczone czy nie`)
-        : [h('p', { className: 'phones' }, '📱 Odpowiadajcie na telefonach'), ranked(s)
+        ? s.q.kind === 'dare' && h('p', { className: 'phones' }, `📱 ${guesser(s).name} ocenia na telefonie`)
+        // who already answered, small at the bottom: the phones are the pad, nobody needs to be told
+        : ranked(s)
           ? h('div', { className: 'list' }, s.pairs.map(p => h('span', { className: p.done ? '' : 'done' }, (p.done ? '✓ ' : '… ') + pairName(p))))
-          : h('div', { className: 'slots' }, s.players.map((p, i) => slot(p, i, s.answered[i] ? '✓ gotowe' : 'wybiera…')))],
+          : h('div', { className: 'slots mini' }, s.players.map((p, i) => slot(p, i, s.answered[i] ? '✓ gotowe' : 'myśli…'))),
     ];
   } else if (s.phase === 'reveal' && ranked(s)) {
     kids = [
       h('h2', { className: 'long' }, s.q.text),
       ranking(s, true),
-      h('p', { className: 'dim' }, `Dalej na telefonach · gotowi: ${ready(s)}`),
     ];
   } else if (s.phase === 'reveal') {
     const v = verdict(s);
     kids = [
-      h('h2', { className: 'verdict ' + (v.hit ? 'hit' : 'miss') }, h('span', { ariaHidden: true }, v.hit ? '💞 ' : '🙈 '), v.text),
+      // the headline big, the points on a line of their own: a long name never breaks the headline
+      (([, head, rest]) => h('div', { className: 'verdict-box' }, h('h2', { className: 'verdict ' + (v.hit ? 'hit' : 'miss') }, h('span', { ariaHidden: true }, v.hit ? '💞 ' : '🙈 '), head.replace(/ ·$/, '')),
+        rest && h('p', { className: 'points ' + (v.hit ? 'hit' : 'miss') }, rest)))(v.text.match(/^(.*?(?:!| ·))\s*(.*)$/) || [, v.text, '']),
       question(s),
       againLine(s),
-      h('div', { className: 'slots' }, s.players.map((p, i) => slot(p, i, p.ready ? '✓ dalej' : 'Dalej na telefonie'))),
     ];
   } else {
     kids = summary(s);
@@ -283,12 +284,6 @@ function render(s) {
   // a new screen is built anew, with its entrance; on the same one only what changed is updated
   if (fresh) $('app').replaceChildren(...kids.flat(3).filter(Boolean)); else morph($('app'), kids);
   fit();
-}
-
-// "3 z 4": how many of those here tapped Dalej, when several couples play
-function ready(s) {
-  const here = s.pairs.flatMap(p => p.players).filter(x => x.online && !x.bot);
-  return `${here.filter(x => x.ready).length} z ${here.length}`;
 }
 
 // Whatever the projector's resolution, the screen never scrolls and nothing is cut off:
