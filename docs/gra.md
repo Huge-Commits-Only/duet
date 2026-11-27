@@ -57,7 +57,7 @@ Pytania z trybów, w których oboje odpowiadacie na to samo (Co wolisz, Kto prę
 Duet pamięta Wasze odpowiedzi, więc z czasem robi się ciekawszy:
 
 - **Powtórki.** Raz na grę wraca pytanie, na które odpowiadaliście co najmniej dwa miesiące temu. Na telefonach i projektorze widać „🔁 To pytanie już było w marcu”, a przy wyniku projektor pokazuje, co każde z Was odpowiedziało wtedy. Pytanie o jedną osobę wraca do tej samej osoby.
-- **Kapsuła czasu.** Na koniec gry każde z Was może zostawić na telefonie jedno zdanie (do 200 znaków) do przeczytania za rok. Nikt go nie zobaczy wcześniej, także partner. Po roku w menu pojawia się przycisk „📬 Otwórzcie list sprzed roku”, który pokazuje listy na projektorze (`letters.json` w wolumenie).
+- **Kapsuła czasu.** Na koniec pierwszej gry dnia (a potem w menu pod „Więcej opcji”) każde z Was może zostawić na telefonie jedno zdanie (do 200 znaków) do przeczytania za rok. Nikt go nie zobaczy wcześniej, także partner. Po roku w menu pojawia się przycisk „📬 Otwórzcie list sprzed roku”, który pokazuje listy na projektorze (`letters.json` w wolumenie).
 - **Wieczór rocznicowy.** Tryb złożony wyłącznie z Waszej historii: najpierw pytania, przy których najbardziej się różniliście, potem te najdawniejsze, w kolejności, w jakiej padły pierwszy raz, każde z odpowiedziami sprzed miesięcy. Na koniec projektor pokazuje otwarte już listy z kapsuły. Potrzebuje co najmniej czterech pytań z Waszej historii i gra tylko jedna para, bez botów.
 - **Wasz miesiąc.** Przy pierwszej grze w nowym miesiącu menu na projektorze podsumowuje poprzedni: wieczory, gry, średnią zgodność, temat, w którym byliście najbardziej zgodni, największą zmianę i nowe odznaki. Znika po „Zamknij podsumowanie miesiąca” albo po starcie gry.
 
@@ -65,4 +65,4 @@ Duet pamięta Wasze odpowiedzi, więc z czasem robi się ciekawszy:
 Gdy gra jedna para, w grach z punktami każde z Was może przed startem wpisać tajną stawkę: co przegrany robi dla wygranego. Ekran odsłania stawkę zwycięzcy na końcu (przy remisie obie).
 
 ## Pytania, których nie chcecie
-Pod każdym pytaniem na telefonie jest mały link **Nie pokazuj więcej**: pytanie znika ze wszystkich następnych gier (zapisuje się w `banned.json` w wolumenie). Działa tylko dla pary 1, czyli domowników. Gdy w nowej wersji gry poprawimy treść pytania, jego historia i ukrycie przechodzą na nową treść.
+Pod przyciskiem ⋯ w rogu telefonu są **Pomiń rundę**, **Zakończ grę** i **Nie pokazuj więcej**. To ostatnie: pytanie znika ze wszystkich następnych gier (zapisuje się w `banned.json` w wolumenie). Działa tylko dla pary 1, czyli domowników. Gdy w nowej wersji gry poprawimy treść pytania, jego historia i ukrycie przechodzą na nową treść.

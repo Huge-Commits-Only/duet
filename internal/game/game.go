@@ -77,10 +77,8 @@ type Game struct {
 	colors       []int    // "rysowanie": color of each stroke, an index into PALETTE in common.js
 	guesses      []string // "rysowanie": the latest wrong guesses
 	deadline     time.Time
-	seen         map[string]bool // modes already played in this game
-	intro        bool            // the current round is the first of its mode: explain the rules
-	epoch        int             // bumped on every start, so a timer from an abandoned game does nothing
-	round        int             // 1-based number of the current question
+	epoch        int // bumped on every start, so a timer from an abandoned game does nothing
+	round        int // 1-based number of the current question
 	rounds       int
 	showList     bool              // lobby: the projector shows the saved list of mutual yeses
 	showStats    bool              // lobby: the projector shows the statistics
@@ -380,6 +378,9 @@ func (g *Game) phaseView(v *snapshot, p *pair, me int, own bool) {
 	switch g.phase {
 	case "lobby":
 		v.Rule = rules[g.cfg["mode"]]
+		if g.home() && me >= 0 && p == g.pairs[0] { // the letter for a year from now, under "Więcej"
+			v.CanWrite, v.MyLetter = true, g.store.myLetter(p.players[me].Name)
+		}
 		if g.showList && g.home() {
 			v.List = g.store.yes
 		}
@@ -399,9 +400,6 @@ func (g *Game) phaseView(v *snapshot, p *pair, me int, own bool) {
 		}
 	case "question":
 		v.Q, v.Subject, v.Guesses = g.viewQ(p, me), g.subject(), g.guesses
-		if g.intro && g.mode != g.cfg["mode"] { // a single game was explained in the menu already; a mix explains each mode it brings in
-			v.Rule = rules[g.mode]
-		}
 		if g.mode == "rysowanie" {
 			v.Left = max(0, time.Until(g.deadline).Milliseconds())
 		}

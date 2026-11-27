@@ -22,14 +22,12 @@ type saved struct {
 	Rounds      int
 	Subj        int
 	Turn        int
-	Intro       bool
 	ShowList    bool
 	ShowStats   bool
 	ShowProfile bool
 	Pending     bool
 	Stmts       []string
 	Guesses     []string
-	Seen        map[string]bool
 }
 
 type savedPair struct {
@@ -62,8 +60,8 @@ type savedCard struct {
 func (g *Game) save() {
 	s := saved{
 		Key: g.key, Cfg: g.cfg, Phase: g.phase, Mode: g.mode, Cur: g.cur, Round: g.round, Rounds: g.rounds,
-		Subj: g.subj, Turn: g.turn, Intro: g.intro, ShowList: g.showList, ShowStats: g.showStats, ShowProfile: g.showProfile,
-		Pending: g.pending != nil, Stmts: g.stmts, Guesses: g.guesses, Seen: g.seen,
+		Subj: g.subj, Turn: g.turn, ShowList: g.showList, ShowStats: g.showStats, ShowProfile: g.showProfile,
+		Pending: g.pending != nil, Stmts: g.stmts, Guesses: g.guesses,
 	}
 	for _, p := range g.pairs {
 		sp := savedPair{Answers: p.answers, Texts: p.texts, Points: p.points, Stakes: p.stakes,
@@ -134,11 +132,8 @@ func (g *Game) load() {
 	}
 	g.playing = playing
 	g.phase, g.mode, g.cur, g.round, g.rounds = s.Phase, s.Mode, s.Cur, s.Round, s.Rounds
-	g.subj, g.turn, g.intro = s.Subj, s.Turn, s.Intro
-	g.stmts, g.guesses, g.seen = s.Stmts, s.Guesses, s.Seen
-	if g.seen == nil {
-		g.seen = map[string]bool{}
-	}
+	g.subj, g.turn = s.Subj, s.Turn
+	g.stmts, g.guesses = s.Stmts, s.Guesses
 	if s.Pending && g.deck[g.round-1].dare != nil {
 		g.pending = &g.deck[g.round-1]
 	}

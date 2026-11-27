@@ -109,8 +109,8 @@ func (g *Game) do(id, act, key, value string) error {
 		if m := g.store.month(); m != nil {
 			g.store.markMonth(m.Key)
 		}
-	case act == "letter" && g.phase == "end":
-		if !g.household() || p != g.playing[0] {
+	case act == "letter" && (g.phase == "end" || g.phase == "lobby" && g.home()): // at the end of a game, or later from the menu
+		if g.phase == "end" && (!g.household() || p != g.playing[0]) || g.phase == "lobby" && p != g.pairs[0] { // the household's own letters only
 			return ErrBad
 		}
 		if err := g.writeLetter(p.players[me].Name, value); err != nil {

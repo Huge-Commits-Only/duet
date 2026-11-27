@@ -162,7 +162,6 @@ func (g *Game) start() error {
 	}
 	g.phase = "question" // before lead(): from here on the first couple playing is the leading one
 	g.lead()
-	g.seen = map[string]bool{}
 	g.epoch++
 	g.next()
 	return nil
@@ -185,7 +184,6 @@ func (g *Game) next() {
 		g.pending = &g.deck[g.round-1]
 	}
 	g.strokes, g.colors, g.ink, g.guesses = nil, nil, 0, nil
-	g.intro, g.seen[g.mode] = !g.seen[g.mode], true
 	// Whose round it is. When couples take turns they go round the table, and the spotlight
 	// moves to the other partner once everyone had a go.
 	g.pair = g.playing[0]

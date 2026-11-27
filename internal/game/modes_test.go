@@ -332,7 +332,7 @@ func TestSkipAndRules(t *testing.T) {
 		return v.Rule
 	}
 	if rule("") != "" {
-		t.Fatal("a single game is explained in the menu, not again in its first round")
+		t.Fatal("the rules are read in the menu, not again in the first round")
 	}
 	first := g.cur
 	g.Act("a", "answer", "", "0")
@@ -356,15 +356,11 @@ func TestSkipAndRules(t *testing.T) {
 	}
 
 	g = started(t, "mix")
-	explained := 0
 	for g.phase == "question" {
 		if rule("") != "" {
-			explained++
+			t.Fatal("the rules are read in the menu, never again in a round (a mix included)")
 		}
 		all(g, "skip")
-	}
-	if explained != 4 {
-		t.Fatalf("a short mix has 4 modes, each explained once; got %d", explained)
 	}
 	all(g, "quit")
 	if rule("") != rules["mix"] {

@@ -28,6 +28,11 @@ const more = async page => {
   const box = page.locator('details');
   if (!(await box.evaluate(d => d.open))) await box.locator('summary').click();
 };
+// Skip, ban and quit live behind ⋯ in the corner of the phone.
+const action = async (page, name) => {
+  await page.getByRole('button', { name: 'Więcej akcji' }).click();
+  await page.getByRole('button', { name }).click();
+};
 // After a result everyone taps Dalej; the round moves on with the last one.
 async function goOn(pages) {
   for (const p of pages) await p.getByRole('button', { name: /^(Dalej|Zobacz wynik)$/ }).click();
@@ -103,9 +108,10 @@ async function step() {
       check(!/Zgodni|Pudło|Trafione|Różnica|Tym razem|Telepatia!|wykryte|Blef się udał|Zgadnięte/.test(before), `the result belongs to the projector, the phone says:\n${before}`);
       const tapped = await next.first().elementHandle();
       await tapped.click();
-      // wait until the game took the tap and this button is gone (the next screen is built anew); any change
-      // is not enough: the 3-2-1 changes the screen too, and the next step would tap the same Dalej twice (issue #19)
-      await p.waitForFunction(el => !el.isConnected, tapped);
+      // wait until the game took the tap and this button is no longer Dalej (gone, or reused for something else
+      // when only part of the screen is updated); any change is not enough: the 3-2-1 changes the screen too,
+      // and the next step would tap the same Dalej twice (issue #19)
+      await p.waitForFunction(el => !el.isConnected || !/^(Dalej|Zobacz wynik|Zakończ rozmowę)$/.test(el.textContent.trim()), tapped);
       return true;
     }
     if (await has(p, '.stmt')) { // blef: write three statements, the partner guesses
@@ -143,13 +149,13 @@ async function step() {
       await p.locator('canvas.pad').waitFor({ state: 'detached' });
       return true;
     }
-    if (await has(p, 'button:text-is("Prawda")')) { // wyzwania: pick truth or dare...
+    if (await p.getByRole('button', { name: 'Prawda', exact: true }).count()) { // wyzwania: pick truth or dare...
       const before = await text(p);
       await p.getByRole('button', { name: 'Wyzwanie' }).click();
       await Promise.all([changed(p, before), other.getByRole('button', { name: 'Zaliczone', exact: true }).waitFor()]);
       return true;
     }
-    if (await has(p, 'button:text("Zaliczone")')) { // ...then the partner judges
+    if (await p.getByRole('button', { name: 'Zaliczone', exact: true }).count()) { // ...then the partner judges
       const before = await text(p);
       await p.getByRole('button', { name: 'Zaliczone', exact: true }).click();
       await changed(p, before);
@@ -193,10 +199,9 @@ async function play(label, expectAtEnd, atEnd) {
   await screen.locator('.rule').waitFor(); // the menu explains the rules
   await a.getByRole('button', { name: 'Start' }).click();
   await a.getByRole('button', { name: 'Start' }).waitFor({ state: 'detached' });
-  // the menu explained a single game; a mix explains each mode it brings in
-  const mixed = /mix|rocznicowy/.test(label);
+  // the rules are read in the menu, never again in a round
   await screen.locator('.topbar').waitFor(); // the projector is in the game, past the menu
-  check((await screen.locator('.rule').count()) === (mixed ? 1 : 0), `${label}: the first round must ${mixed ? '' : 'not '}explain the rules`);
+  check((await screen.locator('.rule').count()) === 0, `${label}: the first round must not repeat the rules`);
   for (let steps = 0; await step(); steps++) check(steps < 600, `${label}: stuck at\n${await text(a)}\n---\n${await text(b)}`);
   await screen.locator('.count').waitFor({ state: 'detached' }); // the 3-2-1 before a result
   const end = (await text(screen)).replace(/\n+/g, ' | ');
@@ -224,7 +229,13 @@ await b.locator('.picker button', { hasText: 'Lekko' }).click();
 
 // ---- every mode ----
 // no points, so no reward either; the rounds where the two chose differently are left to talk about
-await play('Co wolisz', /Wasza zgodność \| 50% \| Do pogadania \| .+\?$/);
+// at the end of the first game of the day each phone may leave a letter for a year from now, which nobody else sees
+await play('Co wolisz', /Wasza zgodność \| 50% \| Do pogadania \| .+\?$/, async () => {
+  await a.getByLabel('List do Was za rok').fill('Za rok gramy dalej');
+  await a.getByRole('button', { name: 'Schowaj do kapsuły' }).click();
+  await a.getByText('List czeka w kapsule').waitFor();
+  check(!(await text(b)).includes('Za rok gramy') && !(await text(screen)).includes('Za rok gramy'), 'a letter must stay secret until it opens');
+});
 await play('Kto prędzej', /Wasza zgodność \| 50%/);
 await play('Nigdy przenigdy', /Wasza zgodność \| 50%/);
 await play('Jak dobrze mnie znasz', /Wygrywa|Remis/);
@@ -238,14 +249,8 @@ await play('Wyzwania', /Zaliczone zadania \| 6 z 6/);
 await play('Blef', /Wykryte kłamstwa \| 4 z 4/);
 await play('Rysowanie', /Odgadnięte hasła \| 4 z 4/);
 await play('Wieczór mix', /Wspólny wynik/);
-// the anniversary evening is made of tonight's questions, each with what the two said the first time;
-// at its end each phone may leave a letter for a year from now, which nobody else sees
-await play('Wieczór rocznicowy', /Wspólny wynik/, async () => {
-  await a.getByLabel('List do Was za rok').fill('Za rok gramy dalej');
-  await a.getByRole('button', { name: 'Schowaj do kapsuły' }).click();
-  await a.getByText('List czeka w kapsule').waitFor();
-  check(!(await text(b)).includes('Za rok gramy') && !(await text(screen)).includes('Za rok gramy'), 'a letter must stay secret until it opens');
-});
+// the anniversary evening is made of tonight's questions, each with what the two said the first time
+await play('Wieczór rocznicowy', /Wspólny wynik/);
 for (const p of phones) await p.setViewportSize(devices['iPhone 16'].viewport);
 check(locked, 'Dalej must be locked while the result is shown');
 
@@ -267,7 +272,8 @@ await a.locator('.picker button', { hasText: 'Co wolisz' }).click();
 await a.locator('.picker button[aria-pressed="true"]', { hasText: 'Co wolisz' }).waitFor();
 await a.getByRole('button', { name: 'Start' }).click();
 await a.getByText('Runda 1 z 8').waitFor();
-await a.getByRole('button', { name: 'Nie pokazuj więcej' }).click(); // this one never comes back
+await action(a, 'Nie pokazuj więcej'); // this one never comes back
+await b.getByRole('button', { name: 'Więcej akcji' }).click();
 await b.getByRole('button', { name: '✓ Nie wróci' }).waitFor();
 await b.getByRole('button', { name: 'Pomiń rundę' }).click();
 await a.getByText('Kuba chce pominąć tę rundę. Zgadzasz się?').waitFor(); // skipping is a vote
@@ -287,7 +293,7 @@ await a.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
 await a.locator('body:not(.offline)').waitFor({ state: 'attached' });
 await screen.locator('.slot.off').waitFor({ state: 'detached' });
 await a.getByText('Runda 2 z 8').waitFor();
-await a.getByRole('button', { name: 'Zakończ grę' }).click();
+await action(a, 'Zakończ grę');
 await b.getByRole('button', { name: 'Zgoda' }).click(); // ending the game too
 await b.getByRole('button', { name: 'Start' }).waitFor();
 
