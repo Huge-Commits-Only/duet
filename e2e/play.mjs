@@ -69,14 +69,20 @@ process.on('uncaughtException', async e => {
   }
   process.exit(1);
 });
+// the projector's menu fits the screen: the big join code and both player cards side by side
+const fits = async what => check(await screen.evaluate(() => [...document.querySelectorAll('.slot, #qr, #url')].every(e => {
+  const r = e.getBoundingClientRect(); return r.left >= -1 && r.right <= innerWidth + 1; })), `the projector menu runs off the screen ${what}:\n${await text(screen)}`);
 await a.fill('#name', 'Natalia');
 await a.getByRole('button', { name: 'jak do niej' }).click();
 await a.click('#join .btn');
+await screen.locator('.slot.on').waitFor();
+await fits('with one player in');
 await b.fill('#name', 'Kuba');
 await b.getByRole('button', { name: 'jak do niego' }).click();
 await b.click('#join .btn');
 await a.getByRole('button', { name: 'Start' }).waitFor();
 check((await screen.locator('.slot.on').count()) === 2, 'both players must show as joined on the projector');
+await fits('with both players in');
 
 // ---- one step of a game: do whatever a phone is waiting for ----
 // Returns false once the game is over. Odd rounds agree or hit, even rounds differ or miss.
@@ -370,8 +376,9 @@ for (let i = 1; i <= 8; i++) {
   await b.locator('.pick').first().click();
   await c.locator('.pick').first().click(); // Kasia and Tomek never do
   if (i === 1) {
-    check((await text(screen)).includes('… Kasia i Tomek'), 'the projector must show which couple is still answering');
-    check((await text(a)).includes('Czekamy na pozostałe pary'), 'a couple that is done waits for the others');
+    // (waited for: the state update may still be on its way)
+    await screen.getByText('… Kasia i Tomek').waitFor(); // the projector shows which couple is still answering
+    await a.getByText('Czekamy na pozostałe pary').waitFor(); // a couple that is done waits for the others
   }
   await d.locator('.pick').nth(1).click();
   await screen.locator('.ranking').waitFor();

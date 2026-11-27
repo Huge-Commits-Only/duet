@@ -127,6 +127,8 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .slots.lobby { align-items: center; gap: calc(var(--u) * 4); }
 /* two cards of one width, whatever the names, so the heart stays in the middle */
 .slots.lobby .slot { grid-template-columns: minmax(0, 1fr); justify-items: center; row-gap: calc(var(--u) * .6); width: calc(var(--u) * 56); min-width: 0; padding: calc(var(--u) * 2.5) calc(var(--u) * 3); text-align: center; }
+/* next to the big join code, while someone is still missing: narrower, so the code and both cards fit */
+.stage:has(#qr:not(.small)) .slots.lobby .slot { width: calc(var(--u) * 40); }
 .slots.lobby .ini { grid-row: auto; width: calc(var(--u) * 11); height: calc(var(--u) * 11); margin-bottom: calc(var(--u) * .8); font-size: calc(var(--u) * 6); }
 .slots.lobby b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(var(--u) * 5); line-height: 1.2; }
 .slots.lobby small { font-size: calc(var(--u) * 2.6); }
