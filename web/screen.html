@@ -207,7 +207,8 @@ function render(s) {
   $('joinbox').hidden = s.phase !== 'lobby' && both || !!s.list || !!s.stats || !!s.profile || !!s.month || !!s.letters;
   $('qr').classList.toggle('small', both);
   document.querySelector('main').classList.toggle('ingame', s.phase !== 'lobby'); // small title: the game gets the room
-  $('url').textContent = link || `${location.host}/play?k=${s.key}`; // for a phone that cannot scan the code
+  joinCode(s.key);
+  $('url').textContent = link && link.endsWith('k=' + s.key) ? link : `${location.host}/play?k=${s.key}`; // for a phone that cannot scan the code
   const m = s.mode;
   // the round on the left, the score on the right, out of the way of the question
   const round = () => {
@@ -324,9 +325,16 @@ addEventListener('keydown', e => {
   else if (e.key === 'm') $('snd').click();
 });
 
-// the same address as in the QR code (PUBLIC_URL, https), not whatever this page was opened with
-let link = '';
-fetch('/link').then(r => r.ok && r.text()).then(t => { if (t) $('url').textContent = link = t; }).catch(() => {});
+// the same address as in the QR code (PUBLIC_URL, https), not whatever this page was opened with.
+// The join code is new after the game's data was wiped: the code and the address follow it without a reload.
+let link = '', shownKey = '';
+function joinCode(key) {
+  if (!key || key === shownKey) return;
+  const first = !shownKey;
+  shownKey = key;
+  if (!first) $('qr').src = '/qr.png?k=' + key; // a new address, so the browser fetches the new image
+  fetch('/link').then(r => r.ok && r.text()).then(t => { if (t) $('url').textContent = link = t; }).catch(() => {});
+}
 // A short 3-2-1 before a result, so everyone knows to look up from the phones.
 // States arriving meanwhile are kept, and the newest one is shown when it ends.
 let counting = null;
